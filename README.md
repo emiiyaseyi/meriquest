@@ -9,6 +9,9 @@ A life-simulation learning game for Meristem Securities Limited staff. It combin
 ```
 game/                 Playable prototype (plain HTML/CSS/JS, no build step)
   index.html          Entry page
+  auth-config.js      Sign-in settings: default password, email domain, staff ID format, lockout
+  staff.js            Sample staff directory (fictional people) loaded on first run
+  auth.js             Sign-in, password change, admin panel (staff & access)
   content.js          Learning content: tracks, scenarios, quizzes, competencies, values
   clients.js          Office segments, personality styles, signature clients
   clientgen.js        Client generator: case library, channels, tiers, moods, locations
@@ -32,7 +35,17 @@ Any static web server works. From the repo root:
 python -m http.server 5173 --directory game
 ```
 
-Then open http://localhost:5173. Progress is saved in your browser (localStorage). Use **L&D report → Reset progress** to start again.
+Then open http://localhost:5173. Progress is saved in your browser (localStorage), separately for each staff member. Use **L&D report → Reset progress** to start again.
+
+## Signing in (prototype)
+
+- Sign in with a **staff ID** (e.g. `MS1001`) or **work email**, plus a password.
+- Every new or reset account uses the **default password** set in [`game/auth-config.js`](game/auth-config.js). At first sign-in the person must create their own password. **Change the default before sharing the prototype.**
+- Sample accounts are in [`game/staff.js`](game/staff.js). `MS0001` is the L&D admin. Each sample person has a unit, office and starting track.
+- **Admin panel** (⚙️ Admin in the top bar, admins only): search staff, reset a password to the default, unlock locked accounts, disable/enable, change roles, add staff, import/export CSV, and view the audit log.
+- Accounts lock for 15 minutes after 5 failed attempts (configurable).
+- Prototype only: accounts live in this browser, and passwords are stored salted and hashed (SHA-256). **Production must move sign-in to the server or company SSO** (see docs/PRD.md §8–10).
+- To wipe all local accounts and progress, clear the site data for `localhost:5173` in your browser.
 
 In VS Code you can also use the **Live Server** extension: right-click `game/index.html` → *Open with Live Server*.
 

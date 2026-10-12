@@ -140,7 +140,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 ### 8.1 Player
 | ID | Requirement | Priority |
 |---|---|---|
-| P-1 | Sign in with company SSO; no separate passwords. | Must |
+| P-1 | Sign in with company SSO; no separate passwords. Until SSO is connected: sign in with staff ID or work email + password; a default/initial password that must be changed at first sign-in; lockout after repeated failures; generic error messages. *(Prototype implements this flow in the browser.)* | Must |
 | P-2 | Tracks auto-assigned from HRIS (grade, unit, tenure), plus optional self-enrol tracks. | Must |
 | P-3 | Play the core loop on mobile and desktop browsers; installable as a PWA. | Must |
 | P-4 | Resume progress across devices (server-side save). | Must |
@@ -174,10 +174,11 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | A-6 | Bulk import and export of content (JSON/CSV). | Should |
 | A-6a | Case-library authoring: add a case template once; the generator varies personality, mood, tier, channel and location automatically. Compliance approval per case. | Must |
 | A-6b | Calibrate shifts from aggregated contact-centre data (channel mix, contact reasons, response and handling-time targets). | Should |
+| A-6c | Staff & access admin: search staff, reset password to the default (forces a change at next sign-in), unlock, disable/enable, change role (staff / manager / admin), add staff, CSV import/export, audit log of admin and security events. *(Prototype implemented.)* | Must |
 | A-7 | Moderation console: reported messages, user restrictions, keyword lists, chat-retention settings, audit trail. | Must |
 
 ## 9. Non-functional requirements
-- **Security:** SSO (OIDC/SAML), role-based access (player / manager / admin / reviewer), audit log of admin actions, OWASP ASVS L2, annual penetration test before go-live.
+- **Security:** SSO (OIDC/SAML), role-based access (player / manager / admin / reviewer), audit log of admin actions, OWASP ASVS L2, annual penetration test before go-live. Until SSO: passwords hashed server-side with Argon2id or bcrypt; initial passwords generated per user and delivered out-of-band (never a shared default in code); rate limiting and lockout; session expiry; HTTPS only.
 - **Privacy:** Compliance with NDPA 2023. A Data Protection Impact Assessment (DPIA) before the pilot. Data minimisation (no client data at all). Retention policy (e.g. 3 years). Clear notice to staff about what's collected and who sees it.
 - **Hosting:** Meristem-approved cloud tenant, with data residency confirmed by IT/Risk.
 - **Performance:** p95 page interaction under 200 ms; first load under 3 s on 4G.

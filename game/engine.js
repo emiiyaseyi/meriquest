@@ -19,7 +19,8 @@
   const modalBody = document.getElementById("modal-body");
   const toastEl = document.getElementById("toast");
 
-  let S = migrate(load());
+  let user = null; // signed-in staff member (from auth.js)
+  let S = null;
   let tab = "world";
   let quizRun = null;
   let sim = null;
@@ -53,11 +54,13 @@
     return a;
   }
 
+  // Each staff member has their own saved progress on this device.
+  const saveKey = () => KEY + "." + (user ? user.staffId : "guest");
   function load() {
-    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+    try { const raw = localStorage.getItem(saveKey()); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage blocked: play continues in memory */ }
+    try { localStorage.setItem(saveKey(), JSON.stringify(S)); } catch (e) { /* storage blocked: play continues in memory */ }
   }
 
   function levelInfo(xp) {
@@ -77,7 +80,7 @@
 
   function record(verb, object, result) {
     S.log.push({
-      actor: { name: S.player.name },
+      actor: { name: S.player.name, account: { homePage: "https://meriquest.local", name: S.player.staffId || "guest" } },
       verb: { id: "http://adlnet.gov/expapi/verbs/" + verb, display: verb },
       object: { id: "https://meriquest.local/" + object.id, name: object.name },
       result: result || null,
@@ -92,7 +95,7 @@
     const comps = {};
     C.competencies.forEach((c) => (comps[c.id] = t.baseline[c.id] ?? 20));
     S = {
-      v: 1, player: { name, avatar, trackId, segment }, startedAt: new Date().toISOString(), cx: newCx(),
+      v: 1, player: { name, avatar, trackId, segment, staffId: user ? user.staffId : null }, startedAt: new Date().toISOString(), cx: newCx(),
       day: 1, slot: 0, energy: 100, trust: 50, compliance: 80, xp: 0,
       baseline: { ...comps }, comps, done: {}, quizSeen: {}, missions: null, streak: 0,
       journal: [], badges: {}, log: [], stats: { best: 0, ok: 0, poor: 0, qRight: 0, qTotal: 0 }, finished: false,
@@ -764,6 +767,7 @@
           <div class="bar"><i style="width:${lv.pct}%"></i></div>
         </div>
         <div class="clock"><strong>Day ${S.day}</strong><div class="muted small">${slotsLeft() > 0 ? SLOTS[S.slot] : "After hours"} · 🔥 ${S.streak}</div></div>
+        ${acctButtons()}
       </header>
 
       <section class="meters">
@@ -914,13 +918,14 @@
   function renderSetup() {
     app.innerHTML = `
       <div class="setup">
+        ${user ? `<div class="signed-bar"><span>Signed in as <strong>${esc(user.name)}</strong> · ${esc(user.staffId)}${user.title ? " · " + esc(user.title) : ""}</span>${acctButtons()}</div>` : ""}
         <div class="hero">
           <div class="brand big"><span class="logo">🌿</span><span>MeriQuest</span><span class="draft">Prototype</span></div>
           <h1>Grow your Meristem career, one decision at a time.</h1>
           <p class="muted">A life-sim for learning: walk the Group, meet clients and colleagues, make real calls, and build technical and soft skills together.</p>
         </div>
         <div class="card">
-          <label class="lbl" for="pname">Your name</label>
+          <label class="lbl" for="pname">Display name</label>
           <input id="pname" class="input" maxlength="30" placeholder="e.g. Tolu" value="${esc(setup.name)}" />
           <div class="lbl">Avatar</div>
           <div class="avatars">${AVATARS.map((a) => `<button class="av ${setup.avatar === a ? "on" : ""}" data-act="avatar" data-a="${a}" aria-label="Avatar ${a}">${a}</button>`).join("")}</div>
@@ -995,7 +1000,10 @@
       case "restart":
         if (confirm("Start a new track? Your current progress on this device will be cleared.")) { closeModal(); resetAll(); }
         break;
-      case "reset": if (confirm("Reset all progress on this device?")) resetAll(); break;
+      case "reset": if (confirm("Reset all your progress on this device?")) resetAll(); break;
+      case "signout": closeModal(); desk = null; sim = null; S = null; user = null; window.MQAuth.signOut(); break;
+      case "admin": closeModal(); window.MQAuth.openAdmin(user, () => render()); break;
+      case "chpw": closeModal(); window.MQAuth.openChangePassword(user, () => render()); break;
     }
   });
 
@@ -1009,8 +1017,8 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "pname") document.querySelector('[data-act="start"]').click(); });
 
   function resetAll() {
-    try { localStorage.removeItem(KEY); } catch (e) {}
-    S = null; setup = { name: "", avatar: AVATARS[0], trackId: C.tracks[0].id, segment: C.tracks[0].segment }; tab = "world"; render();
+    try { localStorage.removeItem(saveKey()); } catch (e) {}
+    S = null; setup = setupFor(user); tab = "world"; render();
   }
 
   function exportLog() {
@@ -1022,5 +1030,23 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  render();
+  function acctButtons() {
+    if (!user) return "";
+    return `<div class="acct">${user.role === "admin" ? `<button class="btn small" data-act="admin" title="Staff & access">⚙️ Admin</button>` : ""}<button class="btn small" data-act="chpw" title="Change password" aria-label="Change password">🔑</button><button class="btn small" data-act="signout">Sign out</button></div>`;
+  }
+
+  function setupFor(u) {
+    const t = (u && C.tracks.find((x) => x.id === u.track)) || C.tracks[0];
+    return { name: u ? u.name : "", avatar: AVATARS[0], trackId: t.id, segment: (u && u.segment) || t.segment };
+  }
+
+  // Nothing renders until a staff member signs in (auth.js shows the sign-in page first).
+  window.MQAuth.boot((u) => {
+    user = u;
+    S = migrate(load());
+    if (S) S.player.staffId = u.staffId;
+    setup = setupFor(u);
+    tab = "world";
+    render();
+  });
 })();
