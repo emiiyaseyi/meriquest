@@ -140,7 +140,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 ### 8.1 Player
 | ID | Requirement | Priority |
 |---|---|---|
-| P-1 | Sign in with company SSO; no separate passwords. Until SSO is connected: sign in with staff ID or work email + password; a default/initial password that must be changed at first sign-in; lockout after repeated failures; generic error messages. *(Prototype implements this flow in the browser.)* | Must |
+| P-1 | Sign in with **staff ID or work email + password** (no Microsoft/SSO login; decided 12 Oct 2026). New and reset accounts use a default password and must set their own at first sign-in; lockout after repeated failures; generic error messages; session expiry; sign out on all devices. *(Prototype implements this flow in the browser; production checks it on the server.)* | Must |
 | P-2 | Tracks auto-assigned from HRIS (grade, unit, tenure), plus optional self-enrol tracks. | Must |
 | P-3 | Play the core loop on mobile and desktop browsers; installable as a PWA. | Must |
 | P-4 | Resume progress across devices (server-side save). | Must |
@@ -150,7 +150,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | P-7a | Client Desk shifts with generated clients; per-shift scorecard (FCR, CSAT, response targets, AHT, tone fit, conduct, value, growth). | Must |
 | P-7b | Office segment chosen at onboarding (from HRIS in production) drives the Performance Index weighting. | Must |
 | P-8 | Shared 2D world: see colleagues' avatars and presence in real time; visit locations together. | Must |
-| P-8a | Chat: team, cohort and location channels plus 1:1 DMs, under real-name SSO identities; report and block; profanity/PII filter. | Must |
+| P-8a | Chat: team, cohort and location channels plus 1:1 DMs, under real-name staff accounts (from the staff directory); report and block; profanity/PII filter. | Must |
 | P-8b | Kudos (limited per week), colleague relationship ladder, co-op scenarios, mentoring sessions. | Should |
 | P-8c | Cohort / team challenges and leaderboards. | Should |
 | P-8d | "Invisible" mode and notification controls. | Must |
@@ -178,7 +178,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | A-7 | Moderation console: reported messages, user restrictions, keyword lists, chat-retention settings, audit trail. | Must |
 
 ## 9. Non-functional requirements
-- **Security:** SSO (OIDC/SAML), role-based access (player / manager / admin / reviewer), audit log of admin actions, OWASP ASVS L2, annual penetration test before go-live. Until SSO: passwords hashed server-side with Argon2id or bcrypt; initial passwords generated per user and delivered out-of-band (never a shared default in code); rate limiting and lockout; session expiry; HTTPS only.
+- **Security:** staff ID/email + password sign-in checked on the server; passwords hashed with Argon2id or bcrypt; the default password kept only as a server-side secret (environment variable or admin setting), never in front-end code, and forced to change at first sign-in; rate limiting and lockout; secure, HTTP-only session cookies with expiry; role-based access (player / manager / admin / reviewer); audit log of admin and security events; HTTPS only; OWASP ASVS L2; penetration test before go-live. Optional later: two-step verification by email code for admins.
 - **Privacy:** Compliance with NDPA 2023. A Data Protection Impact Assessment (DPIA) before the pilot. Data minimisation (no client data at all). Retention policy (e.g. 3 years). Clear notice to staff about what's collected and who sees it.
 - **Hosting:** Meristem-approved cloud tenant, with data residency confirmed by IT/Risk.
 - **Performance:** p95 page interaction under 200 ms; first load under 3 s on 4G.
@@ -195,11 +195,11 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | Real-time multiplayer | **WebSockets**: Azure Web PubSub, Supabase Realtime or Socket.IO on Node | Presence, chat, co-op scenarios; scales to Group headcount easily |
 | Back end / API | Next.js API routes or NestJS | One TypeScript codebase. |
 | Database | **PostgreSQL** (Azure Database for PostgreSQL or Supabase) via Prisma | Relational data (users, tracks, attempts) with JSON for content. |
-| Auth | **Microsoft Entra ID (Azure AD) SSO** *(to confirm)* | Uses existing staff identities. |
+| Auth | **Staff ID / work email + password**, server-side (Auth.js credentials or Supabase Auth), hashed passwords, default password + forced change, admin reset | Decided 12 Oct 2026: no Microsoft login. Staff directory imported from HR (CSV) and managed in the admin panel. |
 | Content | Content stored in Postgres with an admin UI (v1); a headless CMS later if needed | Keeps v1 simple. |
 | Learning records | xAPI → Learning Record Store (e.g. built-in table → external LRS) | Portability to the LMS. |
 | Analytics | Postgres views + Power BI / Metabase dashboards | HR already reports in BI tools (to confirm). |
-| Hosting / CI | GitHub → GitHub Actions → Azure App Service / Vercel (per IT policy) | Simple, auditable deploys. |
+| Hosting / CI | **Netlify** (preferred) or Vercel, deploying from GitHub; Supabase for Postgres, Realtime and Storage | Simple, auditable deploys; preview link for every change. |
 | AI role-play (Phase 3) | Claude API with rubric-based grading; no client data in prompts | Practice open-ended conversations. |
 
 ### 10.1 Core data model (v1)
@@ -246,7 +246,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 
 ## 14. Open questions
 1. Which LMS (if any) must MeriQuest report to, and does it accept xAPI or only SCORM?
-2. Is staff identity on Microsoft 365 / Entra ID? Are there approved cloud regions?
+2. ~~Is staff identity on Microsoft 365 / Entra ID?~~ **Decided 12 Oct 2026: no Microsoft login; staff ID/email + password.** Which hosting region should staff data use (NDPA)?
 3. Which HRIS holds grade, unit and manager data, and is there an API or a CSV export?
 4. Who is the executive sponsor, and who are the SMEs per subsidiary?
 5. ~~Can game outcomes inform MSP first-quarter assessments?~~ **Decided 12 Oct 2026: development only.**

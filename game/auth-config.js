@@ -3,8 +3,8 @@
  *
  * ⚠️ Prototype only. Everything here runs in the browser, so this is a mock of the real flow
  * for demos and playtests. In production:
- *   - sign-in is checked on the server (or via company SSO), never in the browser;
- *   - the default/initial password is generated per user and never shipped in front-end code;
+ *   - sign-in (staff ID/email + password) is checked on the server, never in the browser;
+ *   - the default password is a server-side secret (env variable / admin setting), never in front-end code;
  *   - passwords are hashed server-side with a slow hash (Argon2id/bcrypt).
  * Change `defaultPassword` before sharing the prototype with anyone.
  */

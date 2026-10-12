@@ -44,7 +44,7 @@ Then open http://localhost:5173. Progress is saved in your browser (localStorage
 - Sample accounts are in [`game/staff.js`](game/staff.js). `MS0001` is the L&D admin. Each sample person has a unit, office and starting track.
 - **Admin panel** (⚙️ Admin in the top bar, admins only): search staff, reset a password to the default, unlock locked accounts, disable/enable, change roles, add staff, import/export CSV, and view the audit log.
 - Accounts lock for 15 minutes after 5 failed attempts (configurable).
-- Prototype only: accounts live in this browser, and passwords are stored salted and hashed (SHA-256). **Production must move sign-in to the server or company SSO** (see docs/PRD.md §8–10).
+- Prototype only: accounts live in this browser, and passwords are stored salted and hashed (SHA-256). **Production must move sign-in to the server** (staff ID/email + password, hashed server-side; see docs/PRD.md §8–10).
 - To wipe all local accounts and progress, clear the site data for `localhost:5173` in your browser.
 
 In VS Code you can also use the **Live Server** extension: right-click `game/index.html` → *Open with Live Server*.
@@ -80,4 +80,4 @@ All scenarios live in `game/content.js`. To add one, copy an existing scenario o
 Reload the page to play it.
 
 ## Production roadmap
-See [docs/PRD.md](docs/PRD.md) §10 for the recommended stack (Next.js + TypeScript, PostgreSQL, Microsoft Entra ID SSO, xAPI) and [docs/WORKPLAN.md](docs/WORKPLAN.md) for the phases.
+See [docs/PRD.md](docs/PRD.md) §10 for the recommended stack (Next.js + TypeScript on Netlify, Supabase Postgres/Realtime, staff ID/email + password sign-in, xAPI) and [docs/WORKPLAN.md](docs/WORKPLAN.md) for the phases.

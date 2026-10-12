@@ -7,7 +7,7 @@
  *   - passwords are stored salted + hashed (SHA-256) on this device, never in plain text;
  *   - accounts lock after repeated failed attempts;
  *   - admins manage staff: reset password, unlock, enable/disable, roles, add/import/export.
- * In production all of this moves server-side (or to company SSO). See auth-config.js.
+ * In production all of this moves server-side (Netlify functions + Supabase). See auth-config.js.
  */
 (function () {
   "use strict";

@@ -10,7 +10,7 @@ Draft v0.1, 12 October 2026. Indicative timeline: **about 10 months from approva
 |---|---|---|---|---|
 | 0 | **Mobilise and discover** | 1–3 | Sponsor, steering group, SME roster, validated competency framework, success metrics, DPIA started | Steering group approves scope and metrics |
 | 1 | **Prototype validation** | 3–6 | Prototype (this repo) played by 20–30 staff; feedback; content style guide; scenario template | ≥ 70% of testers would use it weekly |
-| 2 | **MVP build** | 6–19 | SSO, server saves, 2D illustrated map, multiplayer (presence, chat, moderation), 3 mini-game types, micro-courses, admin authoring + approval workflow, manager dashboard, xAPI, Wave 1 content (4 tracks × 10–12 scenarios) | Security and load tests passed; Compliance sign-off on all content; chat policy approved |
+| 2 | **MVP build** | 6–19 | Server-side sign-in (staff ID/email + password), server saves, 2D illustrated map, multiplayer (presence, chat, moderation), 3 mini-game types, micro-courses, admin authoring + approval workflow, manager dashboard, xAPI, Wave 1 content (4 tracks × 10–12 scenarios) | Security and load tests passed; Compliance sign-off on all content; chat policy approved |
 | 3 | **Pilot: CX, Wealth Advisory, Investment Advisory** | 19–25 | 80–120 staff: one intern cohort, one MSP cohort, new hires from 2 subsidiaries, one team-lead cohort | Pilot KPIs met (see PRD §11) |
 | 4 | **Scale** | 25–40 | Co-op scenarios and mentoring, Wave 2–3 tracks (Guardian, Analyst Edge, Floor Ready, Registrar, Trustees, Capital, Finance, Legacy); cohort features; seasonal events | ≥ 60% of eligible staff enrolled |
 | 5 | **Run and improve** | 40+ | Monthly content drop, quarterly regulatory review, Boardroom track, AI role-play pilot | Annual L&D impact review |
@@ -36,7 +36,7 @@ Phase 4                                  █████████████
 - [ ] Validate the 10-competency framework against existing job descriptions and appraisal forms.
 - [ ] Agree success metrics and baselines (KYC exceptions, MSP confirmation rate, time-to-productivity, successor coverage).
 - [ ] Start the **DPIA** (NDPA 2023) and agree the data-use policy (development-only).
-- [ ] IT decisions: SSO provider, hosting tenant, LMS/LRS integration, GitHub organisation.
+- [ ] Platform decisions: Netlify + Supabase accounts and hosting region (NDPA), staff directory export from HR (CSV), LMS/LRS integration, GitHub organisation. (Sign-in: staff ID/email + password, no Microsoft login.)
 
 ### Phase 1: Prototype validation (weeks 3–6)
 - [ ] Host the prototype internally (GitHub Pages / intranet / Azure Static Web App).
@@ -50,7 +50,7 @@ Phase 4                                  █████████████
 | Sprint | Engineering | Content |
 |---|---|---|
 | S1 | Next.js + TypeScript scaffold, CI/CD, port the engine, design system; illustrator starts map and character art | Wave 1 tracks expanded to 10–12 scenarios each |
-| S2 | SSO, user/enrolment model, server-side saves, HRIS CSV import | SME review round 1 |
+| S2 | Server-side sign-in (staff ID/email + password, default password, forced change, lockout, admin reset), user/enrolment model, server-side saves, staff CSV import | SME review round 1 |
 | S3 | 2D map (PixiJS) with avatars and travel; 3 mini-game types (sort-swipe, sequence, tap-targets); micro-courses | Compliance review round 1 |
 | S4 | **Multiplayer:** real-time presence, profiles, channels + DMs, report/block, filter, moderation console, kudos | Chat acceptable-use policy (HR + Compliance) |
 | S5 | Admin authoring UI, review/approval workflow, versioning; **case-library editor for the client generator** | **Convert Meristem CX cases into case templates (target: 60+ for the pilot)**; mini-game content |
@@ -96,7 +96,7 @@ Phase 4                                  █████████████
 | QA / test | 0.5 | Functional, accessibility, UAT |
 | SMEs (one per subsidiary) | ~0.1 each | Accuracy review |
 | Compliance reviewer | ~0.2 | Conduct and regulatory sign-off |
-| IT / InfoSec | ~0.2 | SSO, hosting, security testing |
+| IT / InfoSec | ~0.2 | Hosting review, domain/DNS, security testing |
 | HRBPs / line managers | — | Cohorts, manager adoption |
 
 **Build options:** (a) in-house team as above; (b) a local agency for engineering, with L&D owning content; (c) hybrid, where an agency builds the MVP and an in-house developer takes over in Phase 4. The prototype is plain JavaScript and the content is separate from the engine, so any of these works.

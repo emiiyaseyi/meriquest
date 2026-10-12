@@ -118,7 +118,7 @@ Draft v0.1, 12 October 2026. A reference review to inform the MeriQuest build.
 | # | Principle | How Lagos Life does it | MeriQuest translation |
 |---|---|---|---|
 | 1 | **Familiarity and humour** | Real places, slang, NEPA, danfo, "Oga", "Jaguda" | Real Meristem places (Gerrard Road HQ, the trading floor, the Registrar desk), real products (Meritrade, WealthBuddy), Meristem in-jokes and CEPOEM language, written with Corporate Comms |
-| 2 | **Zero friction** | A link, no download, works on cheap phones | Teams/intranet link, SSO, PWA, lightweight 2D, under 300 KB first load |
+| 2 | **Zero friction** | A link, no download, works on cheap phones | Teams/intranet link, staff ID/email sign-in, PWA, lightweight 2D, under 300 KB first load |
 | 3 | **Short, active loops** | 1-hour shifts, mini-games, instant feedback | 5–10 minute sessions; mini-games for procedures (KYC, T-bill pricing, phishing spotting) |
 | 4 | **Visible ladders** | Five named levels per career with pay | Real Meristem career ladders (Intern → Officer → Senior → Team Lead → Head → MD), with competencies needed for each step |
 | 5 | **Skill improves the odds** | Chance + 5%/skill level + mood | Hidden or visible competency score raises the chance of good outcomes; learning pays off in-game |
@@ -141,7 +141,7 @@ Draft v0.1, 12 October 2026. A reference review to inform the MeriQuest build.
 | Random **Nepo/LAPO privilege** | Random advantage feels unfair at work and touches on equity concerns | Role- and level-based starts; optional "challenge modes" chosen by the player |
 | **Crime, EFCC raids, casino, jail** | Inappropriate for a regulated financial firm | Conduct scenarios where *misconduct has consequences* (disciplinary hearing, regulatory sanction), framed as learning |
 | **Real-money purchases, ads, top-ups** | No monetisation in an internal tool; perceived pay-to-win | No real money. Rewards are recognition (badges, certificates, CEO shout-outs), never pay |
-| **Anonymous chat and money transfers** | Harassment, scam, data-leak and records risk (Lagos Life already has strangers begging for money) | Multiplayer with **real-name SSO identities**, moderated chat, report/block, and **no transferable currency** (see §7.1) |
+| **Anonymous chat and money transfers** | Harassment, scam, data-leak and records risk (Lagos Life already has strangers begging for money) | Multiplayer with **real-name staff accounts**, moderated chat, report/block, and **no transferable currency** (see §7.1) |
 | **Bladder/hygiene-style needs** | Trivial for professionals; can feel infantilising | A single **Energy/Wellbeing** meter plus focus and stress |
 | **Real-time clock** | Clashes with real work hours; penalises staff on leave | Session-based "days" (4 slots) that advance when the player chooses |
 | **Exploitable economy** | Lagos Life had a money exploit within days and had to reset balances | Server-authoritative scoring; no transferable currency; anti-gaming checks |
@@ -179,7 +179,7 @@ Draft v0.1, 12 October 2026. A reference review to inform the MeriQuest build.
 ## 6. Recommended MeriQuest feature backlog (informed by this review)
 
 ### MVP (must have for the pilot)
-1. SSO, server saves, role-based start card, 4 Wave 1 tracks expanded to 10–12 scenarios each.
+1. Staff ID/email sign-in, server saves, role-based start card, 4 Wave 1 tracks expanded to 10–12 scenarios each.
 2. **Decision cards** with best / partly right / risky choices, the coach's note, **delegate/escalate** options and a chance layer for flavour.
 3. **Three mini-game types** first: `sortSwipe` (KYC, AML red flags, phishing), `sequence` (account opening, trade settlement, complaint handling), `tapTargets` (spot the error in a statement or research note).
 4. **Micro-courses**: 5 lessons × (notes + 3 questions), 2/day cap, certificate → +15% odds on related scenarios.
@@ -221,7 +221,7 @@ Lagos Life shows both the pull of a shared world and the risks of one (strangers
 |---|---|---|
 | **Presence** | Colleagues' avatars on the map; "who's at the Trading Floor now"; online count by subsidiary | Players can go "invisible"; no location tracking outside the game |
 | **Profiles** | Name, role, subsidiary, level, CEPOEM badges, certificates | Driven by HRIS data; no personal photos in v1 |
-| **Chat** | Team, cohort and location channels; 1:1 DMs between colleagues | Real names only (SSO), a profanity/PII filter, report and block, retention under the HR records policy, moderators from HR/L&D, an acceptable-use policy |
+| **Chat** | Team, cohort and location channels; 1:1 DMs between colleagues | Real names only (staff directory), a profanity/PII filter, report and block, retention under the HR records policy, moderators from HR/L&D, an acceptable-use policy |
 | **Relationships** | Colleague ladder: Stranger → Colleague → Ally → Mentor, earned through co-op play and kudos | No "enemy" or romance tiers |
 | **Co-op scenarios** | Two to four players take roles in one scenario (e.g. team lead + junior advisor + client; dealer + compliance officer) | Facilitated by game rules; scored per role |
 | **Mentoring** | Senior players "host" juniors at their location for a coaching scenario; both earn | Natural fit for the Canopy and Legacy tracks |
