@@ -9,7 +9,9 @@ A life-simulation learning game for Meristem Securities Limited staff. It combin
 ```
 game/                 Playable prototype (plain HTML/CSS/JS, no build step)
   index.html          Entry page
-  content.js          ALL learning content: tracks, scenarios, quizzes, competencies, values
+  content.js          Learning content: tracks, scenarios, quizzes, competencies, values
+  clients.js          Office segments, personality styles, signature clients
+  clientgen.js        Client generator: case library, channels, tiers, moods, locations
   engine.js           Game engine: state, scoring, missions, rendering, xAPI-style log
   styles.css          Styles (light + dark, mobile-first)
 docs/
@@ -17,6 +19,8 @@ docs/
   WORKPLAN.md         Phased delivery plan, team, milestones
   CAREER-TRACKS.md    Career tracks and technical + soft skills matrix by role
   LAGOS-LIFE-REVIEW.md  How Lagos Life is played, what to copy/avoid, gap analysis, decisions
+  CLIENT-SIMULATION.md  Client personality sims, generator, office segments, KPIs
+  templates/CLIENT-CASE-TEMPLATE.md  How to share CX cases (anonymised)
 .claude/launch.json   Local preview config (python http.server)
 ```
 

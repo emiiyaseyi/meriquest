@@ -4,7 +4,8 @@
 **Owner:** Learning & Development (L&D), Group Human Resources
 **Status:** Draft v0.1, for stakeholder review
 **Date:** 12 October 2026
-**Companion docs:** [WORKPLAN.md](WORKPLAN.md) · [CAREER-TRACKS.md](CAREER-TRACKS.md) · [LAGOS-LIFE-REVIEW.md](LAGOS-LIFE-REVIEW.md) · prototype in [`/game`](../game/index.html)
+**Companion docs:** [WORKPLAN.md](WORKPLAN.md) · [CAREER-TRACKS.md](CAREER-TRACKS.md) · [LAGOS-LIFE-REVIEW.md](LAGOS-LIFE-REVIEW.md) · [CLIENT-SIMULATION.md](CLIENT-SIMULATION.md)
+**Pilot scope (confirmed 12 Oct 2026):** Customer Experience · Wealth Advisory · Investment Advisory · prototype in [`/game`](../game/index.html)
 
 ---
 
@@ -101,6 +102,8 @@ Meristem already won the **2023 Best Practices Award for the Delivery of Learnin
 | **Co-op and mentoring** | 2–4 players take roles in one scenario; senior staff host coaching sessions for juniors. | v1.1 |
 | **Team/cohort play** | Cohort leaderboards (team-based, not individual shaming), group challenges. | v1.1 |
 | **Work mini-games** | Six hands-on task types modelled on Lagos Life (sort-swipe, sequence, tap-targets, hold-release, keep-in-zone, timing bar), e.g. KYC sorting, T-bill pricing, phishing spotting. | MVP: 3 types; v1.1: all 6 |
+| **Client personality sims** | Signature clients (deep conversations with a personality-reading step) and the **Client Desk**: shifts of 6–14 *generated* clients across 7 channels, 4 personalities, 4 moods, 4 tiers and 39 locations (Nigeria, diaspora, international), complexity 1–5. See [CLIENT-SIMULATION.md](CLIENT-SIMULATION.md). | MVP (pilot core) |
+| **Office segments & Performance Index** | Front (70% sales/client), Middle (50/50), Back (70% support / 30% growth) weightings; conduct gate. | MVP |
 | **Micro-courses** | 5 lessons × (notes + 3 questions), max 2 lessons a day; a certificate improves odds in related scenarios. | MVP |
 | **Seasonal events** | Market-shock weeks, MPC decision days, AGM season, year-end. | Phase 2 |
 | **AI role-play** | Free-text conversations with an AI client or colleague, graded against a rubric. | Phase 3 (pilot) |
@@ -144,6 +147,8 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | P-5 | Skills profile, journal, values and readiness review visible to the player. | Must |
 | P-6 | Accessibility: keyboard play, screen-reader labels, WCAG 2.2 AA contrast, reduced-motion support. | Must |
 | P-7 | Low-bandwidth mode (no heavy assets; under 300 KB first load). | Should |
+| P-7a | Client Desk shifts with generated clients; per-shift scorecard (FCR, CSAT, response targets, AHT, tone fit, conduct, value, growth). | Must |
+| P-7b | Office segment chosen at onboarding (from HRIS in production) drives the Performance Index weighting. | Must |
 | P-8 | Shared 2D world: see colleagues' avatars and presence in real time; visit locations together. | Must |
 | P-8a | Chat: team, cohort and location channels plus 1:1 DMs, under real-name SSO identities; report and block; profanity/PII filter. | Must |
 | P-8b | Kudos (limited per week), colleague relationship ladder, co-op scenarios, mentoring sessions. | Should |
@@ -167,6 +172,8 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | A-4 | Analytics: completion, time-on-task, item difficulty, choice distributions, pre/post deltas. | Must |
 | A-5 | Send xAPI statements to an LRS / the existing LMS; SCORM wrapper if the LMS requires it. | Should |
 | A-6 | Bulk import and export of content (JSON/CSV). | Should |
+| A-6a | Case-library authoring: add a case template once; the generator varies personality, mood, tier, channel and location automatically. Compliance approval per case. | Must |
+| A-6b | Calibrate shifts from aggregated contact-centre data (channel mix, contact reasons, response and handling-time targets). | Should |
 | A-7 | Moderation console: reported messages, user restrictions, keyword lists, chat-retention settings, audit trail. | Must |
 
 ## 9. Non-functional requirements

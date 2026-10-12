@@ -19,10 +19,24 @@
   const modalBody = document.getElementById("modal-body");
   const toastEl = document.getElementById("toast");
 
-  let S = load();
+  let S = migrate(load());
   let tab = "world";
   let quizRun = null;
-  let setup = { name: "", avatar: AVATARS[0], trackId: C.tracks[0].id };
+  let sim = null;
+  let setup = { name: "", avatar: AVATARS[0], trackId: C.tracks[0].id, segment: C.tracks[0].segment };
+
+  // Saves from older prototype versions: add new competencies, segment and client-sim stats.
+  function migrate(s) {
+    if (!s) return s;
+    const t = C.tracks.find((x) => x.id === s.player.trackId) || C.tracks[0];
+    C.competencies.forEach((c) => {
+      if (s.comps[c.id] == null) { s.comps[c.id] = t.baseline[c.id] ?? 20; s.baseline[c.id] = s.comps[c.id]; }
+    });
+    s.player.segment = s.player.segment || t.segment;
+    s.cx = s.cx || newCx();
+    return s;
+  }
+  function newCx() { return { plays: 0, closed: 0, partial: 0, lost: 0, value: 0, growth: 0, csatSum: 0, reads: 0, readsRight: 0, best: {} }; }
 
   /* ---------------- utilities ---------------- */
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -73,12 +87,12 @@
   }
 
   /* ---------------- state transitions ---------------- */
-  function newGame(name, avatar, trackId) {
+  function newGame(name, avatar, trackId, segment) {
     const t = C.tracks.find((x) => x.id === trackId);
     const comps = {};
     C.competencies.forEach((c) => (comps[c.id] = t.baseline[c.id] ?? 20));
     S = {
-      v: 1, player: { name, avatar, trackId }, startedAt: new Date().toISOString(),
+      v: 1, player: { name, avatar, trackId, segment }, startedAt: new Date().toISOString(), cx: newCx(),
       day: 1, slot: 0, energy: 100, trust: 50, compliance: 80, xp: 0,
       baseline: { ...comps }, comps, done: {}, quizSeen: {}, missions: null, streak: 0,
       journal: [], badges: {}, log: [], stats: { best: 0, ok: 0, poor: 0, qRight: 0, qTotal: 0 }, finished: false,
@@ -211,6 +225,393 @@
     closeModal();
     if (!S.finished && pending().length === 0) { S.finished = true; save(); showReadiness(); return; }
     render();
+  }
+
+  /* ---------------- office segment & performance index ---------------- */
+  const segmentOf = () => C.segments.find((s) => s.id === S.player.segment) || C.segments[0];
+  const naira = (n) => (n >= 1e9 ? "₦" + +(n / 1e9).toFixed(2) + "bn" : n >= 1e6 ? "₦" + +(n / 1e6).toFixed(1) + "m" : "₦" + Math.round(n).toLocaleString("en-NG"));
+
+  // Weighted by the player's office segment; leadership tracks blend in Leadership; a low
+  // compliance standing caps the score (conduct is a gate, not a trade-off).
+  function perfIndex() {
+    const seg = segmentOf();
+    let v = 0;
+    Object.entries(seg.weights).forEach(([k, w]) => (v += w * (S.comps[k] || 0)));
+    v /= 100;
+    if (track().leader) v = v * (1 - C.leaderOverlay) + S.comps.lead * C.leaderOverlay;
+    const gated = S.compliance < 50;
+    if (gated) v *= 0.8;
+    return { score: Math.round(v), gated };
+  }
+  function pillars() {
+    const seg = segmentOf();
+    return seg.pillars.map(([name, ids]) => {
+      let tw = 0, tv = 0;
+      ids.forEach((k) => { const w = seg.weights[k] || 0; tw += w; tv += w * S.comps[k]; });
+      return { name, share: tw, score: Math.round(tv / tw) };
+    });
+  }
+
+  /* ---------------- client personality sims ---------------- */
+  function openSims() {
+    const seg = S.player.segment;
+    const list = C.clientSims.slice().sort((a, b) => (b.segment === seg) - (a.segment === seg) || (b.pilot ? 1 : 0) - (a.pilot ? 1 : 0));
+    openModal(`
+      <div class="m-eyebrow">🛋️ Client Lounge · personality sims</div>
+      <h2 class="m-title">Who will you meet?</h2>
+      <button class="desk-cta" data-act="desk-setup"><span class="sim-face">🎧</span><span class="sim-body"><strong>Client Desk shift: unlimited generated clients</strong><span class="small muted">6–14 contacts per shift across calls, WhatsApp, SMS, email, chatbot, walk-ins and social media. Clients from all over Nigeria, the diaspora and abroad, at complexity levels 1–5.</span></span></button>
+      <h3 class="pick-h small-h">Signature clients: deep conversations</h3>
+      <p class="muted small">Read each client's personality, discover their hidden needs, and win their trust without breaking the rules. The same answer lands differently with different people.</p>
+      <div class="sim-list">
+        ${list.map((p) => {
+          const segName = C.segments.find((s) => s.id === p.segment).name;
+          const best = S.cx.best[p.id];
+          return `<button class="sim-card" data-act="sim-start" data-p="${p.id}">
+            <span class="sim-face">${p.emoji}</span>
+            <span class="sim-body"><strong>${esc(p.name)}</strong><span class="small muted">${esc(p.kind)}</span>
+              <span class="sim-tags"><span class="tag">${esc(segName)}</span>${p.pilot ? `<span class="tag tag-pilot">Pilot</span>` : ""}${p.segment === seg ? `<span class="tag tag-blended">Your office</span>` : ""}${best ? `<span class="tag">Best: ${{ closed: "Won", partial: "Partly won", lost: "Lost" }[best]}</span>` : ""}</span></span>
+          </button>`;
+        }).join("")}
+      </div>
+      <div class="m-foot muted">Each conversation uses one time slot and ${COST.scenario} energy.</div>
+      <button class="btn wide" data-act="close">Not now</button>`);
+  }
+
+  function simStart(pid) {
+    const p = C.clientSims.find((x) => x.id === pid);
+    if (!p || !canAct(COST.scenario)) return;
+    useSlot(COST.scenario);
+    sim = { p, stage: -1, trust: p.startTrust, comp: 0, found: [], growth: false, log: [], guessRight: false };
+    save();
+    renderSim();
+  }
+
+  function simHeader() {
+    const { p } = sim;
+    const needs = p.needs.map((n) => sim.found.includes(n.id) ? `<li class="found">✅ ${esc(n.label)}</li>` : `<li class="hidden-need">🔒 Hidden need</li>`).join("");
+    return `
+      <div class="sim-head">
+        <span class="sim-face big">${p.emoji}</span>
+        <div><strong>${esc(p.name)}</strong><div class="muted small">${esc(p.profile)}</div><div class="small">${esc(p.kind)}</div></div>
+      </div>
+      <div class="sim-meters">
+        <div class="meter m-trust"><div class="meter-l"><span>🤝 Trust</span><strong>${sim.trust}</strong></div><div class="bar"><i style="width:${sim.trust}%"></i></div></div>
+        <div class="sim-comp ${sim.comp < 0 ? "down" : "up"}">🛡️ Conduct ${sim.comp > 0 ? "+" : ""}${sim.comp}</div>
+      </div>
+      <ul class="sim-needs">${needs}</ul>`;
+  }
+
+  function renderSim() {
+    const { p } = sim;
+    const transcript = sim.log.slice(-4).map((l) => `<div class="bubble ${l.who}">${l.react ? `<span class="react">${l.react}</span>` : ""}${esc(l.text)}</div>`).join("");
+    if (sim.stage === -1) {
+      openModal(`${simHeader()}
+        <div class="coach"><div class="coach-h">👀 Read the client</div><ul class="cues">${p.cues.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>
+        <h2 class="m-title small-title">Which personality style is this?</h2>
+        <div class="style-grid">${Object.entries(C.styles).map(([id, s]) => `<button class="choice" data-act="sim-guess" data-s="${id}"><span>${s.emoji} <strong>${s.name}</strong><span class="small muted block">${esc(s.reads)}</span></span></button>`).join("")}</div>`);
+      return;
+    }
+    const st = p.stages[sim.stage];
+    openModal(`${simHeader()}
+      <div class="transcript">${transcript}<div class="bubble client now">${esc(st.client)}</div></div>
+      <div class="m-eyebrow">Your response · ${sim.stage + 1} of ${p.stages.length}</div>
+      <div class="choices">${shuffledIdx(st.options.length).map((i, pos) => `<button class="choice" data-act="sim-pick" data-i="${i}"><span class="choice-key">${"ABC"[pos]}</span><span>${esc(st.options[i].label)}</span></button>`).join("")}</div>`);
+  }
+
+  function simGuess(styleId) {
+    const right = styleId === sim.p.style;
+    sim.guessRight = right;
+    S.cx.reads += 1;
+    if (right) { S.cx.readsRight += 1; S.comps.comm = clamp(S.comps.comm + 2); }
+    const st = C.styles[sim.p.style];
+    toast(right ? `🎯 Good read: ${st.emoji} ${st.name}` : `Not quite. Watch how they react…`);
+    sim.stage = 0;
+    renderSim();
+  }
+
+  function simPick(i) {
+    const { p } = sim;
+    const o = p.stages[sim.stage].options[i];
+    const d = (o.trust + (C.styles[p.style].mods[o.tag] || 0)) * 2;
+    sim.trust = clamp(sim.trust + d);
+    sim.comp += o.compliance || 0;
+    if (o.reveals && !sim.found.includes(o.reveals)) sim.found.push(o.reveals);
+    if (o.growth && (!o.needsFor || sim.found.includes(o.needsFor))) sim.growth = true;
+    const react = d >= 6 ? "😊" : d >= 2 ? "🙂" : d >= -2 ? "😐" : "😠";
+    sim.log.push({ who: "client", text: p.stages[sim.stage].client }, { who: "you", text: o.label }, { who: "client", text: o.reply, react });
+    sim.stage += 1;
+    if (sim.stage >= p.stages.length) finishSim(); else renderSim();
+  }
+
+  function finishSim() {
+    const { p } = sim;
+    const allFound = sim.found.length === p.needs.length;
+    const breach = sim.comp <= -15;
+    let result = sim.trust >= 70 && allFound ? "closed" : sim.trust >= 50 ? "partial" : "lost";
+    if (breach && result === "closed") result = "partial";
+    const value = result === "closed" ? p.value : result === "partial" ? Math.round(p.value * 0.3) : 0;
+    const csat = clamp(Math.round(sim.trust / 20), 1, 5);
+    const fx = {
+      sales: (result === "closed" ? 6 : result === "partial" ? 3 : 0) + (sim.growth ? 2 : 0),
+      comm: Math.round((sim.trust - p.startTrust) / 10),
+      svc: p.segment === "middle" ? 1 : result === "closed" ? 5 : result === "partial" ? 2 : 0,
+      reg: sim.comp >= 0 ? 2 : -4,
+      eth: sim.comp >= 0 ? 1 : -3,
+      ana: allFound ? 3 : 0,
+      own: sim.growth ? 2 : 0,
+    };
+    Object.entries(fx).forEach(([k, v]) => (S.comps[k] = clamp(S.comps[k] + v)));
+    S.trust = clamp(S.trust + (result === "closed" ? 5 : result === "partial" ? 1 : -5));
+    S.compliance = clamp(S.compliance + (breach ? -10 : sim.comp > 0 ? 3 : 0));
+    const cx = S.cx;
+    cx.plays += 1; cx[result] += 1; cx.value += value; cx.csatSum += csat; if (sim.growth) cx.growth += 1;
+    const rank = { closed: 3, partial: 2, lost: 1 }, label = { closed: "Won", partial: "Partly won", lost: "Lost" };
+    if (!cx.best[p.id] || rank[result] > rank[cx.best[p.id]]) cx.best[p.id] = result;
+    const xp = { closed: 40, partial: 20, lost: 8 }[result] + (sim.guessRight ? 10 : 0);
+    gainXP(xp);
+    S.stats[{ closed: "best", partial: "ok", lost: "poor" }[result]] += 1;
+    const st = C.styles[p.style];
+    const coach = `${p.name} is ${/^[AEIOU]/.test(st.name) ? "an" : "a"} ${st.name}. They want ${st.wants.toLowerCase()} Avoid ${st.avoid.toLowerCase()}`;
+    S.journal.unshift({ day: S.day, title: "Client sim: " + p.name, rating: { closed: "best", partial: "ok", lost: "poor" }[result], choice: `${label[result]} · trust ${sim.trust} · ${sim.found.length}/${p.needs.length} needs found`, coach });
+    bump("scn");
+    record("completed", { id: "client-sim/" + p.id, name: p.name }, { success: result === "closed", score: { scaled: sim.trust / 100 }, extensions: { result, value, csat, compliance: sim.comp, needsFound: sim.found.length, styleRead: sim.guessRight } });
+    save();
+
+    openModal(`
+      <div class="rating rating-${{ closed: "best", partial: "ok", lost: "poor" }[result]}">${label[result]} · +${xp} XP</div>
+      <h2 class="m-title">${p.emoji} ${esc(p.name)}</h2>
+      <p class="m-text">${esc(p.outcomes[result])}</p>
+      ${breach ? `<div class="breach">🚨 Conduct breach in this conversation. In real life Compliance would review or reverse it, so the result is capped.</div>` : ""}
+      <div class="kpis small-kpis">
+        <div><strong>${naira(value)}</strong><span>${esc(p.valueLabel)}</span></div>
+        <div><strong>${"★".repeat(csat)}${"☆".repeat(5 - csat)}</strong><span>client satisfaction</span></div>
+        <div><strong>${sim.found.length}/${p.needs.length}</strong><span>needs discovered</span></div>
+        <div><strong>${sim.growth ? "✅" : "—"}</strong><span>${esc(p.growthLabel)}</span></div>
+      </div>
+      <div class="deltas">${Object.entries(fx).filter(([, v]) => v).map(([k, v]) => chip(compById(k).name, v)).join("")}</div>
+      <div class="coach"><div class="coach-h">${st.emoji} Personality: ${st.name} ${sim.guessRight ? "· you read them correctly 🎯" : "· you misread them"}</div>
+        <p><strong>Signs:</strong> ${esc(st.reads)}</p><p><strong>Wants:</strong> ${esc(st.wants)}</p><p><strong>Avoid:</strong> ${esc(st.avoid)}</p>
+        <p class="muted"><strong>Hidden needs:</strong> ${p.needs.map((n) => esc(n.label)).join(" · ")}</p></div>
+      <button class="btn primary wide" data-act="sim-done">Back to work</button>`);
+    sim = null;
+  }
+
+  /* ---------------- Client Desk: a shift of generated contacts ---------------- */
+  const G = C.clientGen;
+  const UNIT_NAMES = { cx: "Customer Experience", wealth: "Wealth Advisory", invest: "Investment Advisory" };
+  const LEVELS = { starter: { label: "Starter", minC: 1, maxC: 2 }, standard: { label: "Standard", minC: 1, maxC: 4 }, expert: { label: "Expert", minC: 3, maxC: 5 } };
+  let desk = null;
+  const clockText = (m) => { const t = 9 * 60 + Math.round(m); return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; };
+  const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+
+  function openDeskSetup() {
+    const def = S.player.segment === "middle" ? "wealth,invest" : "cx,wealth";
+    openModal(`
+      <div class="m-eyebrow">🎧 Client Desk · generated clients</div>
+      <h2 class="m-title">Start a shift</h2>
+      <p class="muted small">Contacts arrive by call, WhatsApp, SMS, email, chatbot hand-off, walk-in and social media, from across Nigeria, the diaspora and abroad. Every client is generated: new names, personalities, moods, tiers and cases each time. Prioritise wisely: response-time targets differ by channel.</p>
+      <div class="lbl">Team</div>
+      <div class="opt-row" data-group="units">${[["cx", "CX"], ["cx,wealth", "CX + Wealth"], ["wealth", "Wealth Advisory"], ["wealth,invest", "Wealth + Investment"], ["invest", "Investment Advisory"], ["cx,wealth,invest", "All pilot teams"]].map(([v, l]) => `<button class="opt ${v === def ? "on" : ""}" data-act="desk-opt" data-k="units" data-v="${v}">${l}</button>`).join("")}</div>
+      <div class="lbl">Shift size</div>
+      <div class="opt-row">${[[6, "Short · 6"], [10, "Standard · 10"], [14, "Peak · 14"]].map(([v, l]) => `<button class="opt ${v === 10 ? "on" : ""}" data-act="desk-opt" data-k="size" data-v="${v}">${l}</button>`).join("")}</div>
+      <div class="lbl">Difficulty</div>
+      <div class="opt-row">${Object.entries(LEVELS).map(([k, v]) => `<button class="opt ${k === "standard" ? "on" : ""}" data-act="desk-opt" data-k="level" data-v="${k}">${v.label} · ${"★".repeat(v.minC)}–${"★".repeat(v.maxC)}</button>`).join("")}</div>
+      <div class="m-foot muted">A shift uses two time slots and 30 energy.</div>
+      <div class="row"><button class="btn" data-act="sims">Back</button><button class="btn primary" data-act="desk-start">Start shift →</button></div>`);
+    deskOpts = { units: def, size: 10, level: "standard" };
+  }
+  let deskOpts = null;
+
+  function deskStart() {
+    if (slotsLeft() < 2) { toast("🌙 A shift needs two free time slots. End the day first."); return; }
+    if (S.energy < 30) { toast("😮‍💨 Too drained for a shift. Recharge first."); return; }
+    useSlot(15); useSlot(15);
+    const lv = LEVELS[deskOpts.level];
+    const units = deskOpts.units.split(",");
+    desk = { queue: G.generateShift(+deskOpts.size, { units, minC: lv.minC, maxC: lv.maxC, minutes: +deskOpts.size * 11 }), clock: 0, handled: [], cur: null, level: lv.label, units };
+    save();
+    renderDesk();
+  }
+
+  function renderDesk() {
+    const arrived = desk.queue.filter((c) => c.arrival <= desk.clock && !c.done);
+    const upcoming = desk.queue.filter((c) => c.arrival > desk.clock).length;
+    const h = desk.handled, n = h.length;
+    const fcr = n ? Math.round((h.filter((x) => x.result === "resolved").length / n) * 100) : 0;
+    const sla = n ? Math.round((h.filter((x) => x.slaMet).length / n) * 100) : 0;
+    const rows = arrived.sort((a, b) => (b.tier.vip ? 1 : 0) - (a.tier.vip ? 1 : 0) || (desk.clock - b.arrival) / b.ch.sla - (desk.clock - a.arrival) / a.ch.sla).map((c) => {
+      const wait = desk.clock - c.arrival, pct = Math.min(100, Math.round((wait / c.ch.sla) * 100));
+      return `<button class="q-row" data-act="desk-open" data-u="${c.uid}">
+        <span class="q-ch" title="${esc(c.ch.label)}">${c.ch.emoji}</span>
+        <span class="q-main"><span class="q-top"><strong>${esc(c.address)}</strong>${c.tier.vip ? `<span class="tag tag-pilot">${esc(c.tier.label)}</span>` : `<span class="tag">${esc(c.tier.label)}</span>`}<span class="tag">${c.origin === "ng" ? "🇳🇬" : "🌍"} ${esc(c.where)}</span><span class="q-stars" title="Complexity">${stars(c.complexity)}</span></span>
+          <span class="q-msg">${esc(c.msg)}</span>
+          <span class="q-sla"><span class="bar ${pct >= 100 ? "late" : pct >= 70 ? "warn" : ""}"><i style="width:${pct}%"></i></span><span class="small muted">${c.mood.emoji} waiting ${Math.round(wait)}m · target ${c.ch.sla}m</span></span></span>
+      </button>`;
+    }).join("");
+    openModal(`
+      <div class="desk-head"><div><div class="m-eyebrow">🎧 Client Desk · ${esc(desk.units.map((u) => UNIT_NAMES[u]).join(" + "))} · ${esc(desk.level)}</div>
+        <h2 class="m-title">🕘 ${clockText(desk.clock)}</h2></div>
+        <div class="desk-kpis"><span><strong>${n}</strong> handled</span><span><strong>${fcr}%</strong> FCR</span><span><strong>${sla}%</strong> SLA met</span></div></div>
+      ${rows ? `<div class="queue">${rows}</div>` : `<div class="empty">Queue clear. ${upcoming ? "Next contact on its way…" : "No more contacts this shift."}</div>`}
+      <p class="muted small">${upcoming} more contact${upcoming === 1 ? "" : "s"} expected this shift. VIPs and the longest-waiting contacts are sorted to the top.</p>
+      <div class="row">${!rows && upcoming ? `<button class="btn" data-act="desk-wait">⏳ Wait for next contact</button>` : ""}<button class="btn ${!rows && !upcoming ? "primary" : ""}" data-act="desk-end">End shift & see scorecard</button></div>`);
+  }
+
+  function bestTag(style) { return Object.entries(C.styles[style].mods).sort((a, b) => b[1] - a[1])[0][0]; }
+
+  function deskOpen(uid) {
+    const c = desk.queue.find((x) => x.uid === uid);
+    const wait = desk.clock - c.arrival;
+    const late = wait > c.ch.sla;
+    // Tone opener: 3 of 4, always including the best fit for this personality (so reading the client pays off)
+    const openers = G.OPENERS[c.kind];
+    const fitTag = openers.some((o) => o.tag === bestTag(c.style)) ? bestTag(c.style) : null;
+    let ops = openers.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+    if (fitTag && !ops.some((o) => o.tag === fitTag)) ops[0] = openers.find((o) => o.tag === fitTag);
+    const when = c.ch.sla <= 15 ? "within the hour" : "end of day";
+    const fill = (t) => t.replace(/\{t\}/g, c.address).replace(/\{when\}/g, when);
+    const opener = { prompt: "Open the conversation", tone: true, options: ops.map((o) => ({ ...o, label: fill(o.label) })) };
+    const closersBase = G.CLOSERS.slice().sort(() => Math.random() - 0.5).slice(0, 2).map((o) => ({ ...o, label: fill(o.label) }));
+    const closeOpts = [...closersBase, G.ABRUPT];
+    if (c.growth) closeOpts[1] = { tag: closersBase[1].tag, q: "best", growth: true, label: `${closersBase[1].label.replace(/"$/, "")} Before you go, may I also help with this: ${c.growth.toLowerCase()}?"` };
+    const closer = { prompt: "Close the conversation", tone: true, options: closeOpts };
+    desk.cur = { c, steps: [opener, ...c.stages, closer], i: 0, trust: clamp(c.startTrust - (late ? 15 : 0)), comp: 0, found: [], growth: false, poor: 0, fit: 0, fitN: 0, value: false, log: [{ who: "client", text: c.msg }], late, wait };
+    renderContact();
+  }
+
+  function renderContact() {
+    const { c, steps, i } = desk.cur, st = steps[i];
+    const needs = c.needs.map((n) => desk.cur.found.includes(n.id) ? `<li class="found">✅ ${esc(n.label)}</li>` : `<li class="hidden-need">🔒 Hidden need</li>`).join("");
+    openModal(`
+      <div class="sim-head"><span class="sim-face big">${c.avatar}</span>
+        <div><strong>${esc(c.address)}</strong>${c.org ? ` <span class="muted small">· ${esc(c.org)}</span>` : ""}<div class="muted small">${esc(c.occupation)} · ${c.age} · ${esc(c.where)}${c.tzNote ? ` · 🕑 ${esc(c.tzNote)}` : ""}</div>
+        <div class="small">${c.ch.emoji} ${esc(c.ch.label)} · ${esc(c.tier.label)} · ${c.mood.emoji} ${esc(c.mood.label)} · ${stars(c.complexity)} · <em>${esc(c.title)}</em></div></div></div>
+      <div class="coach slim"><div class="coach-h">👀 ${esc(c.cue)}</div><p class="small muted">${c.ch.emoji} ${esc(c.ch.tip)}${desk.cur.late ? ` <strong class="down">They waited ${Math.round(desk.cur.wait)}m, past the ${c.ch.sla}m target.</strong>` : ""}</p></div>
+      <div class="sim-meters"><div class="meter m-trust"><div class="meter-l"><span>🤝 Trust</span><strong>${desk.cur.trust}</strong></div><div class="bar"><i style="width:${desk.cur.trust}%"></i></div></div>
+        <div class="sim-comp ${desk.cur.comp < 0 ? "down" : "up"}">🛡️ Conduct ${desk.cur.comp > 0 ? "+" : ""}${desk.cur.comp}</div></div>
+      <ul class="sim-needs">${needs}</ul>
+      <div class="transcript">${desk.cur.log.slice(-3).map((l) => `<div class="bubble ${l.who}">${l.react ? `<span class="react">${l.react}</span>` : ""}${esc(l.text)}</div>`).join("")}</div>
+      <div class="m-eyebrow">${esc(st.prompt)} · step ${i + 1} of ${steps.length}</div>
+      <div class="choices">${shuffledIdx(st.options.length).map((k, pos) => `<button class="choice" data-act="desk-pick" data-i="${k}"><span class="choice-key">${"ABCD"[pos]}</span><span>${esc(st.options[k].label)}</span></button>`).join("")}</div>`);
+  }
+
+  const REPLY = {
+    best: ["That's helpful, thank you.", "Okay, that makes sense.", "Good. Please go ahead.", "Thank you for explaining properly."],
+    ok: ["Hmm, okay.", "If you say so.", "Fine, I guess."],
+    poor: ["That's not what I expected from Meristem.", "Are you serious?", "This is not helpful at all.", "I'm not happy with this."],
+  };
+
+  function deskPick(k) {
+    const cur = desk.cur, { c } = cur, st = cur.steps[cur.i], o = st.options[k];
+    const mod = o.tag ? C.styles[c.style].mods[o.tag] || 0 : 0;
+    let d;
+    // Tone: reading the personality matters (fit +14, neutral +2, clash down to -13). Substance: right/wrong call.
+    if (st.tone && o.q !== "poor") { d = mod * 3 + 2; cur.fitN += 1; if (mod > 0) cur.fit += 1; }
+    else d = { best: 10, ok: 1, poor: -10 }[o.q] + mod;
+    if (o.q === "poor") cur.poor += 1;
+    cur.trust = clamp(cur.trust + d);
+    cur.comp += o.compliance || 0;
+    if (o.reveals && !cur.found.includes(o.reveals)) cur.found.push(o.reveals);
+    if (o.growth && cur.found.length) cur.growth = true;
+    if (o.value) cur.value = true;
+    const react = d >= 6 ? "😊" : d >= 2 ? "🙂" : d >= -2 ? "😐" : "😠";
+    const q = o.q || (d >= 2 ? "best" : d >= -2 ? "ok" : "poor");
+    cur.log.push({ who: "you", text: o.label }, { who: "client", text: pick(REPLY[q === "best" && d < 2 ? "ok" : q]), react });
+    cur.i += 1;
+    if (cur.i >= cur.steps.length) finishContact(); else renderContact();
+  }
+
+  function finishContact() {
+    const cur = desk.cur, { c } = cur;
+    const minutes = cur.steps.length * c.ch.turn + c.complexity;
+    const allFound = cur.found.length === c.needs.length;
+    const result = cur.poor === 0 && allFound && cur.trust >= 55 && cur.comp >= 0 ? "resolved" : cur.trust >= 40 && cur.comp > -15 ? "partial" : "unresolved";
+    const csat = clamp(Math.round(cur.trust / 20), 1, 5);
+    const value = cur.value ? (result === "resolved" ? c.amount : result === "partial" ? Math.round(c.amount * 0.3) : 0) : 0;
+    const rec = { uid: c.uid, name: c.address, caseTitle: c.title, unit: c.unit, channel: c.channel, result, csat, slaMet: !cur.late, minutes, breach: cur.comp < 0, value, growth: cur.growth, fit: cur.fit, fitN: cur.fitN, complexity: c.complexity };
+    desk.handled.push(rec);
+    c.done = true;
+    desk.clock += minutes;
+    record("completed", { id: "desk/" + c.caseId, name: c.title }, { success: result === "resolved", extensions: { ...rec, style: c.style, origin: c.origin, tier: c.tierId } });
+    const st = C.styles[c.style];
+    const best = c.stages.map((s) => s.options.find((o) => o.q === "best").label);
+    const label = { resolved: "Resolved first time", partial: "Partly resolved", unresolved: "Unresolved / escalated" }[result];
+    openModal(`
+      <div class="rating rating-${{ resolved: "best", partial: "ok", unresolved: "poor" }[result]}">${label}</div>
+      <h2 class="m-title">${c.avatar} ${esc(c.address)} · ${esc(c.title)}</h2>
+      ${rec.breach ? `<div class="breach">🚨 Conduct issue in this contact. Compliance would follow up.</div>` : ""}
+      <div class="kpis small-kpis">
+        <div><strong>${stars(csat)}</strong><span>satisfaction</span></div>
+        <div><strong>${rec.slaMet ? "✅" : "⏰"}</strong><span>response target ${c.ch.sla}m</span></div>
+        <div><strong>${cur.found.length}/${c.needs.length}</strong><span>hidden needs found</span></div>
+        <div><strong>${value ? G.fmt(value) : cur.growth ? "Growth ✅" : "—"}</strong><span>value / growth</span></div>
+      </div>
+      <div class="coach"><div class="coach-h">${st.emoji} They were ${/^[AEIOU]/.test(st.name) ? "an" : "a"} ${st.name} · tone fit ${cur.fit}/${cur.fitN}</div>
+        <p class="small"><strong>Wants:</strong> ${esc(st.wants)} <strong>Avoid:</strong> ${esc(st.avoid)}</p>
+        <p class="small muted"><strong>Hidden needs:</strong> ${c.needs.map((n) => esc(n.label)).join(" · ")}</p>
+        <p class="small muted"><strong>Best practice:</strong> ${best.map(esc).join(" → ")}</p></div>
+      <div class="row"><button class="btn primary" data-act="desk-back">Back to queue (${clockText(desk.clock)})</button></div>`);
+    desk.cur = null;
+  }
+
+  function deskEnd() {
+    const h = desk.handled, n = h.length;
+    const abandoned = desk.queue.filter((c) => !c.done).length;
+    const pct = (f) => (n ? Math.round((h.filter(f).length / n) * 100) : 0);
+    const fcr = pct((x) => x.result === "resolved"), sla = pct((x) => x.slaMet);
+    const csat = n ? (h.reduce((a, x) => a + x.csat, 0) / n).toFixed(1) : "–";
+    const aht = n ? Math.round(h.reduce((a, x) => a + x.minutes, 0) / n) : 0;
+    const breaches = h.filter((x) => x.breach).length;
+    const value = h.reduce((a, x) => a + x.value, 0), growth = h.filter((x) => x.growth).length;
+    const fitN = h.reduce((a, x) => a + x.fitN, 0), fit = fitN ? Math.round((h.reduce((a, x) => a + x.fit, 0) / fitN) * 100) : 0;
+    const fx = {
+      svc: Math.round((fcr / 100) * 8), comm: Math.round((fit / 100) * 6), ops: Math.round((sla / 100) * 4),
+      sales: Math.min(6, h.filter((x) => x.value).length * 2 + growth), reg: breaches ? -3 * Math.min(3, breaches) : 2, eth: breaches ? -2 : 1,
+      risk: Math.min(3, h.filter((x) => x.unit === "invest" && x.result === "resolved").length), own: growth ? 1 : 0,
+    };
+    Object.entries(fx).forEach(([k, v]) => (S.comps[k] = clamp(S.comps[k] + v)));
+    S.compliance = clamp(S.compliance + (breaches ? -5 * breaches : 2));
+    S.trust = clamp(S.trust + Math.round((fcr - 50) / 10));
+    const cx = S.cx;
+    cx.shifts = (cx.shifts || 0) + 1; cx.plays += n; cx.closed += h.filter((x) => x.result === "resolved").length; cx.partial += h.filter((x) => x.result === "partial").length; cx.lost += h.filter((x) => x.result === "unresolved").length + abandoned;
+    cx.value += value; cx.growth += growth; cx.csatSum += h.reduce((a, x) => a + x.csat, 0);
+    cx.slaMet = (cx.slaMet || 0) + h.filter((x) => x.slaMet).length; cx.slaTotal = (cx.slaTotal || 0) + n; cx.ahtSum = (cx.ahtSum || 0) + h.reduce((a, x) => a + x.minutes, 0);
+    cx.reads += fitN; cx.readsRight += h.reduce((a, x) => a + x.fit, 0);
+    const xp = h.reduce((a, x) => a + (x.result === "resolved" ? 12 : x.result === "partial" ? 5 : 1), 0) + (sla >= 80 && fcr >= 60 ? 30 : 0);
+    gainXP(xp);
+    bump("scn"); bump("scn");
+    const tips = [];
+    if (sla < 70) tips.push("Response times: pick up calls, chatbot hand-offs and WhatsApp first. Email can wait longer.");
+    if (fcr < 60) tips.push("First-contact resolution: probe for the hidden need before you propose a fix.");
+    if (fit < 60) tips.push("Tone fit: read the cue line. Drivers want brevity, Analyticals want data, Amiables want empathy, Expressives want energy.");
+    if (breaches) tips.push(`Conduct: ${breaches} contact${breaches > 1 ? "s" : ""} included a conduct breach. These cap your performance.`);
+    if (abandoned) tips.push(`${abandoned} contact${abandoned > 1 ? "s were" : " was"} never handled. In real life that's a missed client.`);
+    if (!tips.length) tips.push("Excellent shift. Try a higher difficulty or a Peak shift next.");
+    S.journal.unshift({ day: S.day, title: `Client Desk shift (${desk.level})`, rating: fcr >= 70 && sla >= 70 && !breaches ? "best" : fcr >= 40 ? "ok" : "poor", choice: `${n} handled · FCR ${fcr}% · SLA ${sla}% · CSAT ${csat} · AHT ${aht}m`, coach: tips.join(" ") });
+    record("completed", { id: "desk/shift", name: "Client Desk shift" }, { extensions: { handled: n, abandoned, fcr, sla, csat, aht, breaches, value, growth, fit } });
+    save();
+    openModal(`
+      <div class="m-eyebrow">🎧 Client Desk · end of shift (${clockText(desk.clock)})</div>
+      <h2 class="m-title">Shift scorecard</h2>
+      <div class="kpis">
+        <div><strong>${n}</strong><span>contacts handled</span></div>
+        <div><strong>${abandoned}</strong><span>abandoned</span></div>
+        <div><strong>${fcr}%</strong><span>first-contact resolution</span></div>
+        <div><strong>${sla}%</strong><span>response target met</span></div>
+        <div><strong>${csat}</strong><span>avg satisfaction (of 5)</span></div>
+        <div><strong>${aht}m</strong><span>avg handling time</span></div>
+        <div><strong>${fit}%</strong><span>tone fit with personality</span></div>
+        <div><strong>${breaches}</strong><span>conduct breaches</span></div>
+        <div><strong>${G.fmt(value)}</strong><span>value won/retained</span></div>
+        <div><strong>${growth}</strong><span>cross-sells / improvements</span></div>
+      </div>
+      <div class="deltas">${chip("XP", xp)}${Object.entries(fx).filter(([, v]) => v).map(([k, v]) => chip(compById(k).name, v)).join("")}</div>
+      <div class="coach"><div class="coach-h">🧑🏾‍🏫 Coach's notes</div>${tips.map((t) => `<p>${esc(t)}</p>`).join("")}</div>
+      <table class="tbl small-tbl"><thead><tr><th>Client</th><th>Case</th><th></th><th>Result</th><th>CSAT</th></tr></thead><tbody>
+        ${h.map((x) => `<tr><td>${esc(x.name)}</td><td>${esc(x.caseTitle)}</td><td>${G.CHANNELS[x.channel].emoji}</td><td>${{ resolved: "✅", partial: "➖", unresolved: "❌" }[x.result]}${x.breach ? " 🚨" : ""}</td><td>${x.csat}</td></tr>`).join("")}
+      </tbody></table>
+      <button class="btn primary wide" data-act="desk-done">Done</button>`);
+    desk = null;
   }
 
   /* ---------------- rest ---------------- */
@@ -369,6 +770,7 @@
         ${meter("⚡ Energy", S.energy, "energy")}
         ${meter("🤝 Client trust", S.trust, "trust")}
         ${meter("🛡️ Compliance", S.compliance, "compliance")}
+        ${meter("📈 Performance", perfIndex().score, "perf")}
         <div class="slots" aria-label="Time slots">${SLOTS.map((s, i) => `<span class="slot ${i < S.slot ? "used" : i === S.slot ? "now" : ""}" title="${s}">${s[0]}</span>`).join("")}</div>
         <button class="btn small ${slotsLeft() === 0 ? "primary pulse" : ""}" data-act="endday">End day</button>
       </section>
@@ -400,11 +802,12 @@
           if (s) { act = `data-act="scenario" data-sid="${s.id}"`; badge = `<span class="pin">!</span>`; cls = "live"; }
           else if (l.rest) { act = `data-act="rest" data-loc="${l.id}"`; badge = `<span class="pin rest">+⚡</span>`; cls = "rest"; }
           else if (l.quiz) { act = `data-act="quiz"`; badge = `<span class="pin quiz">?</span>`; cls = "quizloc"; }
+          else if (l.sims) { act = `data-act="sims"`; badge = `<span class="pin sims">👥</span>`; cls = "simloc"; }
           const tag = act ? "button" : "div";
           return `<${tag} class="loc ${cls}" ${act}>${badge}<span class="loc-emoji">${l.emoji}</span><span class="loc-name">${esc(l.name)}</span><span class="loc-sub">${s ? esc(s.title) : esc(l.sub)}</span></${tag}>`;
         }).join("")}
       </div>
-      <p class="muted small legend"><span class="pin inline">!</span> scenario waiting · <span class="pin rest inline">+⚡</span> recharge · <span class="pin quiz inline">?</span> knowledge check · grey = quiet right now</p>`;
+      <p class="muted small legend"><span class="pin inline">!</span> scenario waiting · <span class="pin rest inline">+⚡</span> recharge · <span class="pin quiz inline">?</span> knowledge check · <span class="pin sims inline">👥</span> client sims · grey = quiet right now</p>`;
   }
 
   function viewSide() {
@@ -476,11 +879,36 @@
         <div><strong>${acc}%</strong><span>quiz accuracy (${S.stats.qTotal} Qs)</span></div>
         <div><strong>${r.score}</strong><span>readiness score</span></div>
       </div>
+      ${viewSegmentReport()}
       <table class="tbl"><thead><tr><th>Competency</th><th>Type</th><th>Start</th><th>Now</th><th>Δ</th></tr></thead><tbody>
         ${C.competencies.map((c) => { const d = S.comps[c.id] - S.baseline[c.id]; return `<tr class="${t.focus.includes(c.id) ? "focus" : ""}"><td>${esc(c.name)}</td><td>${c.group}</td><td>${S.baseline[c.id]}</td><td>${S.comps[c.id]}</td><td class="${d > 0 ? "up" : d < 0 ? "down" : ""}">${d > 0 ? "+" : ""}${d}</td></tr>`; }).join("")}
       </tbody></table>
       <div class="row"><button class="btn" data-act="export">⬇️ Export learning records (xAPI JSON)</button><button class="btn danger" data-act="reset">Reset progress</button></div>
       <p class="muted small">${S.log.length} learning events recorded on this device. In production these flow to the Learning Record Store and the HR dashboard.</p>`;
+  }
+
+  function viewSegmentReport() {
+    const seg = segmentOf(), pi = perfIndex(), cx = S.cx;
+    const conv = cx.plays ? Math.round((cx.closed / cx.plays) * 100) : 0;
+    const csat = cx.plays ? (cx.csatSum / cx.plays).toFixed(1) : "–";
+    const reads = cx.reads ? Math.round((cx.readsRight / cx.reads) * 100) + "%" : "–";
+    return `
+      <div class="card seg-card"><div class="seg-top"><div><h3>${seg.emoji} ${esc(seg.name)} performance profile</h3><p class="muted small">${esc(seg.mix)}${track().leader ? " · leadership track: 25% Leadership blended in" : ""}</p></div>
+        <div class="pi"><strong>${pi.score}</strong><span>Performance index${pi.gated ? " · capped (compliance)" : ""}</span></div></div>
+        ${pillars().map((p) => `<div class="skill"><div class="skill-l"><span>${esc(p.name)} <em class="muted">(${p.share}% weight)</em></span><span>${p.score}</span></div><div class="bar"><i style="width:${p.score}%"></i></div></div>`).join("")}
+      </div>
+      <div class="card"><h3>🛋️ Client sims: front-office KPIs</h3>
+        <div class="kpis">
+          <div><strong>${cx.plays}</strong><span>client conversations</span></div>
+          <div><strong>${conv}%</strong><span>won / resolved first time</span></div>
+          <div><strong>${naira(cx.value)}</strong><span>value won / retained</span></div>
+          <div><strong>${csat}</strong><span>avg satisfaction (of 5)</span></div>
+          <div><strong>${cx.growth}</strong><span>cross-sells / improvements</span></div>
+          <div><strong>${reads}</strong><span>personality reads / tone fit</span></div>
+          <div><strong>${cx.slaTotal ? Math.round((cx.slaMet / cx.slaTotal) * 100) + "%" : "–"}</strong><span>response target met</span></div>
+          <div><strong>${cx.slaTotal ? Math.round(cx.ahtSum / cx.slaTotal) + "m" : "–"}</strong><span>avg handling time</span></div>
+          <div><strong>${cx.shifts || 0}</strong><span>desk shifts completed</span></div>
+        </div></div>`;
   }
 
   function renderSetup() {
@@ -497,6 +925,8 @@
           <div class="lbl">Avatar</div>
           <div class="avatars">${AVATARS.map((a) => `<button class="av ${setup.avatar === a ? "on" : ""}" data-act="avatar" data-a="${a}" aria-label="Avatar ${a}">${a}</button>`).join("")}</div>
         </div>
+        <h2 class="pick-h">Which office are you in?</h2>
+        <div class="segs">${C.segments.map((g) => `<button class="seg ${setup.segment === g.id ? "on" : ""}" data-act="seg" data-s="${g.id}"><span class="trk-emoji">${g.emoji}</span><strong>${esc(g.name)}</strong><span class="small seg-mix">${esc(g.mix)}</span><span class="muted small">${esc(g.blurb)}</span></button>`).join("")}</div>
         <h2 class="pick-h">Choose your starting track</h2>
         <div class="tracks">
           ${C.tracks.map((t) => `<button class="trk ${setup.trackId === t.id ? "on" : ""}" data-act="pick" data-t="${t.id}">
@@ -519,15 +949,17 @@
     const a = el.dataset.act;
     switch (a) {
       case "avatar": setup.avatar = el.dataset.a; setup.name = (document.getElementById("pname") || {}).value || setup.name; renderSetup(); break;
-      case "pick": setup.trackId = el.dataset.t; setup.name = (document.getElementById("pname") || {}).value || setup.name; renderSetup(); break;
+      case "seg": setup.segment = el.dataset.s; setup.name = (document.getElementById("pname") || {}).value || setup.name; renderSetup(); break;
+      case "pick": setup.trackId = el.dataset.t; setup.segment = C.tracks.find((t) => t.id === el.dataset.t).segment; setup.name = (document.getElementById("pname") || {}).value || setup.name; renderSetup(); break;
       case "start": {
         const name = (document.getElementById("pname").value || "").trim();
         if (!name) { toast("Please enter your name to begin."); document.getElementById("pname").focus(); return; }
-        newGame(name, setup.avatar, setup.trackId); tab = "world"; render();
+        newGame(name, setup.avatar, setup.trackId, setup.segment); tab = "world"; render();
         const t = track();
         openModal(`<div class="m-eyebrow">${t.emoji} ${esc(t.subsidiary)}</div><h2 class="m-title">Welcome, ${esc(name)}</h2>
           <p class="m-text">You start as <strong>${esc(t.role)}</strong>. Your goal is to reach <strong>${esc(t.target)}</strong>.</p>
           <ul class="howto"><li>🗺️ Locations marked <strong>!</strong> have a scenario waiting. Each one uses a time slot and energy.</li>
+          <li>🛋️ Meet clients in the Client Lounge: read their personality, find their hidden needs, win their trust.</li>
           <li>🎓 Do the daily knowledge check at the Learning Hub.</li><li>☕ Recharge when energy runs low: wellbeing matters.</li>
           <li>🌙 Four time slots a day. End the day to reset, and finish your missions to build a streak.</li></ul>
           <button class="btn primary wide" data-act="close">Let's go</button>`);
@@ -540,6 +972,20 @@
       case "rest": rest(el.dataset.loc); render(); break;
       case "quiz": openQuiz(); render(); break;
       case "qanswer": quizAnswer(+el.dataset.i); break;
+      case "sims": openSims(); break;
+      case "desk-setup": openDeskSetup(); break;
+      case "desk-opt": deskOpts[el.dataset.k] = el.dataset.v; [...el.parentElement.children].forEach((b) => b.classList.toggle("on", b === el)); break;
+      case "desk-start": deskStart(); render(); break;
+      case "desk-open": deskOpen(el.dataset.u); break;
+      case "desk-pick": deskPick(+el.dataset.i); break;
+      case "desk-back": renderDesk(); break;
+      case "desk-wait": desk.clock = Math.min(...desk.queue.filter((c) => c.arrival > desk.clock).map((c) => c.arrival)); renderDesk(); break;
+      case "desk-end": deskEnd(); render(); break;
+      case "desk-done": closeModal(); render(); break;
+      case "sim-start": simStart(el.dataset.p); render(); break;
+      case "sim-guess": simGuess(el.dataset.s); break;
+      case "sim-pick": simPick(+el.dataset.i); break;
+      case "sim-done": closeModal(); if (!S.finished && pending().length === 0) { S.finished = true; save(); showReadiness(); } render(); break;
       case "qnext": quizRun.idx += 1; quizRun.answered = false; renderQuizQ(); break;
       case "qfinish": quizFinish(); render(); break;
       case "endday": endDay(); render(); break;
@@ -555,7 +1001,7 @@
 
   // Escape/backdrop: an unanswered scenario can be backed out of at no cost; a running quiz must be finished.
   function closeModalSafe() {
-    if (modalBody.querySelector('[data-act="qanswer"]')) return;
+    if (desk || modalBody.querySelector('[data-act="qanswer"], [data-act="sim-guess"], [data-act="sim-pick"]')) return;
     if (modalBody.querySelector('[data-act="after-scenario"]')) { afterScenario(); return; }
     closeModal(); render();
   }
@@ -564,11 +1010,11 @@
 
   function resetAll() {
     try { localStorage.removeItem(KEY); } catch (e) {}
-    S = null; setup = { name: "", avatar: AVATARS[0], trackId: C.tracks[0].id }; tab = "world"; render();
+    S = null; setup = { name: "", avatar: AVATARS[0], trackId: C.tracks[0].id, segment: C.tracks[0].segment }; tab = "world"; render();
   }
 
   function exportLog() {
-    const blob = new Blob([JSON.stringify({ player: S.player, comps: S.comps, baseline: S.baseline, stats: S.stats, statements: S.log }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ player: S.player, comps: S.comps, baseline: S.baseline, stats: S.stats, clientSims: S.cx, performance: perfIndex(), segment: S.player.segment, statements: S.log }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `meriquest-${S.player.name.replace(/\W+/g, "_")}-records.json`;

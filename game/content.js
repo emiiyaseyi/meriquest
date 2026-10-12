@@ -15,7 +15,7 @@ window.MERIQUEST_CONTENT = {
       "Draft training content for internal review. Scenarios, figures and characters are illustrative and must be validated by Meristem subject-matter experts and Compliance before rollout.",
   },
 
-  /* ---------- Competency framework: 5 technical + 5 soft ---------- */
+  /* ---------- Competency framework: 5 technical + 7 soft/commercial ---------- */
   competencies: [
     { id: "mkt",  short: "Markets",      name: "Markets & Products",           group: "technical" },
     { id: "reg",  short: "Compliance",   name: "Regulation & Compliance",      group: "technical" },
@@ -27,6 +27,8 @@ window.MERIQUEST_CONTENT = {
     { id: "team", short: "Teamwork",     name: "Collaboration",                group: "soft" },
     { id: "own",  short: "Ownership",    name: "Ownership & Problem-solving",  group: "soft" },
     { id: "lead", short: "Leadership",   name: "Leadership & Coaching",        group: "soft" },
+    { id: "sales", short: "Sales",       name: "Sales & Business Growth",      group: "soft" },
+    { id: "svc",  short: "Service",      name: "Service Excellence",           group: "soft" },
   ],
 
   /* ---------- CEPOEM core values (badges) ---------- */
@@ -60,6 +62,7 @@ window.MERIQUEST_CONTENT = {
     { id: "family", emoji: "🏛️", name: "Family Office", sub: "Meristem Family Office" },
     { id: "compliance", emoji: "🛡️", name: "Compliance & Risk", sub: "Control & Governance" },
     { id: "client", emoji: "🚗", name: "Client Visit", sub: "Out in the field" },
+    { id: "lounge", emoji: "🛋️", name: "Client Lounge", sub: "Client personality sims", sims: true },
     { id: "academy", emoji: "🎓", name: "Learning Hub", sub: "Daily knowledge check", quiz: true },
     { id: "cafe", emoji: "☕", name: "Meri Café", sub: "Recharge & network", rest: true,
       restText: [
@@ -79,6 +82,7 @@ window.MERIQUEST_CONTENT = {
     /* ===================== TRACK A: INTERN ===================== */
     {
       id: "seedling",
+      segment: "front",
       emoji: "🌱",
       title: "Seedling: Wealth Advisory Internship",
       role: "Wealth Advisory Intern",
@@ -86,7 +90,7 @@ window.MERIQUEST_CONTENT = {
       subsidiary: "Meristem Wealth Management",
       audience: "Interns and industrial-training (SIWES) students",
       blurb: "Your first weeks on the wealth desk: handle walk-in clients, KYC, T-bill maths, nervous investors and team projects.",
-      baseline: { mkt: 15, reg: 15, ana: 15, risk: 15, ops: 15, comm: 20, eth: 25, team: 20, own: 20, lead: 10 },
+      baseline: { mkt: 15, reg: 15, ana: 15, risk: 15, ops: 15, comm: 20, eth: 25, team: 20, own: 20, lead: 10, sales: 10, svc: 20 },
       focus: ["mkt", "reg", "risk", "comm", "eth", "own"],
       skills: {
         technical: [
@@ -129,7 +133,7 @@ window.MERIQUEST_CONTENT = {
           text: "Mrs Adebayo has just received ₦5m in gratuity. \"I want high returns, but I cannot afford to lose this money. My neighbour said shares doubled last year.\" Your advisor is in a meeting for 20 minutes.",
           choices: [
             { label: "Explain that higher returns always come with higher risk, take her through the risk-profile questionnaire, and book her with a licensed advisor. Note that an income-focused, low-risk mix may suit her.",
-              rating: "best", value: "clientocracy", fx: { comps: { comm: 6, risk: 5, eth: 3 }, trust: 8 },
+              rating: "best", value: "clientocracy", fx: { comps: { comm: 6, risk: 5, eth: 3, sales: 2 }, trust: 8 },
               outcome: "She relaxes. \"Finally, someone who asks about MY situation.\" Your advisor reviews the profile and thanks you for the clean hand-over." },
             { label: "Tell her equities did very well last year and she should put it all in the top gainers.",
               rating: "poor", fx: { comps: { risk: -4, eth: -3 }, trust: -10, compliance: -10 },
@@ -180,7 +184,7 @@ window.MERIQUEST_CONTENT = {
           text: "The NGX All-Share Index fell 6% this week. Mrs Bello calls, upset: \"My equity fund is down! Sell everything now, before I lose it all!\"",
           choices: [
             { label: "Acknowledge her worry, remind her the goal is 7 years away, explain how the fund is diversified, and book an urgent call with her advisor today. Log the conversation in the CRM.",
-              rating: "best", value: "clientocracy", fx: { comps: { comm: 6, risk: 4, ops: 3 }, trust: 6 },
+              rating: "best", value: "clientocracy", fx: { comps: { comm: 6, risk: 4, ops: 3, svc: 4 }, trust: 6 },
               outcome: "She calms down. After speaking to her advisor she keeps her plan and moves part of next month's contribution into the money-market fund." },
             { label: "Tell her not to worry because the market will definitely bounce back next month.",
               rating: "poor", fx: { comps: { eth: -4, comm: -1 }, trust: -6 },
@@ -228,6 +232,7 @@ window.MERIQUEST_CONTENT = {
     /* ===================== TRACK B: GRADUATE NEW HIRE (MSP) ===================== */
     {
       id: "starlet",
+      segment: "middle",
       emoji: "⭐",
       title: "Starlet Sprint: Your First 90 Days",
       role: "Investment Advisory Officer (MSP Starlet)",
@@ -235,7 +240,7 @@ window.MERIQUEST_CONTENT = {
       subsidiary: "Meristem Wealth Management / Stockbrokers",
       audience: "Meristem Starlet Programme graduates in the Advisory pathway",
       blurb: "Survive the first-quarter assessment: research deadlines, insider tips, goal-based advice, tough feedback and group cross-referrals.",
-      baseline: { mkt: 30, reg: 25, ana: 35, risk: 25, ops: 25, comm: 25, eth: 30, team: 25, own: 25, lead: 15 },
+      baseline: { mkt: 30, reg: 25, ana: 35, risk: 25, ops: 25, comm: 25, eth: 30, team: 25, own: 25, lead: 15, sales: 20, svc: 25 },
       focus: ["ana", "risk", "reg", "comm", "own", "eth"],
       skills: {
         technical: [
@@ -312,7 +317,7 @@ window.MERIQUEST_CONTENT = {
           text: "Ada can invest ₦200,000 a month. Her goals are a house deposit in 5 years and long-term wealth. She has no emergency savings.",
           choices: [
             { label: "Build a liquid emergency fund first. Put the 5-year house pot mainly in fixed income and money market. Put the long-term pot in a diversified equity fund, with monthly auto-invest on WealthBuddy.",
-              rating: "best", value: "clientocracy", fx: { comps: { risk: 7, mkt: 4, comm: 3 }, trust: 8 },
+              rating: "best", value: "clientocracy", fx: { comps: { risk: 7, mkt: 4, comm: 3, sales: 3 }, trust: 8 },
               outcome: "Ada loves seeing each goal with its own pot. She sets up auto-debit on the spot." },
             { label: "Put everything in money market. Zero risk is best.",
               rating: "ok", fx: { comps: { risk: 1 } },
@@ -346,7 +351,7 @@ window.MERIQUEST_CONTENT = {
           text: "\"My late father's shares are stuck. I need about ₦50m to fund a Local Purchase Order. And I want to sort out my own will.\" Which parts of the Group can help?",
           choices: [
             { label: "Probate on the shares → Meristem Registrar. LPO financing → Meristem Finance. Will → Meristem Trustees. Introduce each by warm email, with the client's consent.",
-              rating: "best", value: "clientocracy", fx: { comps: { mkt: 7, comm: 4, team: 4 }, trust: 8 },
+              rating: "best", value: "clientocracy", fx: { comps: { mkt: 7, comm: 4, team: 4, sales: 5 }, trust: 8 },
               outcome: "Three subsidiaries, one happy client. Mr Etim later moves his business's surplus cash to Meristem Wealth." },
             { label: "Send everything to Meristem Capital, because they \"raise capital\".",
               rating: "ok", fx: { comps: { mkt: -1 } },
@@ -377,6 +382,7 @@ window.MERIQUEST_CONTENT = {
     /* ===================== TRACK C: GROUP INDUCTION (ANY NEW HIRE) ===================== */
     {
       id: "welcome",
+      segment: "front",
       emoji: "🧭",
       title: "Welcome Aboard: Group Induction",
       role: "New Hire (any subsidiary)",
@@ -384,7 +390,7 @@ window.MERIQUEST_CONTENT = {
       subsidiary: "Meristem Group: all 7 subsidiaries",
       audience: "Every new joiner: experienced hires, graduates and support staff",
       blurb: "Learn the Group map, spot phishing and AML red flags, protect client data, own complaints and handle gifts the Meristem way.",
-      baseline: { mkt: 20, reg: 20, ana: 25, risk: 20, ops: 20, comm: 30, eth: 30, team: 25, own: 25, lead: 20 },
+      baseline: { mkt: 20, reg: 20, ana: 25, risk: 20, ops: 20, comm: 30, eth: 30, team: 25, own: 25, lead: 20, sales: 15, svc: 25 },
       focus: ["mkt", "reg", "ops", "eth", "comm", "own"],
       skills: {
         technical: [
@@ -409,7 +415,7 @@ window.MERIQUEST_CONTENT = {
           text: "\"Our company wants to raise ₦10bn through a bond issue. Who at Meristem should I speak to?\"",
           choices: [
             { label: "Meristem Capital. As an issuing house it advises on and structures debt capital-market raises. Introduce them warmly.",
-              rating: "best", value: "clientocracy", fx: { comps: { mkt: 7, comm: 3 }, trust: 6 },
+              rating: "best", value: "clientocracy", fx: { comps: { mkt: 7, comm: 3, sales: 3 }, trust: 6 },
               outcome: "Correct. You also mention that Meristem Registrar can keep the bond register after issuance. The visitor is impressed." },
             { label: "Meristem Finance, because it gives loans.",
               rating: "ok", fx: { comps: { mkt: 1 } },
@@ -477,7 +483,7 @@ window.MERIQUEST_CONTENT = {
           text: "You work in Wealth. An angry email lands in your inbox: Mr Ahmed hasn't received dividends for three years and \"Meristem is useless\".",
           choices: [
             { label: "Reply the same day, log it in the complaints system, warm-transfer it to your Registrar contact, explain the e-dividend mandate, and follow up until it's resolved.",
-              rating: "best", value: "delight", fx: { comps: { own: 7, comm: 4, team: 3 }, trust: 8 },
+              rating: "best", value: "delight", fx: { comps: { own: 7, comm: 4, team: 3, svc: 6 }, trust: 8 },
               outcome: "Mr Ahmed's unclaimed dividends are traced and paid within two weeks. He writes a thank-you note to the GMD naming you." },
             { label: "Forward it to the registrar's general mailbox and move on.",
               rating: "ok", fx: { comps: { own: -1 } },
@@ -525,6 +531,8 @@ window.MERIQUEST_CONTENT = {
     /* ===================== TRACK D: TEAM LEAD (8+ YEARS) ===================== */
     {
       id: "canopy",
+      segment: "middle",
+      leader: true,
       emoji: "🌳",
       title: "Canopy: Leading Advisors",
       role: "Team Lead, Investment Advisory (8+ yrs)",
@@ -532,7 +540,7 @@ window.MERIQUEST_CONTENT = {
       subsidiary: "Meristem Wealth Management",
       audience: "Experienced advisors moving into, or already in, people leadership",
       blurb: "Build your bench: succession planning, retention, coaching junior advisors, underperformance, delegation and leading through a market shock.",
-      baseline: { mkt: 60, reg: 55, ana: 60, risk: 55, ops: 50, comm: 50, eth: 55, team: 45, own: 50, lead: 30 },
+      baseline: { mkt: 60, reg: 55, ana: 60, risk: 55, ops: 50, comm: 50, eth: 55, team: 45, own: 50, lead: 30, sales: 50, svc: 45 },
       focus: ["lead", "team", "comm", "risk", "reg", "own"],
       skills: {
         technical: [
@@ -643,7 +651,7 @@ window.MERIQUEST_CONTENT = {
           text: "Overnight: a sharp rate hike and a slide in the naira. The equity market is down 8% in two days. Your team is anxious and phones are already ringing.",
           choices: [
             { label: "Call a 15-minute huddle: share Research's house view, give a 3-point client script, prioritise proactive calls to the most exposed and vulnerable clients, check on team wellbeing, and update management on the top risks.",
-              rating: "best", value: "clientocracy", fx: { comps: { lead: 7, comm: 5, mkt: 3 }, trust: 8 },
+              rating: "best", value: "clientocracy", fx: { comps: { lead: 7, comm: 5, mkt: 3, svc: 3 }, trust: 8 },
               outcome: "Clients hear from Meristem before they panic. Client retention for the month is the best on record." },
             { label: "Tell the team to avoid client calls until things calm down.",
               rating: "poor", fx: { comps: { lead: -5, comm: -4 }, trust: -10 },
@@ -687,6 +695,7 @@ window.MERIQUEST_CONTENT = {
 
   /* Tracks shown as "coming soon" — the roadmap */
   lockedTracks: [
+    { emoji: "✨", title: "Meristar Delight: CX Excellence (pilot)", sub: "Customer Experience: built from your CX cases" },
     { emoji: "📈", title: "Dealer / Equity Trader", sub: "Meristem Stockbrokers" },
     { emoji: "🗂️", title: "Registrar & Probate Officer", sub: "Meristem Registrar" },
     { emoji: "📜", title: "Trust & Estate Officer", sub: "Meristem Trustees" },

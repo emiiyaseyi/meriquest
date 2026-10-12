@@ -11,7 +11,7 @@ Draft v0.1, 12 October 2026. Indicative timeline: **about 10 months from approva
 | 0 | **Mobilise and discover** | 1–3 | Sponsor, steering group, SME roster, validated competency framework, success metrics, DPIA started | Steering group approves scope and metrics |
 | 1 | **Prototype validation** | 3–6 | Prototype (this repo) played by 20–30 staff; feedback; content style guide; scenario template | ≥ 70% of testers would use it weekly |
 | 2 | **MVP build** | 6–19 | SSO, server saves, 2D illustrated map, multiplayer (presence, chat, moderation), 3 mini-game types, micro-courses, admin authoring + approval workflow, manager dashboard, xAPI, Wave 1 content (4 tracks × 10–12 scenarios) | Security and load tests passed; Compliance sign-off on all content; chat policy approved |
-| 3 | **Pilot** | 19–25 | 80–120 staff: one intern cohort, one MSP cohort, new hires from 2 subsidiaries, one team-lead cohort | Pilot KPIs met (see PRD §11) |
+| 3 | **Pilot: CX, Wealth Advisory, Investment Advisory** | 19–25 | 80–120 staff: one intern cohort, one MSP cohort, new hires from 2 subsidiaries, one team-lead cohort | Pilot KPIs met (see PRD §11) |
 | 4 | **Scale** | 25–40 | Co-op scenarios and mentoring, Wave 2–3 tracks (Guardian, Analyst Edge, Floor Ready, Registrar, Trustees, Capital, Finance, Legacy); cohort features; seasonal events | ≥ 60% of eligible staff enrolled |
 | 5 | **Run and improve** | 40+ | Monthly content drop, quarterly regulatory review, Boardroom track, AI role-play pilot | Annual L&D impact review |
 
@@ -53,11 +53,14 @@ Phase 4                                  █████████████
 | S2 | SSO, user/enrolment model, server-side saves, HRIS CSV import | SME review round 1 |
 | S3 | 2D map (PixiJS) with avatars and travel; 3 mini-game types (sort-swipe, sequence, tap-targets); micro-courses | Compliance review round 1 |
 | S4 | **Multiplayer:** real-time presence, profiles, channels + DMs, report/block, filter, moderation console, kudos | Chat acceptable-use policy (HR + Compliance) |
-| S5 | Admin authoring UI, review/approval workflow, versioning | Mini-game content (KYC cards, phishing items, sequences) |
+| S5 | Admin authoring UI, review/approval workflow, versioning; **case-library editor for the client generator** | **Convert Meristem CX cases into case templates (target: 60+ for the pilot)**; mini-game content |
 | S6 | Manager dashboard, analytics views, xAPI statements → LRS/LMS | Quiz banks and micro-course notes |
 | Hardening (wks 18–19) | Accessibility pass, performance, **load test (concurrent players)**, penetration test, fixes, UAT | Final sign-off, pilot comms pack, moderator training |
 
-### Phase 3: Pilot (weeks 19–25)
+### Phase 3: Pilot (weeks 19–25): CX, Wealth Advisory, Investment Advisory
+- [ ] Pilot cohorts: the CX team, Wealth Advisory and Investment Advisory (plus their team leads).
+- [ ] Daily Client Desk shift as the core habit; weekly team challenge on FCR and satisfaction.
+- [ ] Compare in-game KPIs with real CX/advisory KPIs at aggregate level (development-only).
 - [ ] Launch event with the sponsor; cohort kick-offs.
 - [ ] Pre-assessment (same items as post).
 - [ ] Weekly Teams nudges; manager huddle guide.
