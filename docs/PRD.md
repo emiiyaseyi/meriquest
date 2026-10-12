@@ -4,7 +4,7 @@
 **Owner:** Learning & Development (L&D), Group Human Resources
 **Status:** Draft v0.1, for stakeholder review
 **Date:** 12 October 2026
-**Companion docs:** [WORKPLAN.md](WORKPLAN.md) · [CAREER-TRACKS.md](CAREER-TRACKS.md) · prototype in [`/game`](../game/index.html)
+**Companion docs:** [WORKPLAN.md](WORKPLAN.md) · [CAREER-TRACKS.md](CAREER-TRACKS.md) · [LAGOS-LIFE-REVIEW.md](LAGOS-LIFE-REVIEW.md) · prototype in [`/game`](../game/index.html)
 
 ---
 
@@ -97,7 +97,11 @@ Meristem already won the **2023 Best Practices Award for the Delivery of Learnin
 | **Journal** | Every decision and coach's note, for reflection. | ✅ |
 | **L&D report and xAPI export** | Manager view and data portability. | ✅ (local only) |
 | **Branching consequences** | Later scenarios change based on earlier choices (e.g. a client you mishandled returns). | Phase 2 |
-| **Team/cohort play** | Cohort leaderboards (team-based, not individual shaming), group challenges, peer kudos. | Phase 2 |
+| **Multiplayer world** | Colleagues' avatars on a shared 2D map in real time; profiles; moderated team/cohort/location chat and DMs; kudos. See [LAGOS-LIFE-REVIEW.md §7.1](LAGOS-LIFE-REVIEW.md). | MVP |
+| **Co-op and mentoring** | 2–4 players take roles in one scenario; senior staff host coaching sessions for juniors. | v1.1 |
+| **Team/cohort play** | Cohort leaderboards (team-based, not individual shaming), group challenges. | v1.1 |
+| **Work mini-games** | Six hands-on task types modelled on Lagos Life (sort-swipe, sequence, tap-targets, hold-release, keep-in-zone, timing bar), e.g. KYC sorting, T-bill pricing, phishing spotting. | MVP: 3 types; v1.1: all 6 |
+| **Micro-courses** | 5 lessons × (notes + 3 questions), max 2 lessons a day; a certificate improves odds in related scenarios. | MVP |
 | **Seasonal events** | Market-shock weeks, MPC decision days, AGM season, year-end. | Phase 2 |
 | **AI role-play** | Free-text conversations with an AI client or colleague, graded against a rubric. | Phase 3 (pilot) |
 | **Group economy** | Cross-subsidiary referrals earn "Group synergy" points. | Phase 3 |
@@ -140,7 +144,11 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | P-5 | Skills profile, journal, values and readiness review visible to the player. | Must |
 | P-6 | Accessibility: keyboard play, screen-reader labels, WCAG 2.2 AA contrast, reduced-motion support. | Must |
 | P-7 | Low-bandwidth mode (no heavy assets; under 300 KB first load). | Should |
-| P-8 | Cohort / team challenges and peer kudos. | Should |
+| P-8 | Shared 2D world: see colleagues' avatars and presence in real time; visit locations together. | Must |
+| P-8a | Chat: team, cohort and location channels plus 1:1 DMs, under real-name SSO identities; report and block; profanity/PII filter. | Must |
+| P-8b | Kudos (limited per week), colleague relationship ladder, co-op scenarios, mentoring sessions. | Should |
+| P-8c | Cohort / team challenges and leaderboards. | Should |
+| P-8d | "Invisible" mode and notification controls. | Must |
 | P-9 | Reminders via Microsoft Teams or email (opt-in). | Could |
 
 ### 8.2 Line manager
@@ -159,6 +167,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | A-4 | Analytics: completion, time-on-task, item difficulty, choice distributions, pre/post deltas. | Must |
 | A-5 | Send xAPI statements to an LRS / the existing LMS; SCORM wrapper if the LMS requires it. | Should |
 | A-6 | Bulk import and export of content (JSON/CSV). | Should |
+| A-7 | Moderation console: reported messages, user restrictions, keyword lists, chat-retention settings, audit trail. | Must |
 
 ## 9. Non-functional requirements
 - **Security:** SSO (OIDC/SAML), role-based access (player / manager / admin / reviewer), audit log of admin actions, OWASP ASVS L2, annual penetration test before go-live.
@@ -173,7 +182,9 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | Layer | Recommendation | Why |
 |---|---|---|
 | Front end | **Next.js (React + TypeScript)**, PWA | The same stack Lagos Life uses; mature; SSR plus offline. |
-| Game state | Client-side engine (port of `engine.js`) + server reconciliation | Instant feedback, server stays the source of truth. |
+| Game state | Client-side engine (port of `engine.js`) + server reconciliation | Instant feedback, server stays the source of truth (server-authoritative scoring prevents Lagos Life-style exploits). |
+| 2D world rendering | **PixiJS** (WebGL 2D) or Phaser, with illustrated tile/scene art | Smooth on low-end phones; a lighter fallback view like Lagos Life's |
+| Real-time multiplayer | **WebSockets**: Azure Web PubSub, Supabase Realtime or Socket.IO on Node | Presence, chat, co-op scenarios; scales to Group headcount easily |
 | Back end / API | Next.js API routes or NestJS | One TypeScript codebase. |
 | Database | **PostgreSQL** (Azure Database for PostgreSQL or Supabase) via Prisma | Relational data (users, tracks, attempts) with JSON for content. |
 | Auth | **Microsoft Entra ID (Azure AD) SSO** *(to confirm)* | Uses existing staff identities. |
@@ -219,7 +230,9 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | Gamification feels childish to senior staff | Professional visual tone; leadership tracks focus on dilemmas, not points; leaderboards are optional and team-based. |
 | Players optimise for XP, not learning | XP is weighted to *best* decisions; options are shuffled; the coach's note is always shown; replays are allowed but the first attempt is what's reported. |
 | Content inaccuracy / regulatory drift | SME + Compliance sign-off, review dates, a "report an issue" button. |
-| Data used punitively | Policy: development use only; managers see trends and readiness, not every click. Communicated upfront. |
+| Data used punitively | **Decided: development use only.** Managers see trends and readiness, not every click. Communicated upfront in the employee notice. |
+| Chat misconduct (harassment, leaks of client data) | Real-name identities, a filter, report/block, trained moderators, an acceptable-use policy linked to the Code of Conduct, no client data in chat (automatic PII detection) |
+| Multiplayer adds build complexity | Phase it: presence + chat in the MVP; co-op scenarios in v1.1; load test before the pilot |
 | Low adoption after launch | Executive sponsor, cohort launches, Teams nudges, a monthly content drop tied to real market events. |
 | Build cost overrun | Start from the working prototype; content-first; phase the features. |
 
@@ -228,9 +241,12 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 2. Is staff identity on Microsoft 365 / Entra ID? Are there approved cloud regions?
 3. Which HRIS holds grade, unit and manager data, and is there an API or a CSV export?
 4. Who is the executive sponsor, and who are the SMEs per subsidiary?
-5. Can game outcomes inform MSP first-quarter assessments, or must they be development-only?
+5. ~~Can game outcomes inform MSP first-quarter assessments?~~ **Decided 12 Oct 2026: development only.**
 6. Can the Meristem brand (logo, colours) be used inside the game?
 7. Budget envelope and target pilot date.
+8. Who moderates chat (HR/L&D), with what response times, and how long are chat records kept?
+
+**Decisions made 12 Oct 2026:** full multiplayer world · session-based days · 2D illustrated map · development-only data use. Rationale and safeguards are in [LAGOS-LIFE-REVIEW.md](LAGOS-LIFE-REVIEW.md) §7.
 
 ---
 *Appendix: the prototype in `/game` implements the core loop, 4 tracks, 24 scenarios, 19 quiz items, a skills radar, CEPOEM badges, a readiness review and an xAPI-style export.*

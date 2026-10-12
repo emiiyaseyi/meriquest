@@ -16,6 +16,7 @@ docs/
   PRD.md              Product requirements
   WORKPLAN.md         Phased delivery plan, team, milestones
   CAREER-TRACKS.md    Career tracks and technical + soft skills matrix by role
+  LAGOS-LIFE-REVIEW.md  How Lagos Life is played, what to copy/avoid, gap analysis, decisions
 .claude/launch.json   Local preview config (python http.server)
 ```
 
