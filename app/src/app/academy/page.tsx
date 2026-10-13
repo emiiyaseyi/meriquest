@@ -6,16 +6,21 @@ import { requireUser } from "@/lib/server/auth/dal";
 
 export const metadata: Metadata = { title: "Meristem Academy" };
 
-/** Learning is open at any time, also outside play hours, so the Academy has its own page as well as the Work Phone. */
+/** Learning is open at any time, also outside play hours, so the Academy has its own full-screen page as well as the map. */
 export default async function AcademyPage() {
   await requireUser();
   return (
-    <main className="auth-shell" style={{ alignItems: "flex-start" }}>
-      <Logo variant="light" width={190} />
-      <div className="auth-card stack" style={{ width: "min(720px, 100%)" }}>
+    <div className="academy-page">
+      <header className="academy-page-bar">
+        <Logo variant="light" width={150} />
+        <nav className="academy-page-links" aria-label="Academy">
+          <Link href="/">Back to the game</Link>
+          <Link href="/dashboard">My dashboard</Link>
+        </nav>
+      </header>
+      <main className="academy-body">
         <AcademyApp embedded />
-        <p style={{ margin: 0 }}><Link href="/">Back to the game</Link> · <Link href="/dashboard">My dashboard</Link></p>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
