@@ -105,6 +105,17 @@ h2 { font-size: 1.15rem; font-weight: 650; }
 .msg-error { background: var(--danger-soft); color: var(--danger); }
 .msg-ok { background: var(--ok-soft); color: var(--ok); }
 
+/* Progress bar and the gentle slide-in for each new question */
+.progress { height: 8px; background: #d3dfd6; border-radius: 999px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--brand); border-radius: inherit; transition: width .25s ease; }
+.question-enter { animation: question-in .22s ease both; }
+@keyframes question-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .progress > span { transition: none; }
+  .question-enter { animation: none; }
+}
+.question-text:focus { outline: none; }
+
 /* Placement questions: question inside the card, easy-to-tap options */
 .question { gap: 6px; padding: 18px 20px; }
 .question-text { margin: 0 0 6px; font-size: 1rem; line-height: 1.35; color: #17261c; }
