@@ -59,3 +59,25 @@ describe("streak and mission swaps", () => {
     expect((await swapMission(me, "nonsense", NOW)).ok).toBe(false);
   });
 });
+
+describe("showing a result at once", () => {
+  const base = { needs: { energy: 50, focus: 50, mood: 50, social: 50, hunger: 50, hydration: 50, growth: 50, recognition: 50 }, points: 10, cooldowns: {} as Record<string, number> };
+
+  it("applies the effects, the cost and the cooldown, never past the limits", async () => {
+    const { predictAction } = await import("@/lib/game");
+    const r = predictAction(base, { key: "hello:a", effects: { social: 70, mood: -80 }, cost: 4, gain: 1, cooldownMinutes: 30 }, 1000);
+    expect(typeof r).not.toBe("string");
+    if (typeof r !== "string") {
+      expect(r.needs.social).toBe(100);
+      expect(r.needs.mood).toBe(0);
+      expect(r.points).toBe(7);
+      expect(r.cooldowns["hello:a"]).toBe(1000 + 30 * 60_000);
+    }
+  });
+
+  it("refuses what would be refused: a running cooldown or not enough points", async () => {
+    const { predictAction } = await import("@/lib/game");
+    expect(predictAction({ ...base, cooldowns: { k: 5000 } }, { key: "k", effects: {}, cooldownMinutes: 1 }, 1000)).toMatch(/Not just yet/);
+    expect(predictAction(base, { key: "k", effects: {}, cost: 50, cooldownMinutes: 0 }, 1000)).toMatch(/need 50/);
+  });
+});

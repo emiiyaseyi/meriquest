@@ -4,6 +4,20 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## S1: More instant actions (13 Oct 2026)
+Scope: owner request "instant in the browser, server stays the judge", second step. Using a spot (coffee, water, lunch...), greeting or helping a colleague, claiming a mission reward and taking the daily bonus now show their result on screen at once; the server's answer then replaces the screen's numbers, and a refusal puts things back with a message. The server still decides everything and sends the numbers the screen needs (what each action does, what a claim does).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 493 tests, including the prediction rules (effects, cost, cooldown, limits, refusals) |
+| 3 | Security | **Pass** | Nothing the browser predicts is trusted: points, needs and cooldowns are set by the server on every action |
+| 4 | Real browser | **Pass** | Throwaway user: game loads, map to open-plan floor is instant, no console errors; the spot click itself was not driven in the browser run |
+
+Notes: swapping a mission and shift answers wait for the server because the server picks the result. The main remaining delay in development is the database round trip (about half a second to a second per query from this computer).
+
+---
+
 ## A4: Academy course form editor and admin pages on phones (13 Oct 2026)
 Scope: the Academy course editor now uses the same form editor as the settings (lessons, notes, questions at three levels, scenarios, case studies, lesson video), with JSON under Advanced; the admin header no longer pushes pages sideways on a phone.
 

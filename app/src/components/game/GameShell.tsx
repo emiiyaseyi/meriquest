@@ -25,7 +25,7 @@ import { claimBonusAction, claimMissionAction, swapMissionAction, completeTourAc
 import type { GameState } from "@/lib/server/game/service";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
 import { NEED_ICON } from "./needs";
-import { NEED_LABEL } from "@/lib/game";
+import { NEED_LABEL, applyEffects, predictAction } from "@/lib/game";
 import { NEED_KEYS, moodLabel } from "@/lib/world/player";
 import { nextQuarter, type Quarter } from "@/lib/iso/rotate";
 import { countdown } from "@/lib/format";
@@ -184,10 +184,10 @@ export function GameShell(props: GameShellProps) {
   }, []);
 
   const onGame = useCallback(
-    (g: GameState, message: string) => {
+    (g: GameState, message?: string) => {
       setGame(g);
       setGameAt(Date.now());
-      flash(message);
+      if (message) flash(message);
     },
     [flash],
   );
@@ -205,16 +205,31 @@ export function GameShell(props: GameShellProps) {
   }, []);
 
   const runGame = useCallback(
-    async (call: () => Promise<{ ok: true; state: GameState; message: string } | { ok: false; error: string }>) => {
+    async (call: () => Promise<{ ok: true; state: GameState; message: string } | { ok: false; error: string }>, predict?: { next: (g: GameState) => GameState | string; message: string }) => {
+      // With a prediction the screen changes at once and the server's answer replaces it; a refusal puts things back
+      const before = game;
+      if (predict) {
+        const p = predict.next(game);
+        if (typeof p === "string") {
+          flash(p);
+          return;
+        }
+        setGame(p);
+        flash(predict.message);
+      }
       try {
         const r = await call();
-        if (r.ok) onGame(r.state, r.message);
-        else flash(r.error);
+        if (r.ok) onGame(r.state, predict ? undefined : r.message);
+        else {
+          if (predict) setGame(before);
+          flash(r.error);
+        }
       } catch {
+        if (predict) setGame(before);
         flash("Could not do that just now. Please try again.");
       }
     },
-    [onGame, flash],
+    [onGame, flash, game],
   );
 
   const goTo = useCallback(
@@ -542,7 +557,7 @@ export function GameShell(props: GameShellProps) {
                 <button type="button" className="activity" onClick={() => void openBuy()}><strong>Customise my desk</strong><span className="muted">Buy and place things</span></button>
               </>
             ) : game.spots[spot.kind] ? (
-              <button type="button" className="activity" onClick={() => void runGame(() => spotAction(spot.kind))} disabled={(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt}>
+              <button type="button" className="activity" onClick={() => void runGame(() => spotAction(spot.kind), { next: (g) => predictAction(g, { key: `spot:${spot.kind}`, effects: g.spots[spot.kind].effects, cooldownMinutes: g.spots[spot.kind].cooldownMinutes }, Date.now()), message: `${game.spots[spot.kind].label}. ${game.spots[spot.kind].tags.join(" ")}` })} disabled={(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt}>
                 <strong>{game.spots[spot.kind].icon} {game.spots[spot.kind].label}</strong>
                 <span className="muted">{(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt ? `Again in ${Math.max(1, Math.ceil(((game.cooldowns[`spot:${spot.kind}`] ?? 0) - gameAt) / 60_000))} min` : game.spots[spot.kind].tags.join(" · ")}</span>
               </button>
@@ -587,8 +602,8 @@ export function GameShell(props: GameShellProps) {
           here={game.feelings[0]?.label ?? scene.name}
           game={game}
           sceneName={scene.name}
-          onClaim={(id) => void runGame(() => claimMissionAction(id))}
-          onClaimBonus={() => void runGame(() => claimBonusAction())}
+          onClaim={(id) => void runGame(() => claimMissionAction(id), { next: (g) => { const m = g.plan.missions.find((x) => x.id === id); if (!m || !m.done || m.claimed) return "That reward is not ready."; return { ...g, points: g.points + m.rewardPoints, needs: applyEffects(g.needs, g.plan.claimEffects), plan: { ...g.plan, missions: g.plan.missions.map((x) => (x.id === id ? { ...x, claimed: true } : x)) } }; }, message: "Reward claimed." })}
+          onClaimBonus={() => void runGame(() => claimBonusAction(), { next: (g) => (g.plan.allDone && !g.plan.bonusClaimed ? { ...g, points: g.points + g.plan.bonusPoints, plan: { ...g.plan, bonusClaimed: true } } : "Finish all of today's missions first."), message: "Bonus taken." })}
           onSwap={(id) => void runGame(() => swapMissionAction(id))}
           people={scene.npcs}
           onPerson={onNpc}

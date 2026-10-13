@@ -59,6 +59,8 @@ export interface InteractionView {
   tags: string[];
   cost: number;
   cooldownMinutes: number;
+  /** What it does to each need, so the screen can show the result at once. The server still decides. */
+  effects: Effects;
 }
 
 export interface GameState {
@@ -66,11 +68,11 @@ export interface GameState {
   points: number;
   feelings: Feeling[];
   skills: SkillStanding[];
-  plan: { day: string; missions: MissionView[]; allDone: boolean; bonusPoints: number; bonusClaimed: boolean; /** When new missions arrive (epoch ms). */ newAt: number; swapsLeft: number };
+  plan: { day: string; missions: MissionView[]; allDone: boolean; bonusPoints: number; bonusClaimed: boolean; /** When new missions arrive (epoch ms). */ newAt: number; swapsLeft: number; /** What claiming a mission does to the needs. */ claimEffects: Effects };
   streak: StreakView;
   interactions: InteractionView[];
   /** Places that recharge needs, by the kind of hotspot. */
-  spots: Record<string, { label: string; icon: string; tags: string[]; cooldownMinutes: number }>;
+  spots: Record<string, { label: string; icon: string; tags: string[]; cooldownMinutes: number; effects: Effects }>;
   /** For each need, where and how it can be recharged ("Coffee point · Open-plan floor", "Say hello"). */
   recharge: Record<NeedKey, string[]>;
   /** Updates on the Work Phone that have not been read. */
@@ -130,7 +132,7 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
     points: player.points,
     feelings: (player.feelings ?? []).slice(0, MAX_FEELINGS),
     skills,
-    plan: { day: mission.day, missions, allDone: missions.length > 0 && missions.every((m) => m.done), bonusPoints: gameplay.dailyBonusPoints, bonusClaimed: mission.bonusClaimed, newAt: now + (1440 - lt.minutes) * 60_000, swapsLeft: Math.max(0, gameplay.swapsPerDay - (mission.swaps ?? 0)) },
+    plan: { day: mission.day, missions, allDone: missions.length > 0 && missions.every((m) => m.done), bonusPoints: gameplay.dailyBonusPoints, bonusClaimed: mission.bonusClaimed, newAt: now + (1440 - lt.minutes) * 60_000, swapsLeft: Math.max(0, gameplay.swapsPerDay - (mission.swaps ?? 0)), claimEffects: gameplay.claimEffects },
     streak: {
       count: streak?.count ?? 0,
       best: player.streak?.best ?? 0,
@@ -138,8 +140,8 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
       checkedInToday: checked,
       track: Array.from({ length: 7 }, (_, i) => ({ day: i + 1, points: gameplay.streakRewards.find((r) => r.day === i + 1)?.points ?? 0, done: streak !== undefined && i + 1 <= cycleDay })),
     },
-    interactions: gameplay.interactions.map((i) => ({ id: i.id, label: i.label, icon: i.icon, tags: effectTags(i.effects), cost: i.cost, cooldownMinutes: i.cooldownMinutes })),
-    spots: Object.fromEntries(gameplay.spots.map((s) => [s.kind, { label: s.label, icon: s.icon, tags: effectTags(s.effects), cooldownMinutes: s.cooldownMinutes }])),
+    interactions: gameplay.interactions.map((i) => ({ id: i.id, label: i.label, icon: i.icon, tags: effectTags(i.effects), cost: i.cost, cooldownMinutes: i.cooldownMinutes, effects: i.effects })),
+    spots: Object.fromEntries(gameplay.spots.map((s) => [s.kind, { label: s.label, icon: s.icon, tags: effectTags(s.effects), cooldownMinutes: s.cooldownMinutes, effects: s.effects }])),
     recharge: rechargeHints(gameplay),
     unread,
     cooldowns,

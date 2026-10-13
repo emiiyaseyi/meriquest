@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { predictAction } from "@/lib/game";
+import { useState, useCallback } from "react";
 import { PersonPortrait } from "./PersonPortrait";
 import { interactAction } from "@/app/actions/world";
 import type { GameState } from "@/lib/server/game/service";
@@ -10,26 +11,38 @@ import type { Npc } from "@/lib/world/types";
  * What opens when you click someone, laid out like the reference game's player card: picture and name on top,
  * one big primary action, then the other things you can do. Their game systems arrive later, so they say so.
  */
-export function PersonCard({ person, here, game, onGame, onClose, onReport }: { person: Npc; here: string; game: GameState; onGame: (g: GameState, message: string) => void; onClose: () => void; onReport: () => void }) {
+export function PersonCard({ person, here, game, onGame, onClose, onReport }: { person: Npc; here: string; game: GameState; onGame: (g: GameState, message?: string) => void; onClose: () => void; onReport: () => void }) {
   const first = person.name.split(" ")[0];
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
 
-  const run = async (id: string) => {
+  const run = useCallback(async (id: string) => {
     if (busy) return;
     setBusy(id);
     setError(null);
     try {
+      // The screen shows the result straight away; the server's answer then replaces it, and a refusal puts things back
+      const def = game.interactions.find((i) => i.id === id);
+      const before = game;
+      if (def) {
+        const p = predictAction(game, { key: `${id}:${person.id}`, effects: def.effects, cost: def.cost, cooldownMinutes: def.cooldownMinutes }, Date.now());
+        if (typeof p === "string") {
+          setError(p);
+          return;
+        }
+        onGame(p, `${def.label}: ${person.name}. ${def.tags.join(" ")}`);
+      }
       const r = await interactAction(id, person.id);
-      if (r.ok) onGame(r.state, r.message);
+      if (r.ok) onGame(r.state, def ? undefined : r.message);
+      else if (def) onGame(before, undefined);
       else setError(r.error);
     } catch {
       setError("Could not do that just now. Please try again.");
     } finally {
       setBusy(null);
     }
-  };
+  }, [busy, game, person, onGame]);
   return (
     <div className="me-panel person-card" role="dialog" aria-label={`${person.name}'s profile`}>
       <div className="grab" aria-hidden="true" />

@@ -138,3 +138,20 @@ export function cleanProgress(raw: { feelings?: unknown; skillXp?: unknown; cool
   };
   return { feelings, skillXp: numbers(raw.skillXp, 40), cooldowns: numbers(raw.cooldowns, 200), needsAt: typeof raw.needsAt === "number" && Number.isFinite(raw.needsAt) ? raw.needsAt : undefined };
 }
+
+/**
+ * What the screen shows straight away, before the server has answered. The server is still the judge: when it answers,
+ * its numbers replace these. A prediction that is wrong is corrected quietly.
+ */
+export interface Predictable {
+  needs: Needs;
+  points: number;
+  cooldowns: Record<string, number>;
+}
+
+export function predictAction<T extends Predictable>(g: T, a: { key: string; effects: Effects; cost?: number; gain?: number; cooldownMinutes: number }, now: number): T | string {
+  const until = g.cooldowns[a.key] ?? 0;
+  if (until > now) return "Not just yet. Give it a little while.";
+  if ((a.cost ?? 0) > g.points) return `You need ${a.cost} Merit points for that.`;
+  return { ...g, needs: applyEffects(g.needs, a.effects), points: g.points - (a.cost ?? 0) + (a.gain ?? 0), cooldowns: a.cooldownMinutes > 0 ? { ...g.cooldowns, [a.key]: now + a.cooldownMinutes * 60_000 } : g.cooldowns };
+}
