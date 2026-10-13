@@ -199,7 +199,7 @@ The full role-by-role skills matrix is in [CAREER-TRACKS.md](CAREER-TRACKS.md).
 | Content | Content stored in Postgres with an admin UI (v1); a headless CMS later if needed | Keeps v1 simple. |
 | Learning records | xAPI → Learning Record Store (e.g. built-in table → external LRS) | Portability to the LMS. |
 | Analytics | Postgres views + Power BI / Metabase dashboards | HR already reports in BI tools (to confirm). |
-| Hosting / CI | **Netlify** (preferred) or Vercel, deploying from GitHub; Supabase for Postgres, Realtime and Storage | Simple, auditable deploys; preview link for every change. |
+| Hosting / CI | **Vercel** (owner's decision, 13 Oct 2026; not Netlify), deploying from GitHub; Supabase for Postgres, Realtime and Storage | Simple, auditable deploys; preview link for every change. |
 | AI role-play (Phase 3) | Claude API with rubric-based grading; no client data in prompts | Practice open-ended conversations. |
 
 ### 10.1 Core data model (v1)

@@ -59,6 +59,21 @@ export function pgConnection(databaseUrl: string, nodeEnv: string): PgConnection
   };
 }
 
+/** Failures that happen while connecting, before any SQL is sent, so trying again can never run a statement twice. */
+const isConnectFailure = (e: unknown) => /Connection terminated due to connection timeout|timeout exceeded when trying to connect|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN/i.test(e instanceof Error ? `${e.message} ${(e as { code?: string }).code ?? ""}` : "");
+
+/** A hosted database can be slow to wake or briefly unreachable: try to connect up to three times before giving up. */
+export async function withConnectRetry<T>(fn: () => Promise<T>, delayMs = 400): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (attempt >= 3 || !isConnectFailure(e)) throw e;
+      await new Promise((r) => setTimeout(r, delayMs * attempt));
+    }
+  }
+}
+
 export function createPgDb(databaseUrl: string, nodeEnv: string): Db {
   const { config, warnings } = pgConnection(databaseUrl, nodeEnv);
   for (const w of warnings) console.warn(`[db] ${w}`);
@@ -66,9 +81,9 @@ export function createPgDb(databaseUrl: string, nodeEnv: string): Db {
   // An idle-client error (for example the host restarting) must not crash the process.
   pool.on("error", () => console.error("[db] idle connection error"));
   return {
-    query: (text, params) => pool.query(text, params as unknown[]) as never,
+    query: (text, params) => withConnectRetry(() => pool.query(text, params as unknown[]) as never),
     async tx(fn) {
-      const client = await pool.connect();
+      const client = await withConnectRetry(() => pool.connect());
       try {
         await client.query("BEGIN");
         const out = await fn({ query: (t, p) => client.query(t, p as unknown[]) as never });

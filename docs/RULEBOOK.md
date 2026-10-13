@@ -211,7 +211,7 @@ Anything below must live in the database or config with an **admin screen**. Cod
 ---
 
 ## 5. Architecture rules
-- Stack per PRD §10 (Next.js + TypeScript, Netlify, Supabase, server-side staff ID/email + password). **Server-authoritative scoring.**
+- Stack per PRD §10 (Next.js + TypeScript, Vercel (owner decision, 13 Oct 2026), Supabase, server-side staff ID/email + password). **Server-authoritative scoring.**
 - Rendering: PixiJS (or similar) for isometric scenes; shared game logic is renderer-independent so Lite 2D and later 3D reuse it.
 - Content is data, not code. One content schema serves isometric, Lite and later 3D.
 - Accessibility (WCAG 2.2 AA), mobile-first, under 300 KB first load in Lite.

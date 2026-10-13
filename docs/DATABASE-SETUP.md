@@ -39,10 +39,11 @@ Prisma's free plan has **no backups**, a 10-connection limit, and (per their pri
 3. Create a separate **production** database and set `DATABASE_URL` only in the host's secret settings.
 4. Run `npm run db:migrate` against it.
 
-## Linking to Netlify (when the app is ready to deploy)
-1. **Netlify → Add new site → Import an existing project → GitHub** → `emiiyaseyi/meriquest`.
-2. Build settings: **Base directory** `app`, **Build command** `npm run build`. (I will update `netlify.toml` to match; until then the repo deliberately publishes the "retired" page.)
-3. **Site configuration → Environment variables** (mark secrets as "Contains secret values"):
+## Linking to Vercel (when the app is ready to deploy)
+The owner decided (13 Oct 2026) to host on **Vercel**, not Netlify. `netlify.toml` is left in place only until the Vercel project exists.
+1. **Vercel → Add New → Project → Import** the GitHub repo `emiiyaseyi/meriquest`.
+2. Project settings: **Root Directory** `app`, framework **Next.js**, build command `npm run build`.
+3. **Settings → Environment Variables** (mark secrets as Sensitive):
 
 | Variable | Value | Secret |
 |---|---|---|
@@ -53,9 +54,9 @@ Prisma's free plan has **no backups**, a 10-connection limit, and (per their pri
 | `SEED_SAMPLE_STAFF` | `false` | no |
 | `BOOTSTRAP_ADMIN_STAFF_ID` / `BOOTSTRAP_ADMIN_EMAIL` | `MS0001` / the L&D admin mailbox | no |
 
-4. Do **not** set `NODE_ENV` (Netlify sets it). In production the app refuses to start if a secret is missing, if TLS to the database is not verified, if sample staff are enabled, or if local files are used without permission.
+4. Do **not** set `NODE_ENV` (Vercel sets it). In production the app refuses to start if a secret is missing, if TLS to the database is not verified, if sample staff are enabled, or if local files are used without permission.
 5. Deploy, sign in as `MS0001` with the bootstrap password, set your own password, add staff under **Admin → Staff & access**.
-6. Use a Meristem subdomain once IT agrees. If pages feel slow, match the Netlify functions region to the database region (some plans charge for this).
+6. Use a Meristem subdomain once IT agrees. If pages feel slow, match the Vercel function region to the database region (some plans charge for this).
 
 ## Why a single `kv` table?
 Every collection (users, sessions, settings, audit, placements…) is a row keyed by `(col, id)` holding JSON. It kept the app independent of any one database. When reporting and analytics need real tables, we add proper tables beside it with new migrations (`app/db/migrations/`). Row level security is switched on with no policies, so if the database is ever exposed through a public API, anonymous users read nothing.
