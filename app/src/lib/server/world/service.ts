@@ -18,6 +18,8 @@ export interface PlayerRecord {
   look: Skin;
   needs: Needs;
   points: number; // Merit points (never transferable, no cash value)
+  /** True once the person has finished or skipped the welcome tour. */
+  toured?: boolean;
   updatedAt: number;
 }
 
@@ -28,9 +30,14 @@ export async function getOrCreatePlayer(user: Pick<UserDTO, "staffId">, now: num
     if (!cur) return { staffId: user.staffId, scene: FIRST_SCENE, look: fallbackLook, needs: { ...DEFAULT_NEEDS }, points: 0, updatedAt: now };
     // Heal an old or tampered record rather than trusting it
     const scene = getScene(cur.scene) ? cur.scene : FIRST_SCENE;
-    return { ...cur, scene, look: cleanLook(cur.look, fallbackLook), needs: cleanNeeds(cur.needs), points: Number.isFinite(cur.points) && cur.points >= 0 ? Math.floor(cur.points) : 0 };
+    return { ...cur, toured: cur.toured === true, scene, look: cleanLook(cur.look, fallbackLook), needs: cleanNeeds(cur.needs), points: Number.isFinite(cur.points) && cur.points >= 0 ? Math.floor(cur.points) : 0 };
   });
   return saved as PlayerRecord;
+}
+
+/** Remember that the welcome tour is done (finished or skipped), so it is not shown again. */
+export async function markToured(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<void> {
+  await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, toured: true, updatedAt: now } : cur));
 }
 
 export type TravelResult = { ok: true; scene: string; arrive: { x: number; y: number } } | { ok: false; error: string };

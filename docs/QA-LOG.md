@@ -4,6 +4,25 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M3a.2: The welcome flow matches the reference game (13 Oct 2026)
+Scope: after sign-in the home screen is the game itself (as in the reference); the old dashboard moves to `/dashboard`; `/play` forwards to `/`; a skippable five-step welcome tour (Starting Path card, walking, status bars, menu, Work comes first); a menu (dashboard, replay tour, admin, change password, sign out); the tour is remembered per person.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Automated tests | **Pass** | 307 tests in 11 files; new tests for the tour memory (default, finish and skip, idempotent, per person, no record invented, tampered value ignored) |
+| 4 | Authz | **Pass** | `completeTourAction` calls `requireUser` and only writes the caller's own record; the page decides placement and Work First on the server |
+| 12 | Review | **Pass** | Real-browser test (Edge, throwaway player, removed afterwards): sign-in lands on `/`; the game canvas is the home screen; tour shows with the path card; five steps; finishing closes it; **a reload does not bring it back**; menu items correct; replay works; `/dashboard` works; `/play` goes to `/`; sign-out works; **0 console or page errors** |
+
+Findings
+| Finding | Severity | Status |
+|---|---|---|
+| First browser run showed a 500 on the new save action and a hydration warning | Info | Cause: the dev server was running while a new Server Action was added (stale hot-reload copy). After a restart: 0 errors. Not a code defect |
+| Tour text said "a 2 hours break" | Info | **Fixed** ("2-hour") |
+| Owner could not sign in: `MS0001` was still on the one-time temporary password (the forced password change had never been completed) and `MS2001` had a password the owner had set earlier, so the long default no longer applied | Info | Dev accounts given a fresh one-time password; verified accepted, wrong password refused. Advice: finish the "Set your password" screen and store it |
+
+---
+
 ## M3a.1: Play in working hours with a session limit (13 Oct 2026)
 Scope: owner changed the Work First rule: people may play during working hours, max 30 minutes at a time then a 2-hour pause (both admin settings); core-hours closure and play windows become optional; daily cap optional.
 

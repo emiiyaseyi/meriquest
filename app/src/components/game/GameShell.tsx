@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { WorldCanvas } from "./WorldCanvas";
+import { Tour } from "./Tour";
 import { useViewMode } from "./viewMode";
 import { playBeatAction, type BeatResult } from "@/app/actions/placement";
-import { travelMapAction, travelPortalAction } from "@/app/actions/world";
+import { logoutAction } from "@/app/actions/auth";
+import { completeTourAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
 import { moodLabel, type Needs } from "@/lib/world/player";
 import type { Hotspot, Portal, Skin } from "@/lib/world/types";
@@ -29,9 +31,13 @@ export interface GameShellProps {
   terms: { workspace: string; workPhone: string; points: string };
   apps: PhoneApp[];
   adminPreview: boolean;
+  /** The welcome tour: shown on first entry, and again if replayed from the menu. */
+  showTour: boolean;
+  path: { name: string; emoji: string; blurb: string } | null;
+  session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type Overlay = "map" | "phone" | null;
+type Overlay = "map" | "phone" | "menu" | null;
 
 const BEAT_MS = 30_000;
 
@@ -105,6 +111,7 @@ export function GameShell(props: GameShellProps) {
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [clean, setClean] = useState(false);
+  const [touring, setTouring] = useState(props.showTour);
   const clock = useLagosClock(props.timezone);
   const beat = usePlayBeat();
 
@@ -143,16 +150,21 @@ export function GameShell(props: GameShellProps) {
 
   const toggleMode = () => setMode(mode === "iso" ? "flat" : "iso");
 
+  const finishTour = () => {
+    setTouring(false);
+    void completeTourAction().catch(() => undefined); // remembered on the server; a failure only means it may show once more
+  };
+
   return (
     <div className="game">
-      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} paused={busy || closed || overlay !== null} onPortal={onPortal} onHotspot={onHotspot} onHover={setHover} />
+      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} paused={busy || closed || touring || overlay !== null} onPortal={onPortal} onHotspot={onHotspot} onHover={setHover} />
 
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
           <div className="auth-card stack">
             <h1 id="wf-title">{beat?.title ?? "Work first"}</h1>
             <p className="muted" style={{ margin: 0 }}>{beat?.message}</p>
-            <Link href="/" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Back to the dashboard</Link>
+            <Link href="/dashboard" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Open my dashboard</Link>
           </div>
         </div>
       ) : null}
@@ -185,7 +197,7 @@ export function GameShell(props: GameShellProps) {
           </aside>
 
           <aside className="hud-right">
-            <Link href="/" className="round-btn" title="Back to the dashboard" aria-label="Back to the dashboard">🏠</Link>
+            <button type="button" className="round-btn" onClick={() => setOverlay(overlay === "menu" ? null : "menu")} title="Menu" aria-label="Menu">☰</button>
             <button type="button" className="round-btn" onClick={toggleMode} title={mode === "iso" ? "Switch to the lighter 2D view" : "Switch to the full isometric view"} aria-label="Switch view">{mode === "iso" ? "2D" : "3D"}</button>
             <button type="button" className="round-btn" onClick={() => setClean(true)} title="Hide the screen furniture" aria-label="Clean screen">🖼️</button>
           </aside>
@@ -295,6 +307,24 @@ export function GameShell(props: GameShellProps) {
           </div>
         </div>
       ) : null}
+
+      {overlay === "menu" ? (
+        <div className="sheet sheet-small" role="dialog" aria-label="Menu">
+          <div className="sheet-head">
+            <h2>Menu</h2>
+            <button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close menu">✕</button>
+          </div>
+          <div className="menu-list">
+            <Link href="/dashboard" className="menu-item">📋 My dashboard</Link>
+            <button type="button" className="menu-item" onClick={() => { setOverlay(null); setTouring(true); }}>👋 Replay the welcome tour</button>
+            {props.role === "admin" ? <Link href="/admin" className="menu-item">🛠️ Admin</Link> : null}
+            <Link href="/change-password" className="menu-item">🔑 Change password</Link>
+            <form action={logoutAction}><button type="submit" className="menu-item">🚪 Sign out</button></form>
+          </div>
+        </div>
+      ) : null}
+
+      {touring ? <Tour firstName={name.split(" ")[0] || "there"} path={props.path} session={props.session} onDone={finishTour} /> : null}
 
       {toast ? <div className="toast" role="status">{toast}</div> : null}
     </div>

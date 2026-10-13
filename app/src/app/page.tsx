@@ -1,14 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { GameShell } from "@/components/game/GameShell";
 import { Logo } from "@/components/Logo";
-import { NavLink } from "@/components/NavLink";
 import { requireUser } from "@/lib/server/auth/dal";
 import { getConfig } from "@/lib/server/config/registry";
-import { getPlacement, retakeStatus } from "@/lib/server/placement/service";
+import { getPlacement } from "@/lib/server/placement/service";
+import { getOrCreatePlayer } from "@/lib/server/world/service";
 import { playStatus } from "@/lib/server/workfirst/service";
 import { closedTitle } from "@/lib/workfirst";
-import { logoutAction } from "@/app/actions/auth";
 
+export const metadata: Metadata = { title: "MeriQuest" };
+
+/**
+ * The home screen IS the game, like the reference: after signing in you are in the world, greeted by a
+ * short welcome tour the first time. The old dashboard now lives at /dashboard.
+ */
 export default async function HomePage() {
   const user = await requireUser();
   const placementCfg = await getConfig("placement");
@@ -16,54 +23,44 @@ export default async function HomePage() {
   // Everyone except admins answers the placement questionnaire once, at first sign-in.
   if (placementCfg.enabled && !placement && user.role !== "admin") redirect("/placement");
 
-  const path = placement ? placementCfg.paths.find((p) => p.id === placement.pathId) : undefined;
-  const retake = placement ? await retakeStatus(user, placement) : null;
-  const world = await playStatus(user, "world");
-  const learning = await playStatus(user, "learning");
-
-  return (
-    <>
-      <header className="brandbar">
-        <Logo variant="light" width={150} />
-        <nav className="nav" aria-label="Main">
-          <NavLink href="/" exact>Dashboard</NavLink>
-          <NavLink href="/play">Play</NavLink>
-          {user.role === "admin" ? <NavLink href="/admin">Admin</NavLink> : null}
-          <NavLink href="/change-password">Change password</NavLink>
-        </nav>
-        <form action={logoutAction} className="row">
-          <span className="who">{user.name}</span>
-          <button type="submit" className="btn btn-ghost btn-sm">Sign out</button>
-        </form>
-      </header>
-      <main className="page stack">
-        <h1>Welcome back, {user.name}</h1>
-        <p><span className="badge">{user.role}</span></p>
-        <p className="muted">{user.title} · {user.staffId}</p>
-
-        <div className="cards">
-          {path ? (
-            <section className="card stack">
-              <p className="eyebrow">Your starting path</p>
-              <h2>{path.emoji} {path.name}</h2>
-              <p className="muted">{path.blurb}</p>
-              {retake?.allowed ? (
-                <p><Link href="/placement">Not right? Dispute and retake</Link> ({retake.retakesLeft} left)</p>
-              ) : retake ? (
-                <p className="muted">{retake.reason}</p>
-              ) : null}
-            </section>
-          ) : null}
-
-          <section className="card stack">
-            <p className="eyebrow">Work First</p>
-            <h2>{world.allowed ? "Play is open" : closedTitle(world.code)}</h2>
-            <p className="muted">{world.message}</p>
-            <p className="muted">{learning.allowed ? "Learning is open." : learning.message}</p>
-            {world.allowed ? <p><Link href="/play">Enter the Workspace</Link></p> : null}
-          </section>
+  // Work First: when play is closed (a break, a busy period...), no world data is sent to the browser at all.
+  const status = await playStatus(user, "world");
+  if (!status.allowed) {
+    return (
+      <main className="auth-shell">
+        <Logo variant="light" width={220} />
+        <div className="auth-card stack">
+          <h1>{closedTitle(status.code)}</h1>
+          <p className="muted" style={{ margin: 0 }}>{status.message}</p>
+          <Link href="/dashboard" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Open my dashboard</Link>
         </div>
       </main>
-    </>
+    );
+  }
+
+  const [player, terms, workFirst, apps] = await Promise.all([
+    getOrCreatePlayer(user),
+    getConfig("terminology"),
+    getConfig("workFirst"),
+    getConfig("phoneApps"),
+  ]);
+  const path = placement ? placementCfg.paths.find((p) => p.id === placement.pathId) : undefined;
+
+  return (
+    <GameShell
+      name={user.name}
+      role={user.role}
+      initialScene={player.scene}
+      look={player.look}
+      needs={player.needs}
+      points={player.points}
+      timezone={workFirst.timezone}
+      terms={{ workspace: terms.workspace, workPhone: terms.workPhone, points: terms.points }}
+      apps={apps}
+      adminPreview={status.code === "admin_preview"}
+      showTour={!player.toured}
+      path={path ? { name: path.name, emoji: path.emoji, blurb: path.blurb } : null}
+      session={workFirst.sessionLimit}
+    />
   );
 }

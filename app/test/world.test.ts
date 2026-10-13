@@ -8,7 +8,7 @@ import "@/lib/iso/render-flat";
 import { BUILDINGS, FIRST_SCENE, SCENES, getScene } from "@/lib/world/scenes";
 import { DEFAULT_NEEDS, cleanLook, cleanNeeds, defaultLook, moodLabel } from "@/lib/world/player";
 import type { Scene } from "@/lib/world/types";
-import { getOrCreatePlayer, travelByMap, travelByPortal } from "@/lib/server/world/service";
+import { getOrCreatePlayer, markToured, travelByMap, travelByPortal } from "@/lib/server/world/service";
 import { playBeat, playStatus } from "@/lib/server/workfirst/service";
 import { changePassword } from "@/lib/server/auth/service";
 import { setConfig } from "@/lib/server/config/registry";
@@ -279,6 +279,27 @@ describe("travel and Work First (server rules)", () => {
     const p = await getOrCreatePlayer({ staffId: "MS1001" }, evening);
     expect(p).toMatchObject({ scene: FIRST_SCENE, points: 0, needs: DEFAULT_NEEDS });
     expect(p.look).toEqual(defaultLook("MS1001"));
+  });
+
+  it("shows the welcome tour once: new players have not had it, and finishing or skipping it is remembered", async () => {
+    const user = await dto("MS1001");
+    expect((await getOrCreatePlayer(user, evening)).toured).toBeFalsy();
+    await markToured(user, evening);
+    expect((await getOrCreatePlayer(user, evening)).toured).toBe(true);
+    await markToured(user, evening); // idempotent
+    expect((await getOrCreatePlayer(user, evening)).toured).toBe(true);
+    // someone else's tour is unaffected
+    expect((await getOrCreatePlayer(await dto("MS1002"), evening)).toured).toBeFalsy();
+  });
+
+  it("does not invent a player record just because the tour was marked", async () => {
+    await markToured({ staffId: "MS3003" }, evening);
+    expect(await getStore().get("players", "MS3003")).toBeNull();
+  });
+
+  it("only a literal true counts as having had the tour (a tampered value is ignored)", async () => {
+    await getStore().put("players", "MS1001", { staffId: "MS1001", scene: FIRST_SCENE, look: defaultLook("MS1001"), needs: DEFAULT_NEEDS, points: 0, toured: "yes", updatedAt: 1 });
+    expect((await getOrCreatePlayer({ staffId: "MS1001" }, evening)).toured).toBe(false);
   });
 
   it("heals a damaged or tampered player record instead of trusting it", async () => {
