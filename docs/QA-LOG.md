@@ -4,6 +4,22 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## A1: Admin reports and progress dashboard (13 Oct 2026)
+Scope: first piece of the admin backend (order agreed with the owner: reports, then friendly editors, then manager and L&D roles). New Admin > Reports page: totals, by unit, by course, and a searchable people table (points, career level, streak, lessons passed, certificates, last seen), plus a CSV download.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 478 tests: counts by person, unit and course; spreadsheet cells safe from formulas and quotes; no passwords in the export |
+| 3 | Authorisation | **Pass** | Page and export both call `requireRole("admin")`; each export is written to the audit log |
+| 4 | Input validation | **Pass** | Search and unit filter are single trimmed, length-capped values used only to filter |
+| 5 | Real browser | **Pass** | Throwaway admin: page renders with real data, CSV downloads (200, text/csv); user removed |
+| 6 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: on a phone the admin pages scroll sideways (older admin layout, not specific to this page); reports do not yet include play time, shifts or leadership runs because those are not stored per person.
+
+---
+
 ## M7c: Buy mode over the live room, Today's Hustle upgrades, leadership simulator and speed (13 Oct 2026)
 Scope: (1) Buy mode now keeps the live Workspace room on screen with the Catalogue sliding up over it, like the reference: pick an item, a ghost appears in the room, move it with the arrows or keys, turn it, then Place, Place + 1 more or Cancel; things are bought when placed; "In storage" and "In my room" tabs; cards are aligned (size and stars, picture, name, help line, price in the same places). (2) Goals tab: 7-day streak with reward days, a daily mission swap, Easy/Medium/Hard tags and a "New missions in" countdown. (3) Leadership simulator in the Academy: meters, decisions with consequences, rating and points; admin-editable. (4) Speed, owner request "instant in the browser, server stays the judge": moving between rooms is instant in the browser and confirmed by the server in the background (put back if refused); room activity timers start at once; settings are cached in the server for 15 seconds (cleared at once when an admin saves); Buy mode opens with data loaded ahead.
 

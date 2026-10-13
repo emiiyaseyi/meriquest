@@ -21,6 +21,10 @@ export default async function AdminHome() {
           <h2>Staff &amp; access</h2>
           <p className="muted">{users.length} accounts · {active} active · {locked} locked</p>
         </Link>
+        <Link href="/admin/reports" className="card">
+          <h2>Reports</h2>
+          <p className="muted">Learning progress and engagement by unit, course and person, with a spreadsheet download.</p>
+        </Link>
         <Link href="/admin/placements" className="card">
           <h2>Placements</h2>
           <p className="muted">See each person&apos;s starting path, override it, or switch retakes on and off.</p>

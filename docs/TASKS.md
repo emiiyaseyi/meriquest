@@ -75,3 +75,9 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Leadership simulator (Academy), admin-editable
 - [~] Speed: instant room moves and timers in the browser, settings cache. Next: more optimistic actions; database in the same region as Vercel
 - [ ] Daily gem hunt style clue (not built) and Meristem Stories
+
+## Admin backend (order: reports, friendly editors, manager and L&D roles)
+- [x] Reports and progress dashboard with CSV export
+- [ ] Friendly editors instead of JSON (shifts, room activities, Workspace catalogue, leadership, gameplay)
+- [ ] Manager and L&D roles (managers assign courses and learning time to their team; L&D authors content; reviewers handle concerns)
+- [ ] Admin pages on phones
