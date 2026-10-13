@@ -2,7 +2,7 @@
 
 import { requireUser } from "@/lib/server/auth/dal";
 import { markToured, saveLook, travelByMap, travelByPortal, type TravelResult } from "@/lib/server/world/service";
-import { claimDailyBonus, claimMission, getGameState, interact, takeCoffee, type ActionResult, type GameState } from "@/lib/server/game/service";
+import { claimDailyBonus, claimMission, getGameState, interact, visitSpot, type ActionResult, type GameState } from "@/lib/server/game/service";
 import type { Skin } from "@/lib/world/types";
 
 /* Every action re-checks the signed-in user: Server Actions can be called directly. */
@@ -32,9 +32,9 @@ export async function interactAction(interactionId: string, npcId: string): Prom
   return interact(user, interactionId, npcId);
 }
 
-export async function coffeeAction(): Promise<ActionResult> {
+export async function spotAction(kind: string): Promise<ActionResult> {
   const user = await requireUser();
-  return takeCoffee(user);
+  return visitSpot(user, kind);
 }
 
 export async function claimMissionAction(missionId: string): Promise<ActionResult> {

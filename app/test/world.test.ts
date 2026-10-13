@@ -147,8 +147,12 @@ describe("every scene is valid and playable", () => {
         expect(findPath(g, s.spawn, t).length > 0 || (s.spawn.x === t.x && s.spawn.y === t.y), `door ${p.id} unreachable`).toBe(true);
       }
       for (const h of s.hotspots) {
-        expect(walkable(g, h.x, h.y), `${h.id} spot tile`).toBe(true);
-        expect(findPath(g, s.spawn, { x: h.x, y: h.y }).length > 0 || (s.spawn.x === h.x && s.spawn.y === h.y), `spot ${h.id} unreachable`).toBe(true);
+        // A spot is either an open tile, or part of a solid object (a desk, a sofa, a shelf) that has an open tile beside it
+        const open = walkable(g, h.x, h.y);
+        const near = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].map(([dx, dy]) => ({ x: h.x + dx, y: h.y + dy })).filter((t) => walkable(g, t.x, t.y));
+        expect(open || near.length > 0, `${h.id} spot has no open tile beside it`).toBe(true);
+        const targets = open ? [{ x: h.x, y: h.y }] : near;
+        expect(targets.some((t) => findPath(g, s.spawn, t).length > 0 || (s.spawn.x === t.x && s.spawn.y === t.y)), `spot ${h.id} unreachable`).toBe(true);
       }
     });
     it("has doors that lead somewhere real, arrive on a walkable tile, and lead back", () => {
@@ -260,12 +264,12 @@ describe("player helpers", () => {
   });
   it("keeps the bars between 0 and 100 and fills in anything missing", () => {
     expect(cleanNeeds(null)).toEqual(DEFAULT_NEEDS);
-    expect(cleanNeeds({ energy: 500, focus: -5, mood: "x", social: 33.6 })).toEqual({ energy: 100, focus: 0, mood: DEFAULT_NEEDS.mood, social: 34 });
+    expect(cleanNeeds({ energy: 500, focus: -5, mood: "x", social: 33.6 })).toEqual({ ...DEFAULT_NEEDS, energy: 100, focus: 0, mood: DEFAULT_NEEDS.mood, social: 34 });
     expect(cleanNeeds({ energy: NaN })).toMatchObject({ energy: DEFAULT_NEEDS.energy });
   });
   it("describes the mood in words", () => {
-    expect(moodLabel({ energy: 95, focus: 90, mood: 95, social: 85 })).toBe("Very happy");
-    expect(moodLabel({ energy: 5, focus: 10, mood: 20, social: 15 })).toBe("Exhausted");
+    expect(moodLabel({ energy: 95, focus: 90, mood: 95, social: 85, hunger: 90, hydration: 90, growth: 90, recognition: 90 })).toBe("Very happy");
+    expect(moodLabel({ energy: 5, focus: 10, mood: 20, social: 15, hunger: 10, hydration: 10, growth: 10, recognition: 10 })).toBe("Exhausted");
   });
 });
 

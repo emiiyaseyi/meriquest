@@ -3,7 +3,7 @@ import { applyEffects, cleanProgress, dayKey, decayNeeds, effectTags, pickMissio
 import { CONFIG } from "@/lib/server/config/definitions";
 import { setConfig } from "@/lib/server/config/registry";
 import { getStore } from "@/lib/server/store";
-import { claimDailyBonus, claimMission, getGameState, interact, takeCoffee } from "@/lib/server/game/service";
+import { claimDailyBonus, claimMission, getGameState, interact, visitSpot } from "@/lib/server/game/service";
 import { getOrCreatePlayer, travelByPortal } from "@/lib/server/world/service";
 import type { PlayerRecord } from "@/lib/server/world/service";
 import { dto, freshWorld } from "./helpers";
@@ -13,21 +13,22 @@ const GP = CONFIG.gameplay.default;
 const HOUR = 3_600_000;
 
 describe("needs rules", () => {
-  const needs = { energy: 80, focus: 70, mood: 60, social: 50 };
+  const needs = { energy: 80, focus: 70, mood: 60, social: 50, hunger: 90, hydration: 80, growth: 40, recognition: 30 };
+  const low = { energy: 3, focus: 3, mood: 3, social: 3, hunger: 3, hydration: 3, growth: 3, recognition: 3 };
   it("fall by the hourly rate for the time passed, and never below zero", () => {
-    expect(decayNeeds(needs, HOUR / 2, GP.decayPerHour)).toEqual({ energy: 76, focus: 65, mood: 58, social: 47 });
-    expect(decayNeeds({ energy: 3, focus: 3, mood: 3, social: 3 }, HOUR, GP.decayPerHour)).toEqual({ energy: 0, focus: 0, mood: 0, social: 0 });
+    expect(decayNeeds(needs, HOUR / 2, GP.decayPerHour)).toEqual({ energy: 76, focus: 65, mood: 58, social: 47, hunger: 84, hydration: 75, growth: 39, recognition: 29 });
+    expect(decayNeeds(low, HOUR, GP.decayPerHour)).toEqual({ energy: 0, focus: 0, mood: 0, social: 0, hunger: 0, hydration: 0, growth: 0, recognition: 0 });
   });
   it("count at most one hour away, and ignore negative time", () => {
     expect(decayNeeds(needs, 100 * HOUR, GP.decayPerHour)).toEqual(decayNeeds(needs, HOUR, GP.decayPerHour));
     expect(decayNeeds(needs, -5 * HOUR, GP.decayPerHour)).toEqual(needs);
   });
   it("rise with effects, capped at 100", () => {
-    expect(applyEffects(needs, { social: 5, energy: 50 })).toEqual({ energy: 100, focus: 70, mood: 60, social: 55 });
+    expect(applyEffects(needs, { social: 5, energy: 50, hunger: 40 })).toEqual({ ...needs, energy: 100, social: 55, hunger: 100 });
     expect(applyEffects(needs, {})).toEqual(needs);
   });
   it("name the bars an effect raises", () => {
-    expect(effectTags({ mood: 8, social: 8, energy: 4 })).toEqual(["+Energy", "+Mood", "+Social"]);
+    expect(effectTags({ mood: 8, social: 8, energy: 4, hydration: 10, recognition: 2 })).toEqual(["+Energy", "+Mood", "+Social", "+Hydration", "+Recognition"]);
     expect(effectTags({ focus: -3 })).toEqual([]);
   });
 });
@@ -117,15 +118,35 @@ describe("playing: interactions, coffee, missions", () => {
     if (r.ok) expect(r.state.skills.find((s) => s.id === "client-care")?.progress).toBeCloseTo(0.5, 5);
   });
 
-  it("coffee needs a coffee point in the room", async () => {
+  it("spots only work in a room that has them, each with its own cooldown", async () => {
     const user = await dto("MS1001");
     await getOrCreatePlayer(user, NOW);
-    expect(await takeCoffee(user, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/no coffee point/) });
+    expect(await visitSpot(user, "coffee", NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/nothing like that/) });
     await travelByPortal(user, "to-floor", NOW);
-    const r = await takeCoffee(user, NOW + 10);
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.state.feelings[0].label).toBe("Fresh coffee");
-    expect((await takeCoffee(user, NOW + 20)).ok).toBe(false); // cooldown
+    const before = (await rec("MS1001"))!.needs;
+    const coffee = await visitSpot(user, "coffee", NOW + 10);
+    expect(coffee.ok).toBe(true);
+    if (coffee.ok) expect(coffee.state.feelings[0].label).toBe("Fresh coffee");
+    expect((await visitSpot(user, "coffee", NOW + 20)).ok).toBe(false); // cooldown
+    const water = await visitSpot(user, "water", NOW + 30);
+    expect(water.ok && water.state.needs.hydration).toBeGreaterThan(before.hydration);
+    const lunch = await visitSpot(user, "lunch", NOW + 40);
+    expect(lunch.ok && lunch.state.needs.hunger).toBeGreaterThan(before.hunger);
+    const read = await visitSpot(user, "read", NOW + 50);
+    expect(read.ok && read.state.needs.growth).toBeGreaterThan(before.growth);
+    if (read.ok) expect(read.state.skills.find((x) => x.id === "market-knowledge")?.progress).toBeGreaterThan(0);
+    // the sofa is in the lounge, not here
+    expect((await visitSpot(user, "rest", NOW + 60)).ok).toBe(false);
+    for (const bad of ["nonsense", "", 5, null, "__proto__", "x".repeat(100)]) expect(await visitSpot(user, bad, NOW)).toMatchObject({ ok: false });
+  });
+
+  it("every need has a way to be recharged, shown with where", async () => {
+    const user = await dto("MS1001");
+    const s = await getGameState(user, NOW);
+    for (const k of ["energy", "focus", "mood", "social", "hunger", "hydration", "growth", "recognition"] as const) expect(s.recharge[k].length).toBeGreaterThan(0);
+    expect(s.recharge.hydration.join(" ")).toContain("Water cooler");
+    expect(s.recharge.hunger.join(" ")).toContain("Pantry");
+    expect(s.recharge.growth.join(" ")).toContain("Bookshelf");
   });
 
   it("needs fall with time on the server", async () => {
@@ -134,6 +155,7 @@ describe("playing: interactions, coffee, missions", () => {
     const later = await getGameState(user, NOW + HOUR / 2);
     expect(later.needs.energy).toBe(first.needs.energy - 4);
     expect(later.needs.focus).toBe(first.needs.focus - 5);
+    expect(later.needs.hunger).toBe(first.needs.hunger - 6);
   });
 
   it("gives three missions a day, counts progress, pays rewards once, and pays the bonus once", async () => {

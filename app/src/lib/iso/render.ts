@@ -554,6 +554,17 @@ function objectDraws(ctx: Ctx, o: SceneObject, time: number): Draw[] {
           if (rnd() > 0.5) box(ctx, s.x + 0.3, s.y + 0.3, 0.4, 0.3, 0.14, 0.9, "#d9d4c4", false);
         },
       }));
+    case "watercooler":
+      return [
+        {
+          key: key(o.x, o.y),
+          draw: () => {
+            box(ctx, o.x + 0.26, o.y + 0.26, 0.48, 0.48, 0.95, 0, { top: "#f4f7f8", left: "#e1e8ea", right: "#c4cdd1" }, false);
+            box(ctx, o.x + 0.3, o.y + 0.3, 0.4, 0.4, 0.5, 0.95, { top: "#bfe3f4", left: "#9fd0ea", right: "#80b7d4" }, false);
+            box(ctx, o.x + 0.42, o.y + 0.7, 0.16, 0.06, 0.08, 0.6, "#2c3135", false);
+          },
+        },
+      ];
     case "printer":
       return [
         {

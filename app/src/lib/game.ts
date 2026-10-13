@@ -1,5 +1,5 @@
 import { hashString, seeded } from "@/lib/iso/geometry";
-import type { Needs } from "@/lib/world/player";
+import { NEED_KEYS, type NeedKey, type Needs } from "@/lib/world/player";
 
 /**
  * The rules of needs, skills and daily missions, as plain functions. Safe on the server and in the browser,
@@ -15,27 +15,22 @@ export const MAX_DECAY_HOURS = 1;
 /** Needs after some time has passed. Each bar falls by its hourly rate; never below zero. */
 export function decayNeeds(needs: Needs, elapsedMs: number, perHour: Needs): Needs {
   const hours = Math.max(0, Math.min(MAX_DECAY_HOURS, elapsedMs / 3_600_000));
-  return {
-    energy: clamp(needs.energy - perHour.energy * hours),
-    focus: clamp(needs.focus - perHour.focus * hours),
-    mood: clamp(needs.mood - perHour.mood * hours),
-    social: clamp(needs.social - perHour.social * hours),
-  };
+  const out = { ...needs };
+  for (const k of NEED_KEYS) out[k] = clamp(needs[k] - perHour[k] * hours);
+  return out;
 }
 
 export function applyEffects(needs: Needs, effects: Effects): Needs {
-  return {
-    energy: clamp(needs.energy + (effects.energy ?? 0)),
-    focus: clamp(needs.focus + (effects.focus ?? 0)),
-    mood: clamp(needs.mood + (effects.mood ?? 0)),
-    social: clamp(needs.social + (effects.social ?? 0)),
-  };
+  const out = { ...needs };
+  for (const k of NEED_KEYS) out[k] = clamp(needs[k] + (effects[k] ?? 0));
+  return out;
 }
+
+export const NEED_LABEL: Record<NeedKey, string> = { energy: "Energy", focus: "Focus", mood: "Mood", social: "Social", hunger: "Hunger", hydration: "Hydration", growth: "Growth", recognition: "Recognition" };
 
 /** "+Social +Mood" for an interaction's effects (only the bars it raises). */
 export function effectTags(effects: Effects): string[] {
-  const names: [keyof Needs, string][] = [["energy", "Energy"], ["focus", "Focus"], ["mood", "Mood"], ["social", "Social"]];
-  return names.filter(([k]) => (effects[k] ?? 0) > 0).map(([, n]) => `+${n}`);
+  return NEED_KEYS.filter((k) => (effects[k] ?? 0) > 0).map((k) => `+${NEED_LABEL[k]}`);
 }
 
 export interface SkillDef {

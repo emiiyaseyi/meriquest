@@ -8,6 +8,8 @@ import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { ensureMissionDay, recordEvent, type MissionDay } from "./missions";
 import { getScene } from "@/lib/world/scenes";
 import { applyEffects, decayNeeds, effectTags, skillStanding, type Effects, type SkillStanding } from "@/lib/game";
+import { NEED_KEYS, type NeedKey } from "@/lib/world/player";
+import { SCENES } from "@/lib/world/scenes";
 import type { Needs } from "@/lib/world/player";
 
 /**
@@ -50,14 +52,32 @@ export interface GameState {
   skills: SkillStanding[];
   plan: { day: string; missions: MissionView[]; allDone: boolean; bonusPoints: number; bonusClaimed: boolean };
   interactions: InteractionView[];
-  coffee: { tags: string[]; cooldownMinutes: number };
-  /** Cooldowns still running, as the time they end (key: interaction id and person, or "coffee"). */
+  /** Places that recharge needs, by the kind of hotspot. */
+  spots: Record<string, { label: string; icon: string; tags: string[]; cooldownMinutes: number }>;
+  /** For each need, where and how it can be recharged ("Coffee point · Open-plan floor", "Say hello"). */
+  recharge: Record<NeedKey, string[]>;
+  /** Cooldowns still running, as the time they end (key: interaction id and person, or "spot:kind"). */
   cooldowns: Record<string, number>;
 }
 
 export type ActionResult = { ok: true; state: GameState; message: string } | { ok: false; error: string };
 
 const MAX_FEELINGS = 12;
+
+type Gameplay = Awaited<ReturnType<typeof getConfig<"gameplay">>>;
+
+/** Where each need can be recharged, worked out from the settings and the rooms (so it never goes out of date). */
+function rechargeHints(gameplay: Gameplay): Record<NeedKey, string[]> {
+  const out = Object.fromEntries(NEED_KEYS.map((k) => [k, [] as string[]])) as Record<NeedKey, string[]>;
+  for (const spot of gameplay.spots) {
+    const places = Object.values(SCENES).flatMap((s) => s.hotspots.filter((h) => h.kind === spot.kind).map((h) => `${h.label} · ${s.name}`));
+    if (places.length === 0) continue;
+    for (const k of NEED_KEYS) if ((spot.effects[k] ?? 0) > 0) out[k].push(places.join(", "));
+  }
+  for (const i of gameplay.interactions) for (const k of NEED_KEYS) if ((i.effects[k] ?? 0) > 0) out[k].push(`${i.label} with a colleague`);
+  for (const k of NEED_KEYS) if ((gameplay.claimEffects[k] ?? 0) > 0) out[k].push("Claim a mission reward");
+  return out;
+}
 
 async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
   const gameplay = await getConfig("gameplay");
@@ -87,7 +107,8 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
     skills,
     plan: { day: mission.day, missions, allDone: missions.length > 0 && missions.every((m) => m.done), bonusPoints: gameplay.dailyBonusPoints, bonusClaimed: mission.bonusClaimed },
     interactions: gameplay.interactions.map((i) => ({ id: i.id, label: i.label, icon: i.icon, tags: effectTags(i.effects), cost: i.cost, cooldownMinutes: i.cooldownMinutes })),
-    coffee: { tags: effectTags(gameplay.coffee.effects), cooldownMinutes: gameplay.coffee.cooldownMinutes },
+    spots: Object.fromEntries(gameplay.spots.map((s) => [s.kind, { label: s.label, icon: s.icon, tags: effectTags(s.effects), cooldownMinutes: s.cooldownMinutes }])),
+    recharge: rechargeHints(gameplay),
     cooldowns,
   };
 }
@@ -156,17 +177,18 @@ export async function interact(user: Pick<UserDTO, "staffId" | "unit" | "role">,
   return { ok: true, state: await getGameState(user, now), message: `${def.label}: ${npc.name}. ${effectTags(def.effects).join(" ")}`.trim() };
 }
 
-/** Take a coffee at the coffee point (the room must have one). */
-export async function takeCoffee(user: Pick<UserDTO, "staffId" | "unit" | "role">, now: number = Date.now()): Promise<ActionResult> {
+/** Use a spot (coffee point, water cooler, pantry, sofa, bookshelf) in the room the person is in. */
+export async function visitSpot(user: Pick<UserDTO, "staffId" | "unit" | "role">, kind: unknown, now: number = Date.now()): Promise<ActionResult> {
   const blocked = await guard(user, now);
   if (blocked) return { ok: false, error: blocked };
+  if (typeof kind !== "string" || kind.length > 41) return { ok: false, error: "That is not possible." };
   const gameplay = await getConfig("gameplay");
+  const spot = gameplay.spots.find((s) => s.kind === kind);
   const player = await getOrCreatePlayer(user, now);
-  if (!getScene(player.scene)?.hotspots.some((h) => h.kind === "coffee")) return { ok: false, error: "There is no coffee point in this room." };
-  const c = gameplay.coffee;
-  const refusal = await perform(user, { key: "coffee", effects: c.effects, cost: 0, cooldownMinutes: c.cooldownMinutes, feeling: c.feeling, skill: c.skill, event: "coffee" }, now);
+  if (!spot || !getScene(player.scene)?.hotspots.some((h) => h.kind === kind)) return { ok: false, error: "There is nothing like that in this room." };
+  const refusal = await perform(user, { key: `spot:${kind}`, effects: spot.effects, cost: 0, cooldownMinutes: spot.cooldownMinutes, feeling: spot.feeling, skill: spot.skill, event: kind }, now);
   if (refusal) return { ok: false, error: refusal };
-  return { ok: true, state: await getGameState(user, now), message: `Coffee break. ${effectTags(c.effects).join(" ")}`.trim() };
+  return { ok: true, state: await getGameState(user, now), message: `${spot.label}. ${effectTags(spot.effects).join(" ")}`.trim() };
 }
 
 export async function claimMission(user: Pick<UserDTO, "staffId">, missionId: unknown, now: number = Date.now()): Promise<ActionResult> {
@@ -182,7 +204,7 @@ export async function claimMission(user: Pick<UserDTO, "staffId">, missionId: un
     return { ...cur, claimed: { ...cur.claimed, [def.id]: true } };
   });
   if (!won) return { ok: false, error: "That reward is not ready." };
-  await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, points: cur.points + def.rewardPoints, updatedAt: now } : cur));
+  await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, points: cur.points + def.rewardPoints, needs: applyEffects(cur.needs, gameplay.claimEffects), updatedAt: now } : cur));
   return { ok: true, state: await getGameState(user, now), message: `+${def.rewardPoints} Merit points for "${def.title}".` };
 }
 
@@ -198,6 +220,6 @@ export async function claimDailyBonus(user: Pick<UserDTO, "staffId">, now: numbe
     return { ...cur, bonusClaimed: true };
   });
   if (!won) return { ok: false, error: "You already took today's bonus." };
-  await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, points: cur.points + gameplay.dailyBonusPoints, updatedAt: now } : cur));
+  await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, points: cur.points + gameplay.dailyBonusPoints, needs: applyEffects(cur.needs, gameplay.claimEffects), updatedAt: now } : cur));
   return { ok: true, state: await getGameState(user, now), message: `Daily bonus: +${gameplay.dailyBonusPoints} Merit points.` };
 }

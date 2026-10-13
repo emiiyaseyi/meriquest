@@ -6,6 +6,8 @@ import { playStatus } from "../workfirst/service";
 import { FIRST_SCENE, getScene } from "@/lib/world/scenes";
 import { cleanLook, cleanNeeds, defaultLook, DEFAULT_NEEDS, type Needs } from "@/lib/world/player";
 import { cleanProgress, type StoredFeeling } from "@/lib/game";
+import { floorBlock } from "@/lib/world/access";
+import { getConfig } from "../config/registry";
 import { recordEvent } from "../game/missions";
 import { parseChosenLook } from "@/lib/world/looks";
 import type { Skin } from "@/lib/world/types";
@@ -77,6 +79,8 @@ export async function travelByPortal(user: Pick<UserDTO, "staffId" | "unit" | "r
   const portal = here?.portals.find((p) => p.id === portalId);
   const target = portal ? getScene(portal.to) : undefined;
   if (!here || !portal || !target) return { ok: false, error: "That door does not exist." };
+  const closed = floorBlock(await getConfig("floors"), target.level, user);
+  if (closed) return { ok: false, error: closed };
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, scene: target.id, updatedAt: now } : cur));
   await audit(user.staffId, "world_travel", target.id, { via: "door", from: here.id }, now);
   await recordEvent(user.staffId, "visit", now);
@@ -93,6 +97,8 @@ export async function travelByMap(user: Pick<UserDTO, "staffId" | "unit" | "role
   const here = getScene(player.scene);
   if (!target || !here) return { ok: false, error: "That room does not exist." };
   if (target.building !== here.building) return { ok: false, error: "That is in another building. Travel between buildings is not open yet." };
+  const closed = floorBlock(await getConfig("floors"), target.level, user);
+  if (closed) return { ok: false, error: closed };
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, scene: target.id, updatedAt: now } : cur));
   await audit(user.staffId, "world_travel", target.id, { via: "map", from: here.id }, now);
   await recordEvent(user.staffId, "visit", now);

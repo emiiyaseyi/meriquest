@@ -25,6 +25,10 @@ export interface WorldCanvasProps {
   onNpc: (n: Npc) => void;
   onRotate: (by: 1 | -1) => void;
   onHover?: (label: string | null) => void;
+  /** Called when the character starts or stops walking, so the screen can offer "Skip". */
+  onWalking?: (walking: boolean) => void;
+  /** Goes up by one each time the person asks to skip the walk. */
+  skipTick?: number;
 }
 
 type Then = { kind: "hotspot"; h: Hotspot } | null;
@@ -35,7 +39,7 @@ type Then = { kind: "hotspot"; h: Hotspot } | null;
  * sideways drag) turn the view without moving you. The room's own coordinates never change: the camera turn
  * only affects drawing and picking. Nothing here is trusted by the server: doors are re-checked there.
  */
-export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, onPortal, onHotspot, onNpc, onRotate, onHover }: WorldCanvasProps) {
+export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, skipTick = 0 }: WorldCanvasProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const k: Quarter = mode === "iso" ? rotation : 0;
@@ -55,10 +59,12 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
   });
   const placedFor = useRef("");
   const logo = useRef<HTMLImageElement | null>(null);
-  const handlers = useRef({ onPortal, onHotspot, onNpc, onRotate, onHover, paused });
+  const handlers = useRef({ onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, paused, skipTick });
+  const lastSkip = useRef(skipTick);
+  const wasWalking = useRef(false);
   // Keep the latest callbacks available to the animation loop without restarting it.
   useEffect(() => {
-    handlers.current = { onPortal, onHotspot, onNpc, onRotate, onHover, paused };
+    handlers.current = { onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, paused, skipTick };
   });
 
   useEffect(() => {
@@ -231,11 +237,26 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
       el.style.cursor = "default";
       handlers.current.onHover?.(null);
     };
+    /** Jump straight to where the character is heading, as if the walk had finished. */
+    const skipWalk = () => {
+      const goal = s.goal;
+      if (!goal || s.path.length === 0) return;
+      s.x = goal.x;
+      s.y = goal.y;
+      s.path = [];
+      arrive(goal);
+    };
+
     const onKey = (e: KeyboardEvent) => {
       if (handlers.current.paused) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
       const key = e.key.toLowerCase();
+      if ((key === " " || key === "enter") && s.path.length > 0) {
+        e.preventDefault();
+        skipWalk();
+        return;
+      }
       if (mode === "iso" && (key === "[" || key === "]")) {
         e.preventDefault();
         handlers.current.onRotate(key === "[" ? -1 : 1);
@@ -262,6 +283,15 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
     const frame = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      if (handlers.current.skipTick !== lastSkip.current) {
+        lastSkip.current = handlers.current.skipTick;
+        skipWalk();
+      }
+      const moving = s.path.length > 0;
+      if (moving !== wasWalking.current) {
+        wasWalking.current = moving;
+        handlers.current.onWalking?.(moving);
+      }
       // Walk along the route
       s.walking = false;
       if (s.path.length > 0 && !handlers.current.paused) {

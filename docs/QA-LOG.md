@@ -40,6 +40,21 @@ Accepted and open:
 
 ---
 
+## M3b: Eight needs and how to recharge them, floor access and the lift, skip the walk, place cards (13 Oct 2026)
+Scope: (1) **Eight needs**: Energy, Focus, Mood, Social plus Hunger, Hydration, Growth and Recognition; the whole status pill opens the Needs tab (not only the badge); every need shows "How to recharge", worked out from the settings and the rooms so it never goes stale. (2) **Recharge spots** (admin-editable): coffee point, water cooler, pantry (lunch), the lounge sofa (quiet break), the bookshelf (read up), plus colleague interactions and mission rewards. (3) **Lift**: stepping into a lift asks which floor, with locks and reasons; **Floor access** setting (Floor 2 closed for now, admins can preview); the same rule is enforced on the server for doors and the map. (4) **Skip**: while the character walks a Skip button (and Space) takes them straight to where they are going. (5) **Place cards**: tapping a room on the Map opens a card with the things to do there, like the reference venue cards. (6) White text on the dark Starting Path card.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 384 passing, including: every need has a way to be recharged and says where; each spot works only in a room that has it, with its own cooldown; floor rules (closed, units, admin preview, unlisted floors open); the server refuses a closed floor even when asked directly by door or by map; nonsense settings rejected; the lifts are the only lift portals; every room is still fully reachable |
+| 3 | Real browser | **Pass** | Throwaway player: 8 bars in the HUD; clicking the middle of the pill opens Needs; hunger lists "Pantry · Open-plan floor"; clicking the lift mat shows Skip; Skip lands on the mat and the floor chooser opens; Floor 2 shows a lock and is disabled; Floor 1 travels; the Map place card lists things to do and travels; no console errors; user deleted afterwards |
+| 4 | Authorisation | **Pass** | Floor rules are checked in `travelByPortal` and `travelByMap` on the server, not only hidden in the screen; spot and interaction actions check the room from the server record |
+| 5 | Dependencies and secrets | **Pass** | 0 vulnerabilities; nothing sensitive staged |
+
+Notes: the new needs start at sensible values for people saved before this change. Place cards list only activities that exist today; more arrive with the rooms the owner describes. Travel options (personal car, pool car, Uber) arrive with Yaba.
+
+---
+
 ## M3a.4: Me panel, person card and shortcuts match the reference (13 Oct 2026)
 Scope: the menu button opens a "Me" card like the reference game's (picture and mood on top; Profile, Needs, Goals, Skills, People, Career, Settings tabs); clicking a person opens a player-style card; a keyboard shortcuts card; letter shortcuts M, P, S, E, H and ?; the view turns with [ and ] (E is now "people here"). Built from the reference screenshots in `docs/reference`.
 

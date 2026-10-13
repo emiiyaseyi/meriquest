@@ -5,7 +5,9 @@ import { logoutAction } from "@/app/actions/auth";
 import { useState } from "react";
 import { LookEditor } from "./LookEditor";
 import { PersonPortrait } from "./PersonPortrait";
-import { levelFor, type Needs } from "@/lib/world/player";
+import { NEED_COLOUR, NEED_ICON } from "./needs";
+import { NEED_LABEL } from "@/lib/game";
+import { NEED_KEYS, levelFor, type Needs } from "@/lib/world/player";
 import type { GameState } from "@/lib/server/game/service";
 import type { Npc, Skin } from "@/lib/world/types";
 
@@ -19,13 +21,6 @@ const TABS: { id: MeTab; label: string; icon?: string }[] = [
   { id: "people", label: "People" },
   { id: "career", label: "Career" },
   { id: "settings", label: "Settings", icon: "⚙️" },
-];
-
-const NEEDS: { key: keyof Needs; label: string; icon: string; color: string }[] = [
-  { key: "energy", label: "Energy", icon: "⚡", color: "#2f6fe0" },
-  { key: "focus", label: "Focus", icon: "🎯", color: "#1fa89a" },
-  { key: "mood", label: "Mood", icon: "😊", color: "#e0a31b" },
-  { key: "social", label: "Social", icon: "🤝", color: "#e0488a" },
 ];
 
 export interface MePanelProps {
@@ -100,17 +95,29 @@ export function MePanel(p: MePanelProps) {
 
         {p.tab === "needs" ? (
           <div className="stack">
-            {NEEDS.map((n) => (
-              <div key={n.key} className="need-row">
-                <span className="need-badge" aria-hidden="true">{n.icon}</span>
-                <div className="need-main">
-                  <div className="need-line"><span>{n.label}</span><span>{p.needs[n.key]}%</span></div>
-                  <div className="bar" role="progressbar" aria-label={n.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={p.needs[n.key]}>
-                    <span style={{ width: `${p.needs[n.key]}%`, background: n.color }} />
+            <p className="muted small">Tap a need to see how to recharge it.</p>
+            {NEED_KEYS.map((k) => {
+              const v = p.needs[k];
+              const low = v < 30;
+              return (
+                <details key={k} className={`need-card${low ? " low" : ""}`} open={low}>
+                  <summary className="need-row">
+                    <span className="need-badge" aria-hidden="true">{NEED_ICON[k]}</span>
+                    <span className="need-main">
+                      <span className="need-line"><span>{NEED_LABEL[k]}{low ? " · running low" : ""}</span><span>{v}%</span></span>
+                      <span className="bar" role="progressbar" aria-label={NEED_LABEL[k]} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
+                        <span style={{ width: `${v}%`, background: NEED_COLOUR[k] }} />
+                      </span>
+                    </span>
+                  </summary>
+                  <div className="recharge">
+                    <strong>How to recharge</strong>
+                    {p.game.recharge[k].length === 0 ? <span className="muted small">Nothing recharges this yet.</span> : null}
+                    {p.game.recharge[k].map((r) => <span key={r} className="muted small">• {r}</span>)}
                   </div>
-                </div>
-              </div>
-            ))}
+                </details>
+              );
+            })}
             <p className="me-label">FEELINGS</p>
             {p.game.feelings.length === 0 ? <p className="muted small">Feelings appear here as your day goes: a good coffee, a chat with a colleague, a drink in the lounge.</p> : null}
             {p.game.feelings.map((f) => (

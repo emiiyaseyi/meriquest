@@ -8,6 +8,8 @@ import { getConfig } from "@/lib/server/config/registry";
 import { getPlacement } from "@/lib/server/placement/service";
 import { getOrCreatePlayer } from "@/lib/server/world/service";
 import { getGameState } from "@/lib/server/game/service";
+import { floorStatuses } from "@/lib/world/access";
+import { BUILDINGS } from "@/lib/world/scenes";
 import { playStatus } from "@/lib/server/workfirst/service";
 import { closedTitle } from "@/lib/workfirst";
 
@@ -39,13 +41,14 @@ export default async function HomePage() {
     );
   }
 
-  const [player, terms, workFirst, apps, levels, concerns] = await Promise.all([
+  const [player, terms, workFirst, apps, levels, concerns, floors] = await Promise.all([
     getOrCreatePlayer(user),
     getConfig("terminology"),
     getConfig("workFirst"),
     getConfig("phoneApps"),
     getConfig("levels"),
     getConfig("concerns"),
+    getConfig("floors"),
   ]);
   const game = await getGameState(user);
   const path = placement ? placementCfg.paths.find((p) => p.id === placement.pathId) : undefined;
@@ -61,6 +64,7 @@ export default async function HomePage() {
       initialScene={player.scene}
       look={player.look}
       game={game}
+      floorStatus={floorStatuses(floors, BUILDINGS.flatMap((b) => b.levels), user)}
       timezone={workFirst.timezone}
       terms={{ workspace: terms.workspace, workPhone: terms.workPhone, points: terms.points, todaysPlan: terms.todaysPlan, academy: terms.academy }}
       apps={apps}

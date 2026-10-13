@@ -81,7 +81,7 @@ const lobby: Scene = {
     npc("rec2", "Funmi", "Front desk", 2, 7, 0, look(SKIN.brown, "#14110f", "classic", "#e04848", "#14110f", { body: "woman", outfit: "office" })),
     npc("guard1", "Mr Sule", "Security", 9, 5, 1, look(SKIN.deep, "#14110f", "lowcut", "#1d2433", "#1d2433", { body: "man", outfit: "office" })),
   ],
-  portals: [{ id: "to-floor", label: "Lifts up", x: 10, y: 1, w: 3, d: 1, to: "ikoyi-floor", arrive: { x: 2, y: 11 } }],
+  portals: [{ id: "to-floor", label: "Lifts", x: 10, y: 1, w: 3, d: 1, to: "ikoyi-floor", arrive: { x: 2, y: 11 }, lift: true }],
   hotspots: [{ id: "frontdesk", label: "Front desk", hint: "Sign in and ask about visitors", x: 4, y: 5, kind: "info" }],
   spawn: { x: 11, y: 9 },
 };
@@ -112,6 +112,7 @@ const floor: Scene = {
     { kind: "shelf", x: 1, y: 6, w: 1, d: 3 },
     { kind: "printer", x: 16, y: 12 },
     { kind: "cabinet", x: 12, y: 12, w: 2, d: 1 },
+    { kind: "watercooler", x: 10, y: 12 },
     { kind: "plant", x: 6, y: 6 },
     { kind: "plant", x: 11, y: 6 },
     { kind: "plant", x: 16, y: 6 },
@@ -126,13 +127,16 @@ const floor: Scene = {
     npc("col6", "Bayo", "Colleague", 9, 11, 3, look(SKIN.deep, "#14110f", "bald", "#e04848", "#b9a77a", { body: "man", outfit: "sitework" }), true),
   ],
   portals: [
-    { id: "to-lobby", label: "Lifts down to the lobby", x: 1, y: 10, w: 1, d: 3, to: "ikoyi-lobby", arrive: { x: 11, y: 2 } },
+    { id: "to-lobby", label: "Lifts", x: 1, y: 10, w: 1, d: 3, to: "ikoyi-lobby", arrive: { x: 11, y: 2 }, lift: true },
     { id: "to-boardroom", label: "Boardroom", x: 17, y: 1, w: 1, d: 2, to: "ikoyi-boardroom", arrive: { x: 10, y: 5 } },
     { id: "to-lounge", label: "Executive lounge", x: 17, y: 8, w: 1, d: 2, to: "ikoyi-lounge", arrive: { x: 10, y: 5 } },
   ],
   hotspots: [
     { id: "workspace", label: "My Workspace", hint: "Your desk. Customise it and start your day", x: 4, y: 11, kind: "workspace" },
     { id: "coffee", label: "Coffee point", hint: "Recharge with a coffee", x: 15, y: 12, kind: "coffee" },
+    { id: "water", label: "Water cooler", hint: "Stay hydrated", x: 10, y: 12, kind: "water" },
+    { id: "pantry", label: "Pantry", hint: "Have lunch", x: 12, y: 12, kind: "lunch" },
+    { id: "library", label: "Bookshelf", hint: "Read up on something new", x: 1, y: 7, kind: "read" },
   ],
   spawn: { x: 2, y: 11 },
 };
@@ -201,7 +205,10 @@ const lounge: Scene = {
   ],
   npcs: [],
   portals: [{ id: "to-floor", label: "Open-plan floor", x: 11, y: 4, w: 1, d: 2, to: "ikoyi-floor", arrive: { x: 16, y: 9 } }],
-  hotspots: [{ id: "client-meeting", label: "Meet a client", hint: "Client meetings start here", x: 7, y: 3, kind: "meeting" }],
+  hotspots: [
+    { id: "client-meeting", label: "Meet a client", hint: "Client meetings start here", x: 7, y: 3, kind: "meeting" },
+    { id: "sofa", label: "Sofa", hint: "Take a quiet break", x: 4, y: 2, kind: "rest" },
+  ],
   spawn: { x: 10, y: 5 },
 };
 

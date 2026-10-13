@@ -7,16 +7,21 @@ import { Tour } from "./Tour";
 import { MePanel, type MeTab } from "./MePanel";
 import { PersonCard } from "./PersonCard";
 import { Shortcuts } from "./Shortcuts";
+import { LiftPanel } from "./LiftPanel";
+import { PlaceCard } from "./PlaceCard";
+import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
 import { playBeatAction, type BeatResult } from "@/app/actions/placement";
-import { claimBonusAction, claimMissionAction, coffeeAction, completeTourAction, gameStateAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
+import { claimBonusAction, claimMissionAction, completeTourAction, gameStateAction, spotAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
 import type { GameState } from "@/lib/server/game/service";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
-import { moodLabel } from "@/lib/world/player";
+import { NEED_ICON } from "./needs";
+import { NEED_LABEL } from "@/lib/game";
+import { NEED_KEYS, moodLabel } from "@/lib/world/player";
 import { nextQuarter, type Quarter } from "@/lib/iso/rotate";
 import { countdown } from "@/lib/format";
-import type { Hotspot, Npc, Portal, Skin } from "@/lib/world/types";
+import type { Hotspot, Npc, Portal, Scene, Skin } from "@/lib/world/types";
 
 export interface PhoneApp {
   id: string;
@@ -32,6 +37,8 @@ export interface GameShellProps {
   title: string;
   levels: { name: string; xp: number }[];
   concernRules: ConcernRules;
+  /** For each floor: whether this person is kept out of it, and why. */
+  floorStatus: Record<string, FloorStatus>;
   role: string;
   initialScene: string;
   look: Skin;
@@ -46,7 +53,7 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type Overlay = "map" | "phone" | "me" | "keys" | "report" | null;
+type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | null;
 
 const BEAT_MS = 30_000;
 
@@ -145,6 +152,9 @@ export function GameShell(props: GameShellProps) {
   const [person, setPerson] = useState<Npc | null>(null);
   const [meTab, setMeTab] = useState<MeTab>("profile");
   const [reportAbout, setReportAbout] = useState("");
+  const [place, setPlace] = useState<string | null>(null);
+  const [walking, setWalking] = useState(false);
+  const [skipTick, setSkipTick] = useState(0);
   const [gameAt, setGameAt] = useState(() => Date.now());
 
   const flash = useCallback((m: string) => {
@@ -207,7 +217,16 @@ export function GameShell(props: GameShellProps) {
     [busy, flash],
   );
 
-  const onPortal = useCallback((p: Portal) => void goTo(() => travelPortalAction(p.id)), [goTo]);
+  const onPortal = useCallback(
+    (p: Portal) => {
+      // Lifts ask which floor; ordinary doors just go through
+      if (p.lift) {
+        setSpot(null);
+        setOverlay("lift");
+      } else void goTo(() => travelPortalAction(p.id));
+    },
+    [goTo],
+  );
   const onHotspot = useCallback((h: Hotspot) => setSpot(h), []);
   const onNpc = useCallback((n: Npc) => {
     setOverlay(null);
@@ -221,6 +240,7 @@ export function GameShell(props: GameShellProps) {
   }, []);
   const onRotate = useCallback((by: 1 | -1) => setRotation((r) => nextQuarter(r, by)), []);
   const closeAll = useCallback(() => {
+    setPlace(null);
     setOverlay(null);
     setSpot(null);
     setPerson(null);
@@ -270,9 +290,9 @@ export function GameShell(props: GameShellProps) {
 
   return (
     <div className="game">
-      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} />
+      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
 
-      {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
+      {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || overlay === "lift" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
@@ -300,15 +320,12 @@ export function GameShell(props: GameShellProps) {
               <p className="muted">{scene.subtitle}</p>
               <button type="button" className="btn btn-sm" disabled title="Your work shift starts in the next update">Go to work · soon</button>
             </div>
-            <div className="status">
-              <button type="button" className="avatar-badge avatar-btn" onClick={() => openMe("needs")} title="Your needs, goals and profile (S)" aria-label="Open my profile">{initials(name)}</button>
-              <div className="needs">
-                <Bar label="Energy" icon="⚡" value={needs.energy} />
-                <Bar label="Focus" icon="🎯" value={needs.focus} />
-                <Bar label="Mood" icon="😊" value={needs.mood} />
-                <Bar label="Social" icon="🤝" value={needs.social} />
-              </div>
-            </div>
+            <button type="button" className="status" onClick={() => openMe("needs")} title="Your needs, goals and profile (S)" aria-label="Open my needs">
+              <span className="avatar-badge" aria-hidden="true">{initials(name)}</span>
+              <span className="needs">
+                {NEED_KEYS.map((k) => <Bar key={k} label={NEED_LABEL[k]} icon={NEED_ICON[k]} value={needs[k]} />)}
+              </span>
+            </button>
           </aside>
 
           <aside className="hud-right">
@@ -343,6 +360,7 @@ export function GameShell(props: GameShellProps) {
           </nav>
 
           {hover ? <div className="hover-tip" aria-hidden="true">{hover}</div> : null}
+          {walking && !anyOpen ? <button type="button" className="skip-btn" onClick={() => setSkipTick((n) => n + 1)} title="Go straight there (Space)">Skip ⏭</button> : null}
         </>
       ) : (
         <button type="button" className="round-btn clean-back" onClick={() => setClean(false)} aria-label="Show the screen furniture">☰</button>
@@ -368,9 +386,9 @@ export function GameShell(props: GameShellProps) {
                           <span className="muted small">Not open yet</span>
                         ) : (
                           rooms.map((s) => (
-                            <button key={s.id} type="button" className={`venue-card${s.id === sceneId ? " here" : ""}`} onClick={() => void goTo(() => travelMapAction(s.id))} disabled={s.id === sceneId || busy}>
+                            <button key={s.id} type="button" className={`venue-card${s.id === sceneId ? " here" : ""}`} onClick={() => setPlace(s.id)} disabled={busy}>
                               <strong>{s.name}</strong>
-                              <span className="muted">{s.id === sceneId ? "You are here" : s.subtitle}</span>
+                              <span className="muted">{s.id === sceneId ? "You are here" : props.floorStatus[s.level]?.blocked ? `🔒 ${props.floorStatus[s.level].note}` : s.subtitle}</span>
                             </button>
                           ))
                         )}
@@ -418,10 +436,10 @@ export function GameShell(props: GameShellProps) {
                 <div className="activity locked"><strong>Start my day</strong><span className="muted">Coming next</span></div>
                 <div className="activity locked"><strong>Customise my desk</strong><span className="muted">Coming soon</span></div>
               </>
-            ) : spot.kind === "coffee" ? (
-              <button type="button" className="activity" onClick={() => void runGame(() => coffeeAction())} disabled={(game.cooldowns.coffee ?? 0) > gameAt}>
-                <strong>Coffee break</strong>
-                <span className="muted">{(game.cooldowns.coffee ?? 0) > gameAt ? `Again in ${Math.max(1, Math.ceil(((game.cooldowns.coffee ?? 0) - gameAt) / 60_000))} min` : game.coffee.tags.join(" · ")}</span>
+            ) : game.spots[spot.kind] ? (
+              <button type="button" className="activity" onClick={() => void runGame(() => spotAction(spot.kind))} disabled={(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt}>
+                <strong>{game.spots[spot.kind].icon} {game.spots[spot.kind].label}</strong>
+                <span className="muted">{(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt ? `Again in ${Math.max(1, Math.ceil(((game.cooldowns[`spot:${spot.kind}`] ?? 0) - gameAt) / 60_000))} min` : game.spots[spot.kind].tags.join(" · ")}</span>
               </button>
             ) : spot.kind === "meeting" ? (
               <div className="activity locked"><strong>Join a meeting</strong><span className="muted">Coming soon</span></div>
@@ -490,6 +508,27 @@ export function GameShell(props: GameShellProps) {
       ) : null}
 
       {overlay === "keys" ? <Shortcuts onClose={() => setOverlay(null)} /> : null}
+
+      {overlay === "map" && place && getScene(place) ? (
+        <PlaceCard
+          scene={getScene(place) as Scene}
+          building={BUILDINGS.find((b) => b.id === (getScene(place) as Scene).building)}
+          game={game}
+          here={place === sceneId}
+          locked={props.floorStatus[(getScene(place) as Scene).level]?.blocked ? props.floorStatus[(getScene(place) as Scene).level].note : null}
+          busy={busy}
+          onGo={() => {
+            const id = place;
+            setPlace(null);
+            void goTo(() => travelMapAction(id));
+          }}
+          onClose={() => setPlace(null)}
+        />
+      ) : null}
+
+      {overlay === "lift" && building ? (
+        <LiftPanel building={building} scenes={Object.values(SCENES)} hereLevel={scene.level} status={props.floorStatus} busy={busy} onPick={(id) => void goTo(() => travelMapAction(id))} onClose={() => setOverlay(null)} />
+      ) : null}
 
       {touring ? <Tour firstName={name.split(" ")[0] || "there"} path={props.path} session={props.session} onDone={finishTour} /> : null}
 

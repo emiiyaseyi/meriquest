@@ -231,3 +231,32 @@ textarea.field { resize: vertical; }
 .lv.part { background: linear-gradient(90deg, #2f6fe0 var(--p, 0%), #dfe5e0 var(--p, 0%)); }
 button.activity { appearance: none; border: 0; font: inherit; cursor: pointer; text-align: left; }
 button.activity:disabled { opacity: .7; cursor: default; }
+
+.goal-path h3, .goal-path h2 { color: #fff; }
+.status { appearance: none; border: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.status:hover { background: #fff; }
+.needs { grid-template-columns: repeat(4, auto); gap: 5px 12px; }
+.need-card { background: #f3f6f3; border-radius: 18px; padding: 10px 14px; }
+.need-card.low { background: #fdecea; }
+.need-card summary { list-style: none; cursor: pointer; }
+.need-card summary::-webkit-details-marker { display: none; }
+.need-card .need-row { display: flex; align-items: center; gap: 14px; }
+.need-card .need-badge { background: #fff; }
+.need-main { display: block; }
+.need-line { display: flex; }
+.recharge { display: flex; flex-direction: column; gap: 4px; padding: 10px 0 4px 58px; }
+@media (max-width: 520px) { .needs { grid-template-columns: repeat(2, auto); } }
+
+.floor-btn { appearance: none; border: 1px solid #e3e8e4; background: #fff; color: var(--ink); font: inherit; text-align: left; padding: 14px 16px; border-radius: 18px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.floor-btn:hover:not(:disabled) { background: var(--brand-soft); }
+.floor-btn.here { background: var(--brand-soft); border-color: var(--brand); }
+.floor-btn.locked { background: #f6f1f0; }
+.floor-btn:disabled { cursor: default; opacity: .8; }
+.skip-btn { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); appearance: none; border: 0; background: var(--brand); color: #fff; font: inherit; font-weight: 700; padding: 10px 22px; border-radius: 999px; cursor: pointer; box-shadow: 0 8px 22px rgba(0, 0, 0, .25); }
+.skip-btn:hover { background: #1d452b; }
+
+.thing { display: inline-flex; flex-direction: column; background: #eef2ef; border-radius: 16px; padding: 8px 14px; font-weight: 600; font-size: .92rem; }
+.thing em { font-style: normal; font-weight: 500; font-size: .78rem; color: #5b6b61; }
+
+.bar { display: block; }
+.need-main .bar { margin-top: 4px; }

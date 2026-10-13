@@ -27,6 +27,7 @@ const COLORS: Record<SceneObject["kind"], string> = {
   column: "#d3d7d2",
   cabinet: "#e7e3d8",
   printer: "#2c3135",
+  watercooler: "#9fd0ea",
 };
 
 function flatRender(ctx: Ctx, scene: Scene, opts: RenderOptions, view: View): View {

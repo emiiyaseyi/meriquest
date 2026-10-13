@@ -4,27 +4,29 @@ import { BOTTOM_COLOURS, FABRICS, HAIR_COLOURS, HAIR_STYLES, OUTFITS, OUTFIT_COL
 
 /** Pure helpers for the player's character and status bars. Safe on the server and in the browser. */
 
-export interface Needs {
-  energy: number; // 0 to 100
-  focus: number;
-  mood: number;
-  social: number;
-}
+/** Every need, in the order they are shown. */
+export const NEED_KEYS = ["energy", "focus", "mood", "social", "hunger", "hydration", "growth", "recognition"] as const;
+export type NeedKey = (typeof NEED_KEYS)[number];
+export type Needs = Record<NeedKey, number>; // each 0 to 100
 
-export const DEFAULT_NEEDS: Needs = { energy: 82, focus: 76, mood: 84, social: 62 };
+export const DEFAULT_NEEDS: Needs = { energy: 82, focus: 76, mood: 84, social: 62, hunger: 70, hydration: 74, growth: 58, recognition: 55 };
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
-/** Keep stored values sane: numbers between 0 and 100, with defaults for anything missing or odd. */
+/** Keep stored values sane: numbers between 0 and 100, with defaults for anything missing or odd (older records have fewer needs). */
 export function cleanNeeds(raw: unknown): Needs {
   const o = raw !== null && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const n = (k: keyof Needs) => (typeof o[k] === "number" && Number.isFinite(o[k]) ? clamp(o[k] as number) : DEFAULT_NEEDS[k]);
-  return { energy: n("energy"), focus: n("focus"), mood: n("mood"), social: n("social") };
+  const out = { ...DEFAULT_NEEDS };
+  for (const k of NEED_KEYS) {
+    const v = o[k];
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = clamp(v);
+  }
+  return out;
 }
 
 /** A mood word for the top bar, from the average of the bars. */
 export function moodLabel(n: Needs): string {
-  const avg = (n.energy + n.focus + n.mood + n.social) / 4;
+  const avg = NEED_KEYS.reduce((sum, k) => sum + n[k], 0) / NEED_KEYS.length;
   if (avg >= 85) return "Very happy";
   if (avg >= 70) return "Happy";
   if (avg >= 55) return "Okay";

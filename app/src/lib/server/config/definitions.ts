@@ -369,8 +369,13 @@ const effectsSchema = z
     focus: z.number().int().min(-50).max(50).optional(),
     mood: z.number().int().min(-50).max(50).optional(),
     social: z.number().int().min(-50).max(50).optional(),
+    hunger: z.number().int().min(-50).max(50).optional(),
+    hydration: z.number().int().min(-50).max(50).optional(),
+    growth: z.number().int().min(-50).max(50).optional(),
+    recognition: z.number().int().min(-50).max(50).optional(),
   })
   .strict();
+const decay = z.number().min(0).max(60);
 const feelingSchema = z.object({ label: z.string().min(1).max(30), text: z.string().min(1).max(120) }).strict();
 const skillGain = z.object({ id: slug, xp: z.number().int().min(1).max(100) }).strict();
 
@@ -382,7 +387,7 @@ const skillGain = z.object({ id: slug, xp: z.number().int().min(1).max(100) }).s
 export const gameplaySchema = z
   .object({
     /** How much each bar falls for every hour of play. */
-    decayPerHour: z.object({ energy: z.number().min(0).max(60), focus: z.number().min(0).max(60), mood: z.number().min(0).max(60), social: z.number().min(0).max(60) }).strict(),
+    decayPerHour: z.object({ energy: decay, focus: decay, mood: decay, social: decay, hunger: decay, hydration: decay, growth: decay, recognition: decay }).strict(),
     interactions: z
       .array(
         z
@@ -400,7 +405,27 @@ export const gameplaySchema = z
           .strict(),
       )
       .max(20),
-    coffee: z.object({ effects: effectsSchema, cooldownMinutes: z.number().int().min(0).max(1440), feeling: feelingSchema, skill: skillGain.optional() }).strict(),
+    /**
+     * Places in the building where a need can be recharged, one entry for each kind of spot a room can have
+     * (coffee, water, lunch, rest, read). A spot in a room is a "hotspot" with the same kind.
+     */
+    spots: z
+      .array(
+        z
+          .object({
+            kind: slug,
+            label: z.string().min(1).max(30),
+            icon: z.string().min(1).max(8),
+            effects: effectsSchema,
+            cooldownMinutes: z.number().int().min(0).max(1440),
+            feeling: feelingSchema,
+            skill: skillGain.optional(),
+          })
+          .strict(),
+      )
+      .max(20),
+    /** What claiming a mission reward (or the daily bonus) does for the needs. */
+    claimEffects: effectsSchema,
     skills: z
       .array(z.object({ id: slug, label: z.string().min(1).max(30), icon: z.string().min(1).max(8), xpPerLevel: z.number().int().min(1).max(10_000), maxLevel: z.number().int().min(1).max(20) }).strict())
       .max(30),
@@ -423,6 +448,24 @@ export const gameplaySchema = z
     dailyBonusPoints: z.number().int().min(0).max(1000),
   })
   .strict();
+
+/**
+ * Who may use each floor of a building. A floor not listed is open to everyone. "closed" keeps everyone out
+ * (admins can still preview it); "units" lets in only the listed units.
+ */
+export const floorsSchema = z
+  .array(
+    z
+      .object({
+        level: slug,
+        access: z.enum(["open", "closed", "units"]),
+        units: z.array(z.string().min(1).max(40)).max(30),
+        note: z.string().max(100),
+      })
+      .strict(),
+  )
+  .max(30)
+  .refine((l) => new Set(l.map((x) => x.level)).size === l.length, "Each floor can be listed once");
 
 /** Conduct concerns: the kinds people can pick, and how much they can send and attach. */
 export const concernsSchema = z
@@ -611,14 +654,21 @@ export const CONFIG = {
     description: "How fast needs fall, what each interaction does and costs, the skills and their levels, and the daily missions in Today's Plan.",
     schema: gameplaySchema,
     default: {
-      decayPerHour: { energy: 8, focus: 10, mood: 4, social: 6 },
+      decayPerHour: { energy: 8, focus: 10, mood: 4, social: 6, hunger: 12, hydration: 10, growth: 3, recognition: 3 },
       interactions: [
         { id: "hello", label: "Say hello", icon: "👋", effects: { social: 5 }, cost: 0, cooldownMinutes: 30, feeling: { label: "Friendly hello", text: "A warm greeting goes a long way." }, skill: { id: "communication", xp: 2 } },
-        { id: "tip", label: "Share a tip", icon: "💡", effects: { social: 6, mood: 2 }, cost: 0, cooldownMinutes: 60, feeling: { label: "Glad to help", text: "You shared something useful with a colleague." }, skill: { id: "communication", xp: 4 } },
-        { id: "support", label: "Call for support", icon: "📞", effects: { focus: 6, social: 3 }, cost: 0, cooldownMinutes: 60, feeling: { label: "Backed up", text: "You asked a colleague to help with a client conversation, and they did." }, skill: { id: "client-care", xp: 6 } },
-        { id: "drink", label: "Buy a drink", icon: "🥤", effects: { mood: 8, social: 8, energy: 4 }, cost: 5, cooldownMinutes: 45, feeling: { label: "Good company", text: "A cold drink and a good chat." }, skill: { id: "communication", xp: 3 } },
+        { id: "tip", label: "Share a tip", icon: "💡", effects: { social: 6, mood: 2, recognition: 6, growth: 3 }, cost: 0, cooldownMinutes: 60, feeling: { label: "Glad to help", text: "You shared something useful with a colleague." }, skill: { id: "communication", xp: 4 } },
+        { id: "support", label: "Call for support", icon: "📞", effects: { focus: 6, social: 3, growth: 4 }, cost: 0, cooldownMinutes: 60, feeling: { label: "Backed up", text: "You asked a colleague to help with a client conversation, and they did." }, skill: { id: "client-care", xp: 6 } },
+        { id: "drink", label: "Buy a drink", icon: "🥤", effects: { mood: 8, social: 8, energy: 4, hydration: 10 }, cost: 5, cooldownMinutes: 45, feeling: { label: "Good company", text: "A cold drink and a good chat." }, skill: { id: "communication", xp: 3 } },
       ],
-      coffee: { effects: { energy: 15, focus: 4 }, cooldownMinutes: 20, feeling: { label: "Fresh coffee", text: "Just what you needed to carry on." } },
+      spots: [
+        { kind: "coffee", label: "Coffee break", icon: "☕", effects: { energy: 15, focus: 4, hydration: 4 }, cooldownMinutes: 20, feeling: { label: "Fresh coffee", text: "Just what you needed to carry on." } },
+        { kind: "water", label: "Drink some water", icon: "💧", effects: { hydration: 30 }, cooldownMinutes: 10, feeling: { label: "Refreshed", text: "A cool glass of water." } },
+        { kind: "lunch", label: "Have lunch", icon: "🍲", effects: { hunger: 40, energy: 8, mood: 4 }, cooldownMinutes: 120, feeling: { label: "Well fed", text: "A proper meal makes the afternoon easier." } },
+        { kind: "rest", label: "Take a quiet break", icon: "🛋️", effects: { energy: 20, focus: 8, mood: 4 }, cooldownMinutes: 60, feeling: { label: "Rested", text: "A few quiet minutes, away from the screen." } },
+        { kind: "read", label: "Read up", icon: "📚", effects: { growth: 15, focus: 2 }, cooldownMinutes: 30, feeling: { label: "Learning", text: "You picked up something new from the shelf." }, skill: { id: "market-knowledge", xp: 4 } },
+      ],
+      claimEffects: { recognition: 10, mood: 3 },
       skills: [
         { id: "communication", label: "Communication", icon: "💬", xpPerLevel: 10, maxLevel: 10 },
         { id: "client-care", label: "Client care", icon: "🤝", xpPerLevel: 12, maxLevel: 10 },
@@ -634,10 +684,21 @@ export const CONFIG = {
         { id: "ask-support", title: "Call for support", description: "Ask a colleague to help on a client conversation.", event: "support", target: 1, rewardPoints: 6 },
         { id: "explore", title: "Explore the office", description: "Visit two other rooms.", event: "visit", target: 2, rewardPoints: 4 },
         { id: "buy-drink", title: "Buy a colleague a drink", description: "Treat someone in the lounge.", event: "drink", target: 1, rewardPoints: 4 },
+        { id: "proper-lunch", title: "Have a proper lunch", description: "Step away from your desk and eat in the pantry.", event: "lunch", target: 1, rewardPoints: 4 },
+        { id: "stay-hydrated", title: "Stay hydrated", description: "Drink water at the cooler.", event: "water", target: 1, rewardPoints: 3 },
+        { id: "read-up", title: "Read up", description: "Pick something to read from the shelf.", event: "read", target: 1, rewardPoints: 4 },
+        { id: "quiet-break", title: "Take a quiet break", description: "Rest for a few minutes in the lounge.", event: "rest", target: 1, rewardPoints: 3 },
       ],
       missionsPerDay: 3,
       dailyBonusPoints: 10,
     },
+  },
+  floors: {
+    label: "Floor access",
+    group: "World",
+    description: "Which floors of Ikoyi HQ staff can go to in the lift. A floor that is not listed is open to everyone. Floor 2 is closed for now.",
+    schema: floorsSchema,
+    default: [{ level: "floor-2", access: "closed", units: [], note: "Floor 2 is restricted for now." }],
   },
   concerns: {
     label: "Conduct concerns",

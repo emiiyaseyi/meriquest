@@ -12,6 +12,7 @@ export type ObjectKind =
   | "turnstile" // steel security gate
   | "sofa" // dark sofa (dir)
   | "coffeetable" // low oval table
+  | "watercooler" // office water cooler
   | "boardtable" // oval boardroom table
   | "roundtable" // round meeting table
   | "shelf" // wooden shelving unit
@@ -81,6 +82,8 @@ export interface Portal {
   w: number;
   d: number;
   to: string; // scene id
+  /** A lift: walking in asks which floor to go to instead of going straight through. */
+  lift?: boolean;
   /** Where the player appears in the destination (a walkable tile). */
   arrive: { x: number; y: number };
 }
@@ -91,7 +94,7 @@ export interface Hotspot {
   hint: string;
   x: number;
   y: number;
-  kind: "workspace" | "info" | "coffee" | "meeting";
+  kind: "workspace" | "info" | "coffee" | "meeting" | "water" | "lunch" | "rest" | "read";
 }
 
 export interface Scene {
