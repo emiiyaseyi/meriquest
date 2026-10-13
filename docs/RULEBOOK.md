@@ -323,10 +323,30 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Production build: install Node, new Next.js + TypeScript app in `/app`; `/game` untouched until parity | Owner |
 | 2026-10-13 | Always commit and push after each piece of work | Owner |
 | 2026-10-13 | QA and security gate (§5.1) on everything built: no loopholes, no errors | Owner |
+| 2026-10-13 | Account activation: keep the shared default password and accept the risk (option c) | Owner |
+| 2026-10-13 | Apply the Meristem brand (logo, palette) from the staff-portal reference | Owner |
+| 2026-10-13 | Owner asked for recommendations on §13 items 2, 4, 7, 8, 9, 10; working defaults recorded | Owner / Claude |
+| 2026-10-13 | The `/game` prototype is retired: password removed, Netlify publishes a "retired" page | Owner / Claude |
 
 ---
 
+## 12.1 Brand look and feel (owner, 13 Oct 2026)
+Reference: `docs/reference/meristem look and feel/` (the staff portal at meristudy.meristem.com.ng).
+- **Palette:** forest green `#2d5d41` for navigation and buttons; lime `#8db74e` for the active tab; sign-in gradient `#2f6244` to `#1d452b` with a pale card `#ebf1ed`; page `#f7f8f7`; alert tint `#fcf3f2`. Defined as CSS tokens in `app/src/app/globals.css`.
+- **Logo:** the Meristem wordmark with the leaf, white on green, full colour on light. Files in `app/public/brand/`. Use only via the `Logo` component.
+- **Style:** clean sans-serif, rounded cards, pill buttons, small uppercase section labels, green icons. The isometric game scenes use the same green palette.
+- Use of the logo and palette still needs Corporate Communications approval (§13 item 8).
+
 ## 13. Open questions (do not decide; ask)
+
+> **Recommended answers (13 Oct 2026).** The owner asked me to recommend and proceed on items 2, 4, 7, 8, 9 and 10. The recommendations below are used as working defaults and stay admin-editable. The owner may change any of them.
+> - **Item 2, other activities allowed outside Work First windows:** the profile, certificates and reports; Meristem Academy lessons and quizzes; the leadership simulator; reading messages and kudos (no live world presence); Aspirations and Career Dream; the Updates feed. **Not allowed outside windows:** work shifts, the Client Desk, mini-games, market simulation and walking the shared world. Learning hours may be assigned by **line managers (for their own team) and L&D admins**, up to the weekly limit, and never inside blackout periods.
+> - **Item 4, Yaba reference:** still needed from the owner (photos of the Yaba office). Until supplied, Yaba uses the Ikoyi HQ visual kit with its own signage. Abuja and Port Harcourt are deferred.
+> - **Item 7, who sees leadership and succession results:** the person sees everything. A **line manager sees a summary for their direct reports** (strengths, growth areas, readiness band), not raw choices. **HR business partners and the talent committee see readiness bands and successor slates** for critical roles only. Admins configure these rules and nobody else sees individual results.
+> - **Item 8, logo and brand:** proceed with the Meristem logo and palette in the build, flagged for Corporate Communications sign-off before any wider rollout.
+> - **Item 9, subsidiaries in the first build:** the pilot units: Customer Experience, Wealth Advisory and Investment Advisory.
+> - **Item 10, moderation and eNPS:** chat moderators come from L&D with an HR escalation path, responding within one business day. The eNPS pulse is owned by Group HR, anonymous in aggregate.
+> - **Item 11, account activation:** **decided (c)**: keep the shared default password and accept the risk, with a short activation window and audit review of first sign-ins. Revisit before the wider rollout.
 1. Starting Path names and whether a **leader/executive** path exists.
 2. Work First defaults are approved with the "learning outside work hours" change (§2.1). **Still open:** the owner's sentence ended at "others are okay such as…". Which other activities are allowed outside the windows? And who may assign learning hours?
 3. ~~Inter-city travel~~ **Resolved:** Lagos only for now (§2.7).

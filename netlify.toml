@@ -1,7 +1,11 @@
-# Netlify settings for the MeriQuest prototype (static files in /game, no build step).
+# Netlify settings.
+# NOTE (13 Oct 2026): the plain-JS prototype in /game is RETIRED and must not be published.
+# The production app lives in /app (Next.js) and needs the Postgres storage adapter and the
+# Netlify Next.js runtime before it can be deployed. Until then the site publishes only a static
+# "prototype retired" page from /retired, so the old prototype is replaced rather than left live.
 # This file overrides the build settings in the Netlify dashboard.
 [build]
-  publish = "game"
+  publish = "retired"   # holds a static "prototype retired" page
 
 [[headers]]
   for = "/*"

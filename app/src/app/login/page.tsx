@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/AuthForms";
+import { Logo } from "@/components/Logo";
 import { getCurrentUser } from "@/lib/server/auth/dal";
 import { getConfig } from "@/lib/server/config/registry";
 
@@ -11,13 +12,16 @@ export default async function LoginPage() {
   if (user) redirect(user.mustChangePassword ? "/change-password" : "/");
   const auth = await getConfig("auth");
   return (
-    <main className="page narrow">
-      <div className="card stack">
-        <h1>MeriQuest</h1>
-        <p className="muted">Sign in with your Meristem staff ID or work email.</p>
+    <main className="auth-shell">
+      <Logo variant="light" width={260} />
+      <div className="auth-card stack">
+        <div>
+          <h1>Sign in</h1>
+          <p className="muted" style={{ margin: 0 }}>Enter your staff ID or work email to open MeriQuest.</p>
+        </div>
         <LoginForm example={auth.staffIdExample} />
-        <p className="muted">New here or forgot your password? Ask Learning &amp; Development to reset it.</p>
       </div>
+      <p className="auth-foot">Access is restricted to authorised personnel only. Contact Learning &amp; Development if you need an account or a password reset.</p>
     </main>
   );
 }

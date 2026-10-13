@@ -4,6 +4,25 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M1.1: Brand, prototype retirement and Supabase guide (13 Oct 2026)
+Scope: Meristem palette and logo applied (login, top bar, error pages); `/game` prototype retired; Netlify now publishes a static "retired" page; Supabase setup guide; rulebook decisions recorded.
+
+| Gate | Result | Evidence |
+|---|---|---|
+| Build, types, lint, tests | **Pass** | `npm run qa`: 124/124 tests, typecheck, lint and build clean |
+| Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+| Secrets | **Pass** | The prototype's old default password was removed from `game/auth-config.js` (it stays in git history; it must never be reused). No secrets in the new files |
+| Web security | **Pass** | Only `/brand/*` was exempted from the sign-in redirect (public logo files). Verified on a production build: `/admin` and `/` still 307 to `/login` when signed out; path traversal out of `/brand/` is redirected, not served; no directory listing |
+
+Findings
+| Finding | Severity | Status |
+|---|---|---|
+| The sign-in page logo failed (HTTP 500) because the proxy redirected unauthenticated `/brand/*` requests | Low (functional) | **Fixed**: `/brand/` exempted from the proxy matcher; logo served directly (no image optimizer in the path) |
+| `next build` failed with `EPERM` on `.next` (OneDrive file lock on build output) | Info | Worked around by clearing `.next`; consider moving the repo out of OneDrive for builds |
+| `netlify.toml` still published the retired prototype | Medium | **Fixed**: publishes `/retired` (static notice) until the production deploy exists |
+
+---
+
 ## M1: Foundation (13 Oct 2026)
 Scope: Next.js 16 + TypeScript app in `/app`; server-only config registry with admin editing; staff directory; server-side sign-in (staff ID/email + password), forced first-login change, lockout, rate limiting, opaque sessions; admin console (staff & access, settings, audit log); CSP nonce proxy and security headers.
 

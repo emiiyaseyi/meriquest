@@ -6,7 +6,8 @@
  *   - sign-in (staff ID/email + password) is checked on the server, never in the browser;
  *   - the default password is a server-side secret (env variable / admin setting), never in front-end code;
  *   - passwords are hashed server-side with a slow hash (Argon2id/bcrypt).
- * Change `defaultPassword` before sharing the prototype with anyone.
+ * RETIRED (13 Oct 2026): this prototype is superseded by the production app in /app and must not be shared
+ * or deployed. The old default password was removed; it remains in git history, so never reuse it anywhere.
  */
 window.MERIQUEST_AUTH_CONFIG = {
   // Work email domains accepted on the sign-in page
@@ -16,7 +17,7 @@ window.MERIQUEST_AUTH_CONFIG = {
   staffIdExample: "MS1001",
 
   // Every new or reset account signs in with this, then must choose their own password
-  defaultPassword: "Meristem@2026",
+  defaultPassword: "RETIRED-prototype-set-a-fresh-value-locally-to-run",
 
   passwordRules: { minLength: 8, needLetter: true, needNumber: true },
   maxFailedAttempts: 5, // then the account locks

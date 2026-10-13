@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Logo } from "@/components/Logo";
+import { NavLink } from "@/components/NavLink";
 import { requireRole } from "@/lib/server/auth/dal";
 import { logoutAction } from "@/app/actions/auth";
 
@@ -8,16 +9,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <header className="brandbar">
-        <span className="name">MeriQuest Admin</span>
+        <Logo variant="light" width={150} />
         <nav className="nav" aria-label="Admin">
-          <Link href="/admin">Overview</Link>
-          <Link href="/admin/config">Settings</Link>
-          <Link href="/admin/staff">Staff &amp; access</Link>
-          <Link href="/admin/audit">Audit log</Link>
-          <Link href="/">Back to game</Link>
+          <NavLink href="/admin" exact>Overview</NavLink>
+          <NavLink href="/admin/config">Settings</NavLink>
+          <NavLink href="/admin/staff">Staff &amp; access</NavLink>
+          <NavLink href="/admin/audit">Audit log</NavLink>
+          <NavLink href="/" exact>Back to game</NavLink>
         </nav>
         <form action={logoutAction} className="row">
-          <span className="muted">{admin.name}</span>
+          <span className="who">{admin.name}</span>
           <button type="submit" className="btn btn-ghost btn-sm">Sign out</button>
         </form>
       </header>
