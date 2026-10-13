@@ -29,6 +29,29 @@ Purpose: the production database (Postgres) that replaces the local file store. 
    - give you a short list of environment variables to paste into `.env.local` and Netlify.
 7. Later: repeat for `meriquest-prod` on the Pro plan, and connect Netlify (separate guide).
 
+## Linking it with Netlify (do this after the storage adapter exists)
+The app cannot run on Netlify until the Supabase adapter is built (it needs a database, not local files). When I tell you the adapter is ready:
+
+1. **Netlify → Add new site → Import an existing project → GitHub** and choose `emiiyaseyi/meriquest`.
+2. Build settings: **Base directory** `app`, **Build command** `npm run build`. Leave the publish directory to Netlify's Next.js runtime (it detects Next.js). I will update `netlify.toml` in the repo to match; until then the repo deliberately publishes the "retired" page.
+3. **Site configuration → Environment variables**, add these (mark the secrets as **Contains secret values**, scope **Production** and **Deploy previews** only as needed):
+
+| Variable | Value | Secret |
+|---|---|---|
+| `STORE` | `supabase` | no |
+| `SUPABASE_URL` | the Project URL from Supabase → Project Settings → API | no |
+| `SUPABASE_SECRET_KEY` | the secret / service-role key (server only) | **yes** |
+| `DEFAULT_PASSWORD` | a fresh random value, 12+ characters | **yes** |
+| `BOOTSTRAP_ADMIN_PASSWORD` | a different fresh random value, 12+ characters | **yes** |
+| `SEED_SAMPLE_STAFF` | `false` | no |
+| `BOOTSTRAP_ADMIN_STAFF_ID` / `BOOTSTRAP_ADMIN_EMAIL` | `MS0001` / the L&D admin mailbox | no |
+
+   The variable names for Supabase are provisional; the adapter task will confirm them and update `.env.example`.
+4. Do **not** set `NODE_ENV` (Netlify sets it to production). In production the app refuses to start if a secret is missing, if `DEFAULT_PASSWORD` equals the old prototype password, or if `SEED_SAMPLE_STAFF=true`.
+5. **Deploys → Trigger deploy**. Open the site URL, sign in as the bootstrap admin, set your own password, then add staff in **Admin → Staff & access**.
+6. **Domain settings:** use a Meristem subdomain (for example `meriquest.meristem.com.ng`) once IT agrees. Netlify provides HTTPS automatically.
+7. Region note: Netlify's server functions default to a US region on some plans, which adds delay to every database call. If it feels slow, set the functions region to match Supabase's (Pro plan feature, check Netlify's current options).
+
 ## What I will not do
 - I will not ask for your keys in chat. You paste them into `.env.local` yourself.
 - I will not use the Supabase JS client in the browser: all data access is server-side, behind the sign-in checks in the app.
