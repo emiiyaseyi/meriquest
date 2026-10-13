@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M5c: Academy moved to the map as its own page, with lesson videos (13 Oct 2026)
+Scope: Academy removed from the Work Phone; a Meristem Academy entry on the map opens a place card and then a full-screen Academy page (wide on desktop, one column on phones); optional lesson video (YouTube, Vimeo, Microsoft Stream or SharePoint link, or a direct https mp4/webm), shown in the notes.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 418 tests, including video link parsing (allowed hosts, rejects http, scripts, credentials) |
+| 3 | Input validation | **Pass** | Video link validated by the course schema and parsed again before display |
+| 4 | Headers | **Pass** | CSP gains `frame-src` for the allowed video hosts only and `media-src https:`; scripts unchanged |
+| 5 | Security review | **Pass** | Only allowlisted embeds; YouTube uses the no-cookie host |
+
+Open: not yet checked in a real browser at desktop and phone widths; uploaded video files come later with file storage.
+
+---
+
 ## M5b: Academy per-course storage, admin Academy pages and the imported NEO content (13 Oct 2026)
 Scope: courses stored one per record with a light index; admin Academy pages (list by group, edit as JSON, move between groups, delete, restore built-ins); imported content from the NEO decks: Culture, Compliance, Products and Services, Customer Experience and More to learn (16 courses) with Easy/Medium/Hard questions, extra scenarios and written case studies.
 

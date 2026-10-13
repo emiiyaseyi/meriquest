@@ -8,6 +8,7 @@ import { recordEvent } from "../game/missions";
 import type { PlayerRecord } from "../world/service";
 import { applyEffects, dayKey } from "@/lib/game";
 import { hashString, seeded } from "@/lib/iso/geometry";
+import { parseVideo } from "@/lib/academy-video";
 import { getCourseDoc, listCourseMeta, type CourseDoc, type CourseMeta } from "./content";
 import type { AcademyHome, AcademyResult, CaseView, CourseCard, CourseView, Level, LessonNotes, LessonRow, QuizResult, QuizSet, ScenarioOutcome, ScenarioPlay, ScenarioRow } from "@/lib/academy";
 
@@ -278,7 +279,7 @@ export async function readNotes(user: Pick<UserDTO, "staffId" | "unit">, courseI
   const retry = p?.retryAt?.[`${lessonId}:${level}`];
   return {
     ok: true,
-    value: { courseTitle: c.title, number: idx + 1, total: c.lessons.length, title: l.title, paragraphs: l.paragraphs, level, quizDue, quizCount: draw.n, passCorrect: draw.need, retryMinutes: academy.settings.retryMinutes, retryAt: retry && retry > now ? retry : null },
+    value: { courseTitle: c.title, number: idx + 1, total: c.lessons.length, title: l.title, paragraphs: l.paragraphs, video: parseVideo(l.video), level, quizDue, quizCount: draw.n, passCorrect: draw.need, retryMinutes: academy.settings.retryMinutes, retryAt: retry && retry > now ? retry : null },
   };
 }
 

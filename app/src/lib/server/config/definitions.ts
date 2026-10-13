@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_ACADEMY } from "./academy-content";
+import { parseVideo } from "@/lib/academy-video";
 
 /**
  * Config registry definitions (RULEBOOK §4: nothing an admin may want to change is hardcoded).
@@ -515,6 +516,8 @@ export const courseSchema = z
             id: slug,
             title: z.string().min(1).max(80),
             paragraphs: z.array(z.string().min(1).max(2500)).min(1).max(20),
+            /** Optional lesson video: a YouTube, Vimeo or Microsoft 365 link, or a direct https video file. */
+            video: z.string().max(500).refine((v) => parseVideo(v) !== null, "Use a YouTube, Vimeo, Microsoft Stream or SharePoint link, or a direct https .mp4 or .webm link").optional(),
             questions: z.array(quizQuestion).min(3).max(120),
           })
           .strict()

@@ -5,7 +5,7 @@ import { markNoticesReadAction, messagesAction } from "@/app/actions/notices";
 import type { Announcement, Notice } from "@/lib/server/notices/service";
 import type { PhoneApp } from "./GameShell";
 
-type View = "home" | "messages" | "updates" | "academy";
+type View = "home" | "messages" | "updates";
 
 const TONES = ["#e07a2f", "#2f6fe0", "#8a5cd6", "#e0488a", "#1fa89a", "#d4a62a", "#2d5d41", "#17b2a6", "#c8503c", "#5b6b61"];
 
@@ -23,7 +23,7 @@ function ago(ms: number, now: number): string {
  * latest announcement, a grid of coloured app icons, and screens that open inside the phone (Messages with a
  * bell for Updates, Courses). Apps that are not built yet say "soon".
  */
-export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGoals, onSettings, academy }: { apps: PhoneApp[]; clock: string; timezone: string; unread: number; onUnread: (n: number) => void; onClose: () => void; onGoals: () => void; onSettings: () => void; academy: (back: () => void) => React.ReactNode }) {
+export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGoals, onSettings }: { apps: PhoneApp[]; clock: string; timezone: string; unread: number; onUnread: (n: number) => void; onClose: () => void; onGoals: () => void; onSettings: () => void }) {
   const [view, setView] = useState<View>("home");
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -65,7 +65,6 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
   const open = (a: PhoneApp) => {
     if (a.soon) return;
     if (a.id === "messages") setView("messages");
-    else if (a.id === "academy") setView("academy");
     else if (a.id === "todays-plan") onGoals();
     else if (a.id === "settings") onSettings();
   };
@@ -144,7 +143,6 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
           </div>
         ) : null}
 
-        {view === "academy" ? <div className="screen">{academy(() => setView("home"))}</div> : null}
         <div className="home-bar" aria-hidden="true" />
       </div>
     </div>

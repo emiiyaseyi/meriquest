@@ -89,6 +89,8 @@ export interface LessonNotes {
   total: number;
   title: string;
   paragraphs: string[];
+  /** A lesson video, when the admin attached one. */
+  video: { kind: "frame" | "file"; src: string } | null;
   level: Level;
   /** True when the quiz at the current level has not been passed yet. */
   quizDue: boolean;

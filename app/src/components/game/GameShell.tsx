@@ -55,7 +55,7 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | null;
+type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | null;
 
 const BEAT_MS = 30_000;
 
@@ -140,6 +140,7 @@ export function GameShell(props: GameShellProps) {
   const [arrive, setArrive] = useState<{ x: number; y: number }>(() => (getScene(props.initialScene) ?? SCENES[props.initialScene]).spawn);
   const [mode, setMode] = useViewMode();
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [academyCard, setAcademyCard] = useState(false);
   const [spot, setSpot] = useState<Hotspot | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -243,6 +244,7 @@ export function GameShell(props: GameShellProps) {
   const onRotate = useCallback((by: 1 | -1) => setRotation((r) => nextQuarter(r, by)), []);
   const closeAll = useCallback(() => {
     setPlace(null);
+    setAcademyCard(false);
     setOverlay(null);
     setSpot(null);
     setPerson(null);
@@ -374,6 +376,13 @@ export function GameShell(props: GameShellProps) {
             <h2>Map</h2>
             <button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close map">✕</button>
           </div>
+          <section className="stack">
+            <p className="eyebrow">Learning</p>
+            <button type="button" className="venue-card academy-venue" onClick={() => setAcademyCard(true)}>
+              <strong>🎓 {terms.academy}</strong>
+              <span className="muted">Classes, quizzes, scenarios, case studies and certificates</span>
+            </button>
+          </section>
           {BUILDINGS.map((b) => (
             <section key={b.id} className="stack">
               <p className="eyebrow">{b.name} · {b.city}</p>
@@ -407,7 +416,7 @@ export function GameShell(props: GameShellProps) {
 
       {overlay === "phone" ? (
         <PhoneUI
-          apps={apps}
+          apps={apps.filter((a) => a.id !== "academy")}
           clock={clock}
           timezone={props.timezone}
           unread={game.unread}
@@ -415,7 +424,6 @@ export function GameShell(props: GameShellProps) {
           onClose={() => setOverlay(null)}
           onGoals={() => openMe("goals")}
           onSettings={() => openMe("settings")}
-          academy={(back) => <AcademyApp onBack={back} />}
         />
       ) : null}
 
@@ -507,6 +515,41 @@ export function GameShell(props: GameShellProps) {
       ) : null}
 
       {overlay === "keys" ? <Shortcuts onClose={() => setOverlay(null)} /> : null}
+
+      {overlay === "map" && academyCard ? (
+        <div className="me-panel person-card" role="dialog" aria-label={terms.academy}>
+          <div className="grab" aria-hidden="true" />
+          <header className="me-head">
+            <span className="kbd-badge" aria-hidden="true">🎓</span>
+            <div className="me-id">
+              <h2>{terms.academy}</h2>
+              <p>Learn at any time</p>
+            </div>
+            <button type="button" className="round-btn sm" onClick={() => setAcademyCard(false)} aria-label="Close">✕</button>
+          </header>
+          <div className="me-body">
+            <div className="stack">
+              <p className="muted" style={{ margin: 0 }}>Culture, compliance, products and services, customer experience and more. Courses are open to everyone.</p>
+              <p className="me-label">THINGS TO DO HERE</p>
+              <div className="chips">
+                {["Attend a class", "Watch lesson videos", "Take quizzes", "Try scenarios", "Read case studies", "Earn certificates"].map((t) => <span key={t} className="thing">{t}</span>)}
+              </div>
+              <button type="button" className="primary-wide" onClick={() => { setAcademyCard(false); setOverlay("academy"); }}>Go to the {terms.academy}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {overlay === "academy" ? (
+        <div className="academy-screen" role="dialog" aria-label={terms.academy}>
+          <header className="academy-bar">
+            <button type="button" className="round-btn sm" onClick={() => setOverlay("map")} aria-label="Back to the map">‹</button>
+            <h2>{terms.academy}</h2>
+            <button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close the Academy">✕</button>
+          </header>
+          <div className="academy-body"><AcademyApp embedded /></div>
+        </div>
+      ) : null}
 
       {overlay === "map" && place && getScene(place) ? (
         <PlaceCard

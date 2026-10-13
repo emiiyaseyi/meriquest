@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { VIDEO_FRAME_HOSTS, VIDEO_FRAME_SUFFIXES } from "@/lib/academy-video";
 
 /**
  * Runs before every page request. It (1) sets a per-request CSP nonce, and (2) does an
@@ -20,6 +21,8 @@ export function proxy(request: NextRequest) {
     "style-src-attr 'unsafe-inline'", // style attributes cannot run script; needed for dynamic sizing
     "img-src 'self' blob: data:",
     "font-src 'self'",
+    `frame-src ${["'self'", ...VIDEO_FRAME_HOSTS.map((h) => `https://${h}`), ...VIDEO_FRAME_SUFFIXES.map((s) => `https://*${s}`)].join(" ")}`,
+    "media-src 'self' https:",
     "connect-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",

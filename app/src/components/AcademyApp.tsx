@@ -256,6 +256,15 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
           <>
             <p className="ac-kicker">LESSON {notes.number} OF {notes.total}</p>
             <h2 style={{ margin: 0 }}>{notes.title}</h2>
+            {notes.video ? (
+              <div className="ac-video">
+                {notes.video.kind === "frame" ? (
+                  <iframe src={notes.video.src} title={`Video: ${notes.title}`} allow="fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+                ) : (
+                  <video src={notes.video.src} controls preload="metadata" />
+                )}
+              </div>
+            ) : null}
             {notes.paragraphs.map((p, i) => <p key={i} className="ac-notes">{p}</p>)}
             {notes.quizDue ? (
               notes.retryAt && notes.retryAt > now ? (
