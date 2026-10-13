@@ -42,7 +42,7 @@ export function PlayHeartbeat({ activity }: { activity: "world" | "learning" }) 
   if (!state.allowed) {
     return (
       <div role="status" className="card stack">
-        <h2>Work first</h2>
+        <h2>{state.title}</h2>
         <p>{state.message}</p>
       </div>
     );

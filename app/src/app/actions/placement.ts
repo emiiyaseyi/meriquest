@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/server/auth/dal";
 import { getConfig } from "@/lib/server/config/registry";
 import { submitPlacement } from "@/lib/server/placement/service";
 import { playBeat } from "@/lib/server/workfirst/service";
-import type { Activity, Decision } from "@/lib/workfirst";
+import { closedTitle, type Activity, type Decision } from "@/lib/workfirst";
 
 export interface PlacementFormState {
   error?: string;
@@ -27,6 +27,9 @@ export async function submitPlacementAction(_prev: PlacementFormState, formData:
 
 export interface BeatResult {
   allowed: boolean;
+  code: string;
+  title: string;
+  resumeAt?: number;
   message: string;
   remainingSeconds: number | null;
   nudge: boolean;
@@ -38,5 +41,5 @@ export async function playBeatAction(activity: string): Promise<BeatResult> {
   const user = await requireUser();
   const act: Activity = activity === "learning" ? "learning" : "world";
   const d: Decision = await playBeat(user, act);
-  return { allowed: d.allowed, message: d.message, remainingSeconds: d.remainingSeconds, nudge: d.nudge, weeklySoftCapReached: d.weeklySoftCapReached };
+  return { allowed: d.allowed, code: d.code, title: closedTitle(d.code), resumeAt: d.resumeAt, message: d.message, remainingSeconds: d.remainingSeconds, nudge: d.nudge, weeklySoftCapReached: d.weeklySoftCapReached };
 }

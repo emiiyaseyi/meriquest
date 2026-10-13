@@ -65,6 +65,23 @@ export const workFirstSchema = z
     enabled: z.boolean(),
     /** Admins can preview the game at any time (so they can test and demo it). Turn off to apply Work First to admins too. */
     adminsExempt: z.boolean().default(true),
+    /**
+     * Owner decision (13 Oct 2026): people may play during working hours. When false (the default) core
+     * hours and the play windows below are NOT enforced and the session limit governs play. Turn on to bring
+     * back the older rule: closed in core working hours, open only inside the windows.
+     */
+    restrictToWindows: z.boolean().default(false),
+    /** Max time per session, then a pause before the next one (admin-editable). */
+    sessionLimit: z
+      .object({
+        enabled: z.boolean(),
+        maxMinutes: z.number().int().min(1).max(480),
+        pauseMinutes: z.number().int().min(0).max(1440),
+      })
+      .strict()
+      .default({ enabled: true, maxMinutes: 30, pauseMinutes: 120 }),
+    /** Apply the daily cap below even when windows are not enforced. Off by default so the session limit governs. */
+    dailyCapEnabled: z.boolean().default(false),
     timezone: z.string().min(1).max(60),
     coreHours: z.object({ days: z.array(dayNum).max(7), start: hhmm, end: hhmm }).strict(),
     windows: z
@@ -399,11 +416,14 @@ export const CONFIG = {
   workFirst: {
     label: "Work First policy",
     group: "Policy",
-    description: "When people may play, daily and weekly caps, blackout periods and unit overrides. Work always comes first.",
+    description: "How long people may play at a time (default 30 minutes, then a 2-hour pause), whether working hours and play windows are enforced, caps, blackout periods and unit overrides.",
     schema: workFirstSchema,
     default: {
       enabled: true,
       adminsExempt: true,
+      restrictToWindows: false,
+      sessionLimit: { enabled: true, maxMinutes: 30, pauseMinutes: 120 },
+      dailyCapEnabled: false,
       timezone: "Africa/Lagos",
       coreHours: { days: [1, 2, 3, 4, 5], start: "08:00", end: "17:00" },
       windows: [

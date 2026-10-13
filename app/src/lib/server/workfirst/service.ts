@@ -6,7 +6,7 @@ import { getConfig } from "../config/registry";
 import { assertAdmin } from "../auth/admin";
 import { getUser } from "../auth/users";
 import type { UserDTO } from "../types";
-import { effectivePolicy, evaluate, localTime, type Activity, type Decision, type Usage, type WorkFirstPolicy } from "@/lib/workfirst";
+import { currentSession, effectivePolicy, evaluate, localTime, type Activity, type Decision, type SessionState, type Usage, type WorkFirstPolicy } from "@/lib/workfirst";
 
 /**
  * Server-authoritative play time. The client sends a "heartbeat"; the server decides whether play
@@ -84,49 +84,85 @@ function adminPreview(policy: WorkFirstPolicy, user: PlayUser): Decision | null 
   return { allowed: true, code: "admin_preview", message: "Admin preview: Work First is not applied to admins.", remainingSeconds: null, nudge: false, weeklySoftCapReached: false, windowId: null, isWorkday: true };
 }
 
+interface SessionDoc {
+  staffId: string;
+  used: number; // seconds of play used in the current allowance
+  lastPlayAt: number | null; // epoch ms of the last credited play
+  lastBeat: number | null; // epoch ms of the last accepted heartbeat
+  lastActivity: Activity | null; // what that heartbeat was for: time is only credited between beats of the same activity
+}
+
+const sessionState = (d: SessionDoc | null): SessionState => ({ usedSeconds: d?.used ?? 0, lastPlayAt: d?.lastPlayAt ?? null });
+
 export async function playStatus(user: PlayUser, activity: Activity, now: number = Date.now()): Promise<Decision> {
   const { policy, today, week, assigned } = await load(user, now);
   const preview = adminPreview(policy, user);
   if (preview) return preview;
-  return evaluate(policy, { unit: user.unit, now, usage: usageFrom(today, week), assignedLearningSeconds: assigned }, activity);
+  const sd = await getStore().get<SessionDoc>("play_sessions", user.staffId);
+  return evaluate(policy, { unit: user.unit, now, usage: usageFrom(today, week), assignedLearningSeconds: assigned, session: sessionState(sd) }, activity);
 }
 
 /**
- * Called about every 30 seconds while the player is actively in the game. Credits time only when
- * play is allowed, and returns the new decision so the client can show a countdown or the
- * "Work first" screen.
+ * Called about every 30 seconds while the player is actively in the game. The server credits only the real
+ * time since the previous accepted beat (capped), inside one atomic update of the person's session
+ * record, so two open tabs cannot double-count time or dodge the pause. Returns the new decision so the
+ * client can show a countdown or the break screen.
  */
 export async function playBeat(user: PlayUser, activity: Activity, now: number = Date.now()): Promise<Decision> {
-  const { policy, lt, week, assigned } = await load(user, now);
+  const { policy, lt, week, today, assigned } = await load(user, now);
   const preview = adminPreview(policy, user);
   if (preview) return preview; // nothing is credited for an admin preview
-  const prior = week.filter((d) => d.date !== lt.date);
+  const eff = effectivePolicy(policy, user.unit);
+  const world = activity === "world";
   let decision: Decision | null = null;
+  let credited = 0;
+  let creditedWindow: string | null = null;
+  let creditedCoreLearning = false;
 
-  await getStore().update<DayDoc>("playtime", dayId(user.staffId, lt.date), (cur) => {
-    const doc: DayDoc = cur ?? { staffId: user.staffId, date: lt.date, seconds: 0, windows: {}, learningCoreSeconds: 0, lastBeat: null, lastActivity: null };
-    const before = evaluate(policy, { unit: user.unit, now, usage: usageFrom(doc, [...prior, doc]), assignedLearningSeconds: assigned }, activity);
+  await getStore().update<SessionDoc>("play_sessions", user.staffId, (cur) => {
+    const sd: SessionDoc = cur ?? { staffId: user.staffId, used: 0, lastPlayAt: null, lastBeat: null, lastActivity: null };
+    const sess = currentSession(eff, sessionState(cur), now);
+    const before = evaluate(policy, { unit: user.unit, now, usage: usageFrom(today, week), assignedLearningSeconds: assigned, session: sess }, activity);
     if (!before.allowed) {
       decision = before;
-      return cur ?? null; // nothing credited; no document is created for a refused beat
+      return cur ?? null; // nothing credited; no record is created for a refused beat
     }
-    const gap = doc.lastBeat === null ? 0 : now - doc.lastBeat;
+    // Time between two beats is credited only when both were for the same activity (learning then game credits nothing)
+    const gap = sd.lastBeat === null || sd.lastActivity !== activity ? 0 : now - sd.lastBeat;
     // Only a plausible, forward-moving gap counts (a clock that went backwards credits nothing).
     const creditMs = gap > 0 && gap <= MAX_BEAT_GAP_MS ? gap : 0;
     // Never credit past what the decision allows: stop exactly at the limit.
     const allowedMs = before.remainingSeconds === null ? creditMs : Math.min(creditMs, before.remainingSeconds * 1000);
     const secs = Math.floor(allowedMs / 1000);
-    const next: DayDoc = {
-      ...doc,
-      seconds: doc.seconds + (activity === "world" || before.windowId ? secs : 0),
-      windows: before.windowId ? { ...doc.windows, [before.windowId]: (doc.windows[before.windowId] ?? 0) + secs } : doc.windows,
-      learningCoreSeconds: doc.learningCoreSeconds + (activity === "learning" && before.code === "ok" && before.windowId === null && isCoreLearning(policy, user.unit, now) ? secs : 0),
+    credited = secs;
+    creditedWindow = before.windowId;
+    creditedCoreLearning = activity === "learning" && before.code === "ok" && before.windowId === null && isCoreLearning(policy, user.unit, now);
+    const next: SessionDoc = {
+      staffId: user.staffId,
+      used: sess.usedSeconds + (world ? secs : 0),
+      lastPlayAt: world && secs > 0 ? now : sess.lastPlayAt,
       lastBeat: now,
       lastActivity: activity,
     };
-    decision = evaluate(policy, { unit: user.unit, now, usage: usageFrom(next, [...prior, next]), assignedLearningSeconds: assigned }, activity);
+    const usageAfter: Usage = { ...usageFrom(today, week), todaySeconds: (today?.seconds ?? 0) + (world ? secs : 0), weekSeconds: week.reduce((t, d) => t + d.seconds, 0) + (world ? secs : 0) };
+    decision = evaluate(policy, { unit: user.unit, now, usage: usageAfter, assignedLearningSeconds: assigned, session: sessionState(next) }, activity);
     return next;
   });
+
+  // Daily and window totals (for caps and reports) are recorded separately, after the gate above.
+  if (credited > 0 || creditedCoreLearning) {
+    await getStore().update<DayDoc>("playtime", dayId(user.staffId, lt.date), (cur) => {
+      const doc: DayDoc = cur ?? { staffId: user.staffId, date: lt.date, seconds: 0, windows: {}, learningCoreSeconds: 0, lastBeat: null, lastActivity: null };
+      return {
+        ...doc,
+        seconds: doc.seconds + (world || creditedWindow ? credited : 0),
+        windows: creditedWindow ? { ...doc.windows, [creditedWindow]: (doc.windows[creditedWindow] ?? 0) + credited } : doc.windows,
+        learningCoreSeconds: doc.learningCoreSeconds + (creditedCoreLearning ? credited : 0),
+        lastBeat: now,
+        lastActivity: activity,
+      };
+    });
+  }
   return decision as unknown as Decision;
 }
 

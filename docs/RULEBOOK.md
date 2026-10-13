@@ -29,14 +29,24 @@ Name: **MeriQuest** (working title). Level metaphor: Seed → Sprout → Stem �
 
 ## 2. Locked decisions
 
-### 2.1 Work comes first (non-negotiable)
-- Staff **must not** abandon real work to play. Real work always has priority.
-- Play is gated by an admin-configurable **Work First policy** (§4): play windows (e.g. before work, lunch, after hours), daily time cap, optional assigned "learning hours" set by managers or L&D, and a one-tap "pause for work" that never penalises the player.
-- No streak, mission, leaderboard or event may pressure someone to play during core working hours. Streaks pause on leave and weekends.
+### 2.1 Work comes first, with limited play sessions
+> **Changed by the owner on 13 Oct 2026.** The earlier rule closed the game during core working hours and allowed play only in set windows. The owner replaced it: **people may play during working hours, but only in limited sessions.** The earlier rule is kept as an optional setting (`restrictToWindows`), off by default.
+
+**The current rule (default)**
+- **Session limit:** a person may play for a maximum of **30 minutes at a time**. When the 30 minutes are used they must take a **2-hour pause** before the next session. Both numbers are **admin settings** (Admin → Settings → Work First policy → session limit: on or off, maximum minutes, pause minutes).
+- **How the allowance works:** the server counts real play time. Stopping early keeps the unused minutes. Staying away for the full pause length gives a fresh allowance. Two open tabs cannot double-count time or skip the pause. The break screen shows when play reopens.
+- **Working hours and play windows are not enforced** by default. An admin can switch the old behaviour back on (`restrictToWindows`): closed in core hours, open only in the play windows.
+- **Daily cap:** the earlier 45-minute weekday cap is **off by default**, because it would conflict with several 30-minute sessions a day. An admin can switch it on (`dailyCapEnabled`). The weekly nudge (4 hours) stays as a gentle warning only.
+- **Blackout periods** (month-end, audits and similar) still close play if an admin schedules them. None are set by default.
+- **Learning** (Academy, simulator) is open at any time and does not use up the play session.
+- **Admins** may preview the game at any time (`adminsExempt`, on by default, admin-editable). Nothing is credited for a preview.
+- No streak, mission, leaderboard or event may pressure someone to play. Streaks pause on leave and weekends.
 - Managers see **aggregate** participation only (not click-level time).
 - Defaults are seeded by Group HR/L&D and can be changed by an admin without a code release.
-- **Learning is not restricted to play windows (owner, 13 Oct 2026):** Academy lessons, courses and the leadership simulator may also be done **outside work hours** (evenings, weekends, holidays), not only inside the windows below. The window and cap rules below govern the **game world and shifts**; learning outside core hours stays allowed. The owner's answer was cut off after "others are okay such as…", so the exact list of other allowed activities is OPEN (§13 item 2).
-- **Defaults (approved with the change above, 13 Oct 2026; every value is admin-editable, by unit, role or person):**
+
+**Settings kept from the earlier rule** (used only when `restrictToWindows` is on, or for caps and blackouts)
+- **Learning outside work hours (owner, 13 Oct 2026):** Academy lessons, courses and the leadership simulator may be done outside work hours. The owner's list of other activities allowed outside the windows was cut off; see §13 item 2.
+- **Earlier defaults (approved 13 Oct 2026; every value is admin-editable, by unit, role or person):**
   - **Core working hours (no play):** Mon–Fri 08:00–17:00 (per-unit override, e.g. trading-floor and contact-centre shifts).
   - **Play windows:** before work 07:00–08:00; lunch 12:30–13:30 (max 30 min used); after hours 17:30–21:00; weekends and public holidays 09:00–20:00 (voluntary).
   - **Daily cap:** 45 min on a workday (nudge at 30 min, hard stop at 45); 90 min on a weekend day. **Weekly soft cap:** 4 hours.
@@ -310,6 +320,7 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Ikoyi HQ art must match the real building and office; no third-party watermarks | Owner |
 | 2026-10-13 | Start with a placement questionnaire; user may dispute and retry; admin can disable | Owner |
 | 2026-10-13 | Work comes first; play must never replace real work | Owner |
+| 2026-10-13 | **Changed:** people may play during working hours in limited sessions: max 30 minutes at a time, then a 2-hour pause, both admin-editable. Closing the game in core hours and the play windows become optional (`restrictToWindows`, off); the daily cap becomes optional (off) | Owner |
 | 2026-10-13 | Many settings admin-configurable, not hardcoded | Owner |
 | 2026-10-13 | Staff build wealth with Meristem products and sell to clients; individual and corporate clients, ratings, eNPS, markets, regulators and control functions | Owner |
 | 2026-10-13 | Travel only for Lagos office-to-office drives and client visits (personal / pool car / Uber) | Owner |

@@ -3,8 +3,11 @@ import type { workFirstSchema } from "@/lib/server/config/definitions";
 
 /**
  * Work First engine (RULEBOOK §2.1). Pure functions: no I/O, no clock reads, so every rule can be
- * unit tested. Work always comes first: the game world is closed during core working hours and
- * blackout periods, and capped outside them. Learning may also happen outside core hours.
+ * unit tested.
+ *
+ * Current rule (owner, 13 Oct 2026): people may play during working hours, but only for a limited time
+ * at once (default 30 minutes, then a 2-hour pause). Both numbers are admin settings. The older
+ * "closed in core hours, open only in windows" behaviour is kept behind the `restrictToWindows` setting.
  */
 export type WorkFirstPolicy = z.infer<typeof workFirstSchema>;
 export type Activity = "world" | "learning";
@@ -18,6 +21,7 @@ export type Code =
   | "outside_window"
   | "daily_cap"
   | "window_cap"
+  | "session_pause" // the session allowance is used up: take a break
   | "learning_not_assigned";
 
 export interface Decision {
@@ -32,6 +36,8 @@ export interface Decision {
   weeklySoftCapReached: boolean;
   windowId: string | null;
   isWorkday: boolean;
+  /** When play reopens (epoch ms) after a session pause. */
+  resumeAt?: number;
 }
 
 export interface LocalTime {
@@ -62,6 +68,13 @@ export function localTime(now: number, timeZone: string): LocalTime {
   };
 }
 
+/** A friendly heading for the screen shown when play is closed. */
+export function closedTitle(code: Code): string {
+  if (code === "session_pause") return "Time for a break";
+  if (code === "blackout") return "A busy period";
+  return "Work first";
+}
+
 export const hhmm = (s: string): number => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
 
 /** The policy for a unit: base policy with that unit's overrides applied. */
@@ -86,6 +99,27 @@ export interface Usage {
 
 export const EMPTY_USAGE: Usage = { todaySeconds: 0, weekSeconds: 0, windowSeconds: {}, learningCoreSecondsWeek: 0 };
 
+/** Play time used in the current session allowance, and when play last happened. */
+export interface SessionState {
+  usedSeconds: number;
+  lastPlayAt: number | null; // epoch ms of the last credited play
+}
+export const NO_SESSION: SessionState = { usedSeconds: 0, lastPlayAt: null };
+
+/**
+ * The allowance in force right now. If the person has been away for at least the pause length, the
+ * allowance starts fresh. Used by both the decision and the server's crediting so they always agree.
+ */
+export function currentSession(p: Pick<WorkFirstPolicy, "sessionLimit">, s: SessionState | undefined, now: number): SessionState {
+  const cur = s ?? NO_SESSION;
+  if (cur.lastPlayAt !== null && now - cur.lastPlayAt >= p.sessionLimit.pauseMinutes * 60_000) return NO_SESSION;
+  return cur;
+}
+
+function clockText(epoch: number, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(epoch));
+}
+
 export function inBlackout(policy: WorkFirstPolicy, date: string): string | null {
   const b = policy.blackoutPeriods.find((p) => date >= p.from && date <= p.to);
   return b ? b.label : null;
@@ -101,7 +135,7 @@ function base(p: WorkFirstPolicy, lt: LocalTime): { holiday: boolean; isWorkday:
 
 export function evaluate(
   rawPolicy: WorkFirstPolicy,
-  ctx: { unit: string; now: number; usage: Usage; assignedLearningSeconds: number },
+  ctx: { unit: string; now: number; usage: Usage; assignedLearningSeconds: number; session?: SessionState },
   activity: Activity,
 ): Decision {
   const p = effectivePolicy(rawPolicy, ctx.unit);
@@ -133,8 +167,9 @@ export function evaluate(
   );
 
   if (activity === "learning") {
+    if (!p.restrictToWindows) return decide(true, "ok", "Learning is open.", null); // working hours are not enforced
     if (inCore) {
-      // Inside core hours: assigned learning time first; otherwise only an open window (e.g. lunch).
+      // Strict mode, inside core hours: assigned learning time first; otherwise only an open window (e.g. lunch).
       if (assignedLeft > 0) return decide(true, "ok", "Assigned learning time.", assignedLeft);
       if (!win) return decide(false, "learning_not_assigned", "Working hours: learning is only open when your manager or L&D has assigned time.", 0);
     }
@@ -144,20 +179,44 @@ export function evaluate(
   }
 
   if (blackout) return decide(false, "blackout", `Work first: ${blackout} is a busy period, so play is paused.`, 0);
-  if (!win) {
-    return inCore
-      ? decide(false, "core_hours", "Work first: the game opens after working hours.", 0)
-      : decide(false, "outside_window", "Outside play hours. Check the play windows.", 0);
+
+  let remaining: number | null = null;
+  let windowId: string | null = null;
+  let capApplies = p.dailyCapEnabled;
+
+  if (p.restrictToWindows) {
+    if (!win) {
+      return inCore
+        ? decide(false, "core_hours", "Work first: the game opens after working hours.", 0)
+        : decide(false, "outside_window", "Outside play hours. Check the play windows.", 0);
+    }
+    windowId = win.id;
+    remaining = (hhmm(win.end) - lt.minutes) * 60;
+    if (win.maxMinutes !== undefined) {
+      const winLeft = win.maxMinutes * 60 - (ctx.usage.windowSeconds[win.id] ?? 0);
+      if (winLeft <= 0) return decide(false, "window_cap", `You have used the ${win.label.toLowerCase()} allowance.`, 0, win.id);
+      remaining = Math.min(remaining, winLeft);
+    }
+    capApplies = true; // in strict mode the daily cap always applies
   }
 
-  const toWindowEnd = (hhmm(win.end) - lt.minutes) * 60;
-  const dayLeft = dailyCap - ctx.usage.todaySeconds;
-  if (dailyCap > 0 ? dayLeft <= 0 : true) return decide(false, "daily_cap", "You have reached today's play limit. See you tomorrow.", 0, win.id);
-  let remaining = Math.min(dayLeft, toWindowEnd);
-  if (win.maxMinutes !== undefined) {
-    const winLeft = win.maxMinutes * 60 - (ctx.usage.windowSeconds[win.id] ?? 0);
-    if (winLeft <= 0) return decide(false, "window_cap", `You have used the ${win.label.toLowerCase()} allowance.`, 0, win.id);
-    remaining = Math.min(remaining, winLeft);
+  if (capApplies) {
+    const dayLeft = dailyCap - ctx.usage.todaySeconds;
+    if (dailyCap > 0 ? dayLeft <= 0 : true) return decide(false, "daily_cap", "You have reached today's play limit. See you tomorrow.", 0, windowId);
+    remaining = remaining === null ? dayLeft : Math.min(remaining, dayLeft);
   }
-  return decide(true, "ok", "Play is open.", remaining, win.id);
+
+  if (p.sessionLimit.enabled) {
+    const s = currentSession(p, ctx.session, ctx.now);
+    const left = p.sessionLimit.maxMinutes * 60 - s.usedSeconds;
+    if (left <= 0) {
+      const resumeAt = (s.lastPlayAt ?? ctx.now) + p.sessionLimit.pauseMinutes * 60_000;
+      return {
+        ...decide(false, "session_pause", `You have played ${p.sessionLimit.maxMinutes} minute${p.sessionLimit.maxMinutes === 1 ? "" : "s"}. Take a break and come back at ${clockText(resumeAt, p.timezone)}.`, 0, windowId),
+        resumeAt,
+      };
+    }
+    remaining = remaining === null ? left : Math.min(remaining, left);
+  }
+  return decide(true, "ok", "Play is open.", remaining, windowId);
 }

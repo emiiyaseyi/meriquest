@@ -12,7 +12,8 @@ import { DEFAULT_PW, dto, freshWorld, NEW_PW } from "./helpers";
 const lagos = (date: string, hm: string) => Date.parse(`${date}T${hm}:00+01:00`);
 const TUE = "2026-10-13";
 const SAT = "2026-10-17";
-const POLICY: WorkFirstPolicy = JSON.parse(JSON.stringify(CONFIG.workFirst.default));
+/** The older "work comes first" rule (closed in core hours, open only in windows), kept behind restrictToWindows. */
+const POLICY: WorkFirstPolicy = { ...JSON.parse(JSON.stringify(CONFIG.workFirst.default)), restrictToWindows: true, sessionLimit: { enabled: false, maxMinutes: 30, pauseMinutes: 120 } };
 const withPolicy = (patch: Partial<WorkFirstPolicy>): WorkFirstPolicy => ({ ...POLICY, ...patch });
 const world = (p: WorkFirstPolicy, now: number, usage: Usage = EMPTY_USAGE, unit = "cx") => evaluate(p, { unit, now, usage, assignedLearningSeconds: 0 }, "world");
 const learn = (p: WorkFirstPolicy, now: number, assigned = 0, usage: Usage = EMPTY_USAGE) => evaluate(p, { unit: "cx", now, usage, assignedLearningSeconds: assigned }, "learning");
@@ -27,7 +28,7 @@ describe("localTime", () => {
   });
 });
 
-describe("world access", () => {
+describe("world access (older rule: restrictToWindows on)", () => {
   it("is closed during core working hours", () => {
     const d = world(POLICY, lagos(TUE, "10:00"));
     expect(d).toMatchObject({ allowed: false, code: "core_hours", isWorkday: true });
@@ -150,8 +151,17 @@ describe("weekStartOf", () => {
 const staff = { staffId: "MS1001", unit: "cx" };
 const secondsToday = async (date = TUE) => (await getStore().get<{ seconds: number }>("playtime", `MS1001:${date}`))?.seconds ?? 0;
 
-describe("playBeat", () => {
-  beforeEach(freshWorld);
+/** Switch the world to the older rule so these tests keep checking it. */
+const strictOn = async () => {
+  await changePassword("MS0001", { current: DEFAULT_PW, next: NEW_PW, confirm: NEW_PW }, 5);
+  await setConfig("workFirst", JSON.stringify(POLICY), "MS0001");
+};
+
+describe("playBeat (older rule: restrictToWindows on)", () => {
+  beforeEach(async () => {
+    await freshWorld();
+    await strictOn();
+  });
 
   it("credits only real elapsed time, starting from the second beat", async () => {
     const t = lagos(TUE, "18:00");
@@ -225,16 +235,16 @@ describe("playBeat", () => {
   it("picks up a policy change immediately", async () => {
     const t = lagos(TUE, "18:00");
     expect((await playStatus(staff, "world", t)).allowed).toBe(true);
-    await changePassword("MS0001", { current: DEFAULT_PW, next: NEW_PW, confirm: NEW_PW }, 5);
     await setConfig("workFirst", JSON.stringify({ ...POLICY, blackoutPeriods: [{ id: "b", label: "Busy", from: TUE, to: TUE }] }), "MS0001");
     expect((await playStatus(staff, "world", t)).code).toBe("blackout");
   });
 });
 
-describe("assigned learning in core hours", () => {
+describe("assigned learning in core hours (older rule)", () => {
   beforeEach(async () => {
     await freshWorld();
     await changePassword("MS0001", { current: DEFAULT_PW, next: NEW_PW, confirm: NEW_PW }, 5);
+    await setConfig("workFirst", JSON.stringify(POLICY), "MS0001");
     await changePassword("MS1002", { current: DEFAULT_PW, next: NEW_PW, confirm: NEW_PW }, 6);
   });
   const now = lagos(TUE, "10:00");

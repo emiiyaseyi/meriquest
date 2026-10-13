@@ -8,6 +8,7 @@ import { getConfig } from "@/lib/server/config/registry";
 import { getPlacement } from "@/lib/server/placement/service";
 import { getOrCreatePlayer } from "@/lib/server/world/service";
 import { playStatus } from "@/lib/server/workfirst/service";
+import { closedTitle } from "@/lib/workfirst";
 
 export const metadata: Metadata = { title: "Play" };
 
@@ -22,7 +23,7 @@ export default async function PlayPage() {
       <main className="auth-shell">
         <Logo variant="light" width={220} />
         <div className="auth-card stack">
-          <h1>Work first</h1>
+          <h1>{closedTitle(status.code)}</h1>
           <p className="muted" style={{ margin: 0 }}>{status.message}</p>
           <Link href="/" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Back to the dashboard</Link>
         </div>

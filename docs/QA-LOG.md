@@ -4,6 +4,27 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M3a.1: Play in working hours with a session limit (13 Oct 2026)
+Scope: owner changed the Work First rule: people may play during working hours, max 30 minutes at a time then a 2-hour pause (both admin settings); core-hours closure and play windows become optional; daily cap optional.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Automated tests | **Pass** | 304 tests in 11 files. New `session.test.ts` (21 tests): defaults, countdown, pause and exact resume time, fresh allowance after the pause, unused time kept, custom limits, limit switched off, optional daily cap, blackout, learning exempt, older rule behind the switch, older saved settings still load, the server stops at exactly 30 minutes, **two open tabs cannot double-count**, learning does not use up the session, setting changes apply at once, admin preview credits nothing, a refused beat writes nothing |
+| 4 | Authz / server-authoritative | **Pass** | The session is stored and updated server-side in one atomic step per person; the client only displays it. Travel and heartbeat both refuse during a pause (tested). Players do not get the admin preview (tested) |
+| 12 | Review | **Pass** | Self-review: no new input surface. Real-browser test with a throwaway *player* in working hours (Tue 11:16): world opens, a 1-minute test session counts down, **"Time for a break" appears with the resume time**, reloading cannot re-enter, the dashboard shows the break; no console errors; test data and the test setting were removed |
+
+Findings
+| Finding | Severity | Status |
+|---|---|---|
+| Switching from learning to the game credited the gap since the last learning beat as game time (could only under-count) | Low | **Fixed**: time is credited only between beats of the same activity (tested) |
+| Break message said "1 minutes" | Info | **Fixed** |
+| Several old tests encoded the previous default (closed in working hours) | Info | Rewritten: the older rule is still tested, behind `restrictToWindows`, and the new default has its own tests |
+
+Judgement call for the owner to confirm: the earlier approved **45-minute daily cap is off by default**, since it conflicts with several 30-minute sessions a day. An admin can switch it on.
+
+---
+
 ## M3a: The game world (13 Oct 2026)
 Scope: isometric Ikoyi HQ (lobby, open-plan floor, boardroom, lounge) drawn from scene data; flat 2D Lite renderer; click and keyboard walking with pathfinding; doors and spots; game HUD (clock, mood, points, status bars, venue card, bottom menu); Map with all 8 levels; Work Phone apps (admin-editable); server-checked travel; Work First enforced on the world with an admin-preview setting.
 

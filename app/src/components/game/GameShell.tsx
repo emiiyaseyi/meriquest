@@ -52,11 +52,16 @@ function usePlayBeat(): BeatResult | null {
   const [beat, setBeat] = useState<BeatResult | null>(null);
   useEffect(() => {
     let alive = true;
+    let expiry: ReturnType<typeof setTimeout> | null = null;
     const send = async () => {
       if (document.hidden) return;
       try {
         const r = await playBeatAction("world");
-        if (alive) setBeat(r);
+        if (!alive) return;
+        setBeat(r);
+        // Ask again exactly when this session's time runs out, so the break screen appears promptly
+        if (expiry) clearTimeout(expiry);
+        if (r.allowed && r.remainingSeconds !== null) expiry = setTimeout(() => void send(), Math.max(1000, r.remainingSeconds * 1000 + 800));
       } catch {
         /* a brief network hiccup: keep the last answer */
       }
@@ -66,6 +71,7 @@ function usePlayBeat(): BeatResult | null {
     return () => {
       alive = false;
       clearInterval(id);
+      if (expiry) clearTimeout(expiry);
     };
   }, []);
   return beat;
@@ -144,7 +150,7 @@ export function GameShell(props: GameShellProps) {
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
           <div className="auth-card stack">
-            <h1 id="wf-title">Work first</h1>
+            <h1 id="wf-title">{beat?.title ?? "Work first"}</h1>
             <p className="muted" style={{ margin: 0 }}>{beat?.message}</p>
             <Link href="/" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Back to the dashboard</Link>
           </div>

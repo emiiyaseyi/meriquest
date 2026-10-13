@@ -315,12 +315,28 @@ describe("travel and Work First (server rules)", () => {
     expect((await getOrCreatePlayer(user, evening)).scene).toBe("ikoyi-boardroom");
   });
 
-  it("closes the world in working hours: no travel and no time credited", async () => {
+  it("lets players in during working hours by default (owner, 13 Oct 2026)", async () => {
+    const user = await dto("MS1001");
+    expect(await playStatus(user, "world", CORE)).toMatchObject({ allowed: true, code: "ok", remainingSeconds: 1800 });
+    await getOrCreatePlayer(user, CORE);
+    expect(await travelByPortal(user, "to-floor", CORE)).toMatchObject({ ok: true });
+  });
+
+  it("closes the world in working hours again when the admin turns on restrictToWindows: no travel", async () => {
+    await changePassword("MS0001", { current: DEFAULT_PW, next: NEW_PW, confirm: NEW_PW }, 5);
+    await setConfig("workFirst", JSON.stringify({ ...CONFIG.workFirst.default, restrictToWindows: true }), "MS0001");
     const user = await dto("MS1001");
     expect(await travelByPortal(user, "to-floor", CORE)).toMatchObject({ ok: false });
     expect(await travelByMap(user, "ikoyi-floor", CORE)).toMatchObject({ ok: false });
-    const d = await playStatus(user, "world", CORE);
-    expect(d).toMatchObject({ allowed: false, code: "core_hours" });
+    expect(await playStatus(user, "world", CORE)).toMatchObject({ allowed: false, code: "core_hours" });
+  });
+
+  it("stops travel when the player's session is used up", async () => {
+    const user = await dto("MS1001");
+    await getOrCreatePlayer(user, CORE);
+    await getStore().put("play_sessions", "MS1001", { staffId: "MS1001", used: 1800, lastPlayAt: CORE - 60_000, lastBeat: CORE - 60_000, lastActivity: "world" });
+    expect(await travelByPortal(user, "to-floor", CORE)).toMatchObject({ ok: false, error: expect.stringContaining("break") });
+    expect(await travelByMap(user, "ikoyi-floor", CORE)).toMatchObject({ ok: false });
   });
 
   it("audits travel", async () => {
@@ -346,17 +362,20 @@ describe("travel and Work First (server rules)", () => {
       expect(await travelByMap(admin, "ikoyi-floor", CORE)).toMatchObject({ ok: true });
     });
 
-    it("does not extend to players, including a forged role in the object passed in", async () => {
+    it("does not give players the admin preview: their session limit still applies", async () => {
       const player = await dto("MS1001");
-      expect((await playStatus(player, "world", CORE)).allowed).toBe(false);
-      // The service trusts only what the signed-in session says; a player object cannot make itself admin by field alone
-      expect((await playStatus({ ...player, role: "player" }, "world", CORE)).allowed).toBe(false);
+      expect((await playStatus(player, "world", CORE)).code).toBe("ok");
+      await getStore().put("play_sessions", "MS1001", { staffId: "MS1001", used: 1800, lastPlayAt: CORE - 1000, lastBeat: CORE - 1000, lastActivity: "world" });
+      expect(await playStatus({ ...player, role: "player" }, "world", CORE)).toMatchObject({ allowed: false, code: "session_pause" });
+      const admin = await dto("MS0001");
+      expect((await playStatus(admin, "world", CORE)).code).toBe("admin_preview");
     });
 
-    it("applies Work First to admins too when the setting is turned off", async () => {
+    it("applies the session limit to admins too when the preview exemption is turned off", async () => {
       await setConfig("workFirst", JSON.stringify({ ...CONFIG.workFirst.default, adminsExempt: false }), "MS0001");
       const admin = await dto("MS0001");
-      expect(await playStatus(admin, "world", CORE)).toMatchObject({ allowed: false, code: "core_hours" });
+      expect(await playStatus(admin, "world", CORE)).toMatchObject({ allowed: true, code: "ok", remainingSeconds: 1800 });
+      await getStore().put("play_sessions", "MS0001", { staffId: "MS0001", used: 1800, lastPlayAt: CORE - 1000, lastBeat: CORE - 1000, lastActivity: "world" });
       expect(await travelByMap(admin, "ikoyi-floor", CORE)).toMatchObject({ ok: false });
     });
   });

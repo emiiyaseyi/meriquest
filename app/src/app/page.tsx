@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/server/auth/dal";
 import { getConfig } from "@/lib/server/config/registry";
 import { getPlacement, retakeStatus } from "@/lib/server/placement/service";
 import { playStatus } from "@/lib/server/workfirst/service";
+import { closedTitle } from "@/lib/workfirst";
 import { logoutAction } from "@/app/actions/auth";
 
 export default async function HomePage() {
@@ -56,7 +57,7 @@ export default async function HomePage() {
 
           <section className="card stack">
             <p className="eyebrow">Work First</p>
-            <h2>{world.allowed ? "Play is open" : "Work comes first"}</h2>
+            <h2>{world.allowed ? "Play is open" : closedTitle(world.code)}</h2>
             <p className="muted">{world.message}</p>
             <p className="muted">{learning.allowed ? "Learning is open." : learning.message}</p>
             {world.allowed ? <p><Link href="/play">Enter the Workspace</Link></p> : null}
