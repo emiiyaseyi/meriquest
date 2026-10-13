@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M3c.1: Characters like the reference game, and the appearance editor (13 Oct 2026)
+Scope: people redrawn with real proportions (legs, shoulders, arms, hands, faces), seven hairstyles, five outfits, four fabrics (plain, Ankara, Adire, Aso-oke), woman and man bodies, bigger on screen; the appearance editor in Me > Profile with a turn-around preview and Save; looks saved on the server. Built from `docs/reference/Character appearance-looks.png` and the Profile screenshots.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 339 passing, including: only offered choices are accepted (hex values, unknown styles, script text and wrong types all rejected), tampered looks heal, older looks still load |
+| 3 | Real browser | **Pass** | Throwaway user opened the editor, changed body, hair, outfit, fabric and colour, saved, reloaded: the new look persisted and showed in the world; no console errors; user deleted afterwards |
+| 4 | Input validation and authorisation | **Pass** | `saveLookAction` requires a signed-in user and stores only values found on the offered lists, so a crafted request cannot store anything else |
+| 5 | Dependencies and secrets | **Pass** | 0 vulnerabilities; nothing sensitive staged |
+
+Note: the palettes and style lists live in `lib/world/looks.ts`, not in admin settings; say if you want them admin-editable.
+
+---
+
 ## M3a.4: Me panel, person card and shortcuts match the reference (13 Oct 2026)
 Scope: the menu button opens a "Me" card like the reference game's (picture and mood on top; Profile, Needs, Goals, Skills, People, Career, Settings tabs); clicking a person opens a player-style card; a keyboard shortcuts card; letter shortcuts M, P, S, E, H and ?; the view turns with [ and ] (E is now "people here"). Built from the reference screenshots in `docs/reference`.
 

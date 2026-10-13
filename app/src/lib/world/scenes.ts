@@ -27,9 +27,9 @@ export const BUILDINGS: Building[] = [
   },
 ];
 
-const look = (skin: string, hair: string, hairStyle: Skin["hairStyle"], top: string, pants = "#1f2a3d"): Skin => ({ skin, hair, hairStyle, top, pants });
+const look = (skin: string, hair: string, hairStyle: Skin["hairStyle"], top: string, pants = "#1f2a3d", extra: Partial<Skin> = {}): Skin => ({ skin, hair, hairStyle, top, pants, ...extra });
 
-const SKIN = { deep: "#5b3a29", brown: "#8a5a3c", medium: "#a8714a", light: "#c58f67" };
+const SKIN = { deep: "#4d2c18", brown: "#7a4a2b", medium: "#a9714a", light: "#c68d63" };
 
 const npc = (id: string, name: string, role: string, x: number, y: number, dir: Dir, l: Skin, seated = false): Npc => ({ id, name, role, x, y, dir, seated, look: l });
 
@@ -77,9 +77,9 @@ const lobby: Scene = {
     { kind: "column", x: 8, y: 7 },
   ],
   npcs: [
-    npc("rec1", "Adaeze", "Front desk", 2, 5, 0, look(SKIN.deep, "#14110f", "braids", "#c8503c")),
-    npc("rec2", "Funmi", "Front desk", 2, 7, 0, look(SKIN.brown, "#14110f", "bun", "#c8503c")),
-    npc("guard1", "Mr Sule", "Security", 9, 5, 1, look(SKIN.deep, "#14110f", "short", "#1d2a44", "#1d2a44")),
+    npc("rec1", "Adaeze", "Front desk", 2, 5, 0, look(SKIN.deep, "#14110f", "braids", "#2d5d41", "#14110f", { body: "woman", outfit: "office" })),
+    npc("rec2", "Funmi", "Front desk", 2, 7, 0, look(SKIN.brown, "#14110f", "classic", "#e04848", "#14110f", { body: "woman", outfit: "office" })),
+    npc("guard1", "Mr Sule", "Security", 9, 5, 1, look(SKIN.deep, "#14110f", "lowcut", "#1d2433", "#1d2433", { body: "man", outfit: "office" })),
   ],
   portals: [{ id: "to-floor", label: "Lifts up", x: 10, y: 1, w: 3, d: 1, to: "ikoyi-floor", arrive: { x: 2, y: 11 } }],
   hotspots: [{ id: "frontdesk", label: "Front desk", hint: "Sign in and ask about visitors", x: 4, y: 5, kind: "info" }],
@@ -118,12 +118,12 @@ const floor: Scene = {
     { kind: "plant", x: 1, y: 1 },
   ],
   npcs: [
-    npc("col1", "Chidi", "Colleague", 4, 1, 1, look(SKIN.brown, "#14110f", "short", "#e8e6df"), true),
-    npc("col2", "Aisha", "Colleague", 9, 1, 1, look(SKIN.medium, "#14110f", "bun", "#6c8cc4"), true),
-    npc("col3", "Tobi", "Colleague", 9, 5, 3, look(SKIN.deep, "#14110f", "afro", "#2d5d41"), true),
-    npc("col4", "Ngozi", "Colleague", 14, 5, 3, look(SKIN.brown, "#14110f", "braids", "#8a6bb5"), true),
-    npc("col5", "Femi", "Colleague", 14, 11, 3, look(SKIN.light, "#2a1d14", "short", "#c8503c"), true),
-    npc("col6", "Bayo", "Colleague", 9, 11, 3, look(SKIN.deep, "#14110f", "bald", "#1d2a44"), true),
+    npc("col1", "Chidi", "Colleague", 4, 1, 1, look(SKIN.brown, "#14110f", "lowcut", "#f3efe6", "#2b4a7a", { body: "man", outfit: "casual" }), true),
+    npc("col2", "Aisha", "Colleague", 9, 1, 1, look(SKIN.medium, "#14110f", "curls", "#2f6fe0", "#14110f", { body: "woman", outfit: "casual", fabric: "adire" }), true),
+    npc("col3", "Tobi", "Colleague", 9, 5, 3, look(SKIN.deep, "#14110f", "afro", "#17b2a6", "#1f2a3d", { body: "man", outfit: "hoodie" }), true),
+    npc("col4", "Ngozi", "Colleague", 14, 5, 3, look(SKIN.brown, "#14110f", "locs", "#7c5cf0", "#14110f", { body: "woman", outfit: "casual", fabric: "ankara" }), true),
+    npc("col5", "Femi", "Colleague", 14, 11, 3, look(SKIN.light, "#2a1d14", "lowcut", "#d4a62a", "#4a4f57", { body: "man", outfit: "casual", fabric: "asooke" }), true),
+    npc("col6", "Bayo", "Colleague", 9, 11, 3, look(SKIN.deep, "#14110f", "bald", "#e04848", "#b9a77a", { body: "man", outfit: "sitework" }), true),
   ],
   portals: [
     { id: "to-lobby", label: "Lifts down to the lobby", x: 1, y: 10, w: 1, d: 3, to: "ikoyi-lobby", arrive: { x: 11, y: 2 } },

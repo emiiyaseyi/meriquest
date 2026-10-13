@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
+import { useState } from "react";
+import { LookEditor } from "./LookEditor";
 import { PersonPortrait } from "./PersonPortrait";
 import { levelFor, type Needs } from "@/lib/world/player";
 import type { Npc, Skin } from "@/lib/world/types";
@@ -47,6 +49,7 @@ export interface MePanelProps {
   onMode: (m: "iso" | "flat") => void;
   onTour: () => void;
   onShortcuts: () => void;
+  onLookSaved: (l: Skin) => void;
 }
 
 function Soon({ children = "Soon" }: { children?: string }) {
@@ -60,6 +63,7 @@ function Soon({ children = "Soon" }: { children?: string }) {
  */
 export function MePanel(p: MePanelProps) {
   const level = levelFor(p.points, p.levels);
+  const [editing, setEditing] = useState(false);
   return (
     <div className="me-panel" role="dialog" aria-label="Me">
       <div className="grab" aria-hidden="true" />
@@ -81,12 +85,13 @@ export function MePanel(p: MePanelProps) {
       </div>
 
       <div className="me-body" role="tabpanel">
-        {p.tab === "profile" ? (
+        {p.tab === "profile" && editing ? <LookEditor look={p.look} onSaved={p.onLookSaved} onDone={() => setEditing(false)} /> : null}
+        {p.tab === "profile" && !editing ? (
           <div className="stack">
-            <div className="me-stage"><PersonPortrait look={p.look} size={220} label="Your character" /></div>
+            <div className="me-stage"><PersonPortrait look={p.look} size={260} full label="Your character" /></div>
             <div className="me-row"><strong>{p.name}</strong><span className="muted">{p.title}</span></div>
             <div className="me-row"><span className="muted">Staff ID</span><strong>{p.staffId}</strong></div>
-            <button type="button" className="me-wide" disabled><span>🎨 Change my look</span><Soon>Coming soon</Soon></button>
+            <button type="button" className="me-wide" onClick={() => setEditing(true)}>🎨 Change my look</button>
             <Link href="/dashboard" className="me-wide">📋 My dashboard</Link>
           </div>
         ) : null}

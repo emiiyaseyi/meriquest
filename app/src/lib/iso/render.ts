@@ -68,7 +68,7 @@ export function screenToTile(view: View, sx: number, sy: number): Pt {
 /* ---------------------------------- drawing helpers ---------------------------------- */
 
 const P = project;
-const PERSON_SCALE = 1.2;
+const PERSON_SCALE = 1.35;
 
 function poly(ctx: Ctx, pts: Pt[], fill: string | CanvasGradient, stroke?: string, lw = 0.8): void {
   ctx.beginPath();
@@ -680,7 +680,7 @@ export function renderScene(ctx: Ctx, scene: Scene, opts: RenderOptions): View {
         ctx.scale(PERSON_SCALE, PERSON_SCALE);
         drawPerson(ctx, 0, 0, n.look, { t: opts.time, walking: false, fx, fy, seated: n.seated });
         ctx.restore();
-        if (opts.labels !== false) drawNameTag(ctx, s.x, s.y - 64 * PERSON_SCALE + (n.seated ? 9 : 0), n.name);
+        if (opts.labels !== false) drawNameTag(ctx, s.x, s.y - 72 * PERSON_SCALE + (n.seated ? 9 : 0), n.name);
       },
     });
   }
@@ -700,7 +700,7 @@ export function renderScene(ctx: Ctx, scene: Scene, opts: RenderOptions): View {
       ctx.beginPath();
       ctx.ellipse(s.x, s.y + 1, 17, 8, 0, 0, Math.PI * 2);
       ctx.stroke();
-      if (opts.labels !== false) drawNameTag(ctx, s.x, s.y - 64 * PERSON_SCALE, pl.name ?? "You", true);
+      if (opts.labels !== false) drawNameTag(ctx, s.x, s.y - 72 * PERSON_SCALE, pl.name ?? "You", true);
     },
   });
   draws.sort((a, b) => a.key - b.key);

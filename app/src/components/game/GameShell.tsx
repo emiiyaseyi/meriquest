@@ -120,7 +120,8 @@ function initials(name: string): string {
 }
 
 export function GameShell(props: GameShellProps) {
-  const { name, look, needs, points, terms, apps, adminPreview } = props;
+  const { name, needs, points, terms, apps, adminPreview } = props;
+  const [look, setLook] = useState<Skin>(props.look);
   const [sceneId, setSceneId] = useState(props.initialScene);
   const scene = getScene(sceneId) ?? SCENES[props.initialScene];
   const [arrive, setArrive] = useState<{ x: number; y: number }>(() => (getScene(props.initialScene) ?? SCENES[props.initialScene]).spawn);
@@ -416,6 +417,10 @@ export function GameShell(props: GameShellProps) {
             setTouring(true);
           }}
           onShortcuts={() => setOverlay("keys")}
+          onLookSaved={(l) => {
+            setLook(l);
+            flash("Looking good! Your new look is saved.");
+          }}
         />
       ) : null}
 

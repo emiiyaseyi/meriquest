@@ -140,7 +140,7 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
       let bestY = -Infinity;
       for (const n of scene.npcs) {
         const f = feet(view, n.x, n.y);
-        const hit = view.mode === "flat" ? Math.hypot(px - f.x, py - f.y) <= view.scale * 0.5 : Math.abs(px - f.x) <= 24 * view.scale && py >= f.y - 80 * view.scale && py <= f.y + 10 * view.scale;
+        const hit = view.mode === "flat" ? Math.hypot(px - f.x, py - f.y) <= view.scale * 0.5 : Math.abs(px - f.x) <= 24 * view.scale && py >= f.y - 98 * view.scale && py <= f.y + 10 * view.scale;
         if (hit && f.y > bestY) {
           best = n;
           bestY = f.y;

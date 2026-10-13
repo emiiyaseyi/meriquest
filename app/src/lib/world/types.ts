@@ -43,11 +43,21 @@ export type WallFeature =
   | { wall: "x" | "y"; kind: "screen"; from: number; to: number } // wall display
   | { wall: "x" | "y"; kind: "glass"; from: number; to: number }; // glass-fronted offices
 
+export type HairStyle = "lowcut" | "bald" | "curls" | "afro" | "locs" | "braids" | "classic" | "short" | "bun";
+export type Outfit = "casual" | "hoodie" | "office" | "chill" | "sitework";
+export type Fabric = "plain" | "ankara" | "adire" | "asooke";
+
+/** How a person looks. The new fields are optional so looks saved before the editor existed still load. */
 export interface Skin {
+  body?: "man" | "woman";
   skin: string;
   hair: string;
-  hairStyle: "short" | "afro" | "braids" | "bald" | "bun";
+  hairStyle: HairStyle;
+  outfit?: Outfit;
+  fabric?: Fabric;
+  /** Outfit colour. */
   top: string;
+  /** Bottoms colour. */
   pants: string;
   shoes?: string;
 }

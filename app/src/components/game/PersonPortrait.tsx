@@ -5,7 +5,7 @@ import { drawPerson } from "@/lib/iso/people";
 import type { Skin } from "@/lib/world/types";
 
 /** A round head-and-shoulders picture of a person, drawn from their look with the same code as the world. */
-export function PersonPortrait({ look, size = 56, label }: { look: Skin; size?: number; label: string }) {
+export function PersonPortrait({ look, size = 56, label, full = false, facing = 0 }: { look: Skin; size?: number; label: string; full?: boolean; facing?: 0 | 1 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -22,12 +22,12 @@ export function PersonPortrait({ look, size = 56, label }: { look: Skin; size?: 
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, size, size);
     // Zoom in on the head and shoulders: the feet are well below the picture
-    const k = size / 40;
+    const k = full ? size / 84 : size / 28;
     ctx.save();
-    ctx.translate(size / 2, size * 1.52);
+    ctx.translate(size / 2, full ? size * 0.95 : size * 2.525);
     ctx.scale(k, k);
-    drawPerson(ctx, 0, 0, look, { t: 0, walking: false, fx: 0, fy: 1 });
+    drawPerson(ctx, 0, 0, look, { t: 0, walking: false, fx: 0, fy: facing === 0 ? 1 : -1 });
     ctx.restore();
-  }, [look, size]);
+  }, [look, size, full, facing]);
   return <canvas ref={ref} className="portrait" style={{ width: size, height: size }} role="img" aria-label={label} />;
 }

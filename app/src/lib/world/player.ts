@@ -1,5 +1,6 @@
 import type { Skin } from "./types";
 import { hashString, seeded } from "@/lib/iso/geometry";
+import { BOTTOM_COLOURS, FABRICS, HAIR_COLOURS, HAIR_STYLES, OUTFITS, OUTFIT_COLOURS, SKIN_TONES } from "./looks";
 
 /** Pure helpers for the player's character and status bars. Safe on the server and in the browser. */
 
@@ -31,33 +32,41 @@ export function moodLabel(n: Needs): string {
   return "Exhausted";
 }
 
-const SKIN_TONES = ["#5b3a29", "#6e4630", "#8a5a3c", "#a8714a", "#c58f67"];
-const HAIR_COLORS = ["#14110f", "#14110f", "#2a1d14", "#3a2a1c"];
-const HAIR_STYLES: Skin["hairStyle"][] = ["short", "afro", "braids", "short", "bun", "bald"];
-const TOPS = ["#2d5d41", "#3f5f8a", "#8db74e", "#c8503c", "#6b5aa6", "#1d2a44"];
-const PANTS = ["#1f2a3d", "#2b2f36", "#3a3f4a"];
-
 /** A pleasant default character, the same every time for the same person (until they customise it). */
 export function defaultLook(staffId: string): Skin {
   const r = seeded(hashString(staffId));
-  const pick = <T,>(a: T[]): T => a[Math.floor(r() * a.length) % a.length];
-  return { skin: pick(SKIN_TONES), hair: pick(HAIR_COLORS), hairStyle: pick(HAIR_STYLES), top: pick(TOPS), pants: pick(PANTS) };
+  const pick = <T,>(a: readonly T[]): T => a[Math.floor(r() * a.length) % a.length];
+  return {
+    body: pick(["man", "woman"] as const),
+    skin: pick(SKIN_TONES),
+    hair: pick(HAIR_COLOURS.slice(0, 4)),
+    hairStyle: pick(HAIR_STYLES).id,
+    outfit: pick(["casual", "office", "hoodie"] as const),
+    fabric: "plain",
+    top: pick(OUTFIT_COLOURS),
+    pants: pick(BOTTOM_COLOURS.slice(0, 4)),
+  };
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
-const STYLES = new Set<string>(["short", "afro", "braids", "bald", "bun"]);
+const STYLES = new Set<string>(["lowcut", "bald", "curls", "afro", "locs", "braids", "classic", "short", "bun"]);
+const OUTFIT_SET = new Set<string>(OUTFITS.map((o) => o.id));
+const FABRIC_SET = new Set<string>(FABRICS.map((f) => f.id));
 
-/** Accept a stored or submitted look only if every field is valid; otherwise fall back to the default. */
+/** Accept a stored look only if every field is valid; anything missing or odd falls back to the default. Older looks still load. */
 export function cleanLook(raw: unknown, fallback: Skin): Skin {
   if (raw === null || typeof raw !== "object") return fallback;
   const o = raw as Record<string, unknown>;
   const hex = (k: string, d: string) => (typeof o[k] === "string" && HEX.test(o[k] as string) ? (o[k] as string) : d);
   return {
+    body: o.body === "man" || o.body === "woman" ? o.body : fallback.body,
     skin: hex("skin", fallback.skin),
     hair: hex("hair", fallback.hair),
     top: hex("top", fallback.top),
     pants: hex("pants", fallback.pants),
     hairStyle: typeof o.hairStyle === "string" && STYLES.has(o.hairStyle) ? (o.hairStyle as Skin["hairStyle"]) : fallback.hairStyle,
+    outfit: typeof o.outfit === "string" && OUTFIT_SET.has(o.outfit) ? (o.outfit as Skin["outfit"]) : fallback.outfit,
+    fabric: typeof o.fabric === "string" && FABRIC_SET.has(o.fabric) ? (o.fabric as Skin["fabric"]) : fallback.fabric,
   };
 }
 

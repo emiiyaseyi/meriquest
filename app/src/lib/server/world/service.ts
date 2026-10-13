@@ -5,6 +5,7 @@ import type { UserDTO } from "../types";
 import { playStatus } from "../workfirst/service";
 import { FIRST_SCENE, getScene } from "@/lib/world/scenes";
 import { cleanLook, cleanNeeds, defaultLook, DEFAULT_NEEDS, type Needs } from "@/lib/world/player";
+import { parseChosenLook } from "@/lib/world/looks";
 import type { Skin } from "@/lib/world/types";
 
 /**
@@ -38,6 +39,15 @@ export async function getOrCreatePlayer(user: Pick<UserDTO, "staffId">, now: num
 /** Remember that the welcome tour is done (finished or skipped), so it is not shown again. */
 export async function markToured(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<void> {
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, toured: true, updatedAt: now } : cur));
+}
+
+/** Save the look chosen in the appearance editor. Every part must be one of the offered choices. */
+export async function saveLook(user: Pick<UserDTO, "staffId">, raw: unknown, now: number = Date.now()): Promise<{ ok: true; look: Skin } | { ok: false; error: string }> {
+  const look = parseChosenLook(raw);
+  if (!look) return { ok: false, error: "That look is not available. Please pick from the choices shown." };
+  await getOrCreatePlayer(user, now);
+  await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, look, updatedAt: now } : cur));
+  return { ok: true, look };
 }
 
 export type TravelResult = { ok: true; scene: string; arrive: { x: number; y: number } } | { ok: false; error: string };

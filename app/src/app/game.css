@@ -193,3 +193,16 @@
 kbd { font: 600 .85rem ui-monospace, SFMono-Regular, Menlo, monospace; background: #eef2ef; border: 1px solid #dde4df; border-radius: 999px; padding: 6px 12px; min-width: 38px; text-align: center; }
 .avatar-btn { cursor: pointer; font: inherit; font-weight: 700; padding: 0; }
 @media (max-width: 520px) { .me-panel { height: 88%; border-radius: 22px 22px 0 0; } .keys li { grid-template-columns: 96px 1fr; } .act-grid { grid-template-columns: 1fr; } }
+
+.me-stage { position: relative; }
+.me-stage .portrait { border-radius: 24px; }
+.turn-btn { position: absolute; right: 14px; bottom: 14px; appearance: none; border: 0; background: rgba(255, 255, 255, .9); border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; box-shadow: 0 2px 8px rgba(23, 38, 28, .16); }
+.ed-group { display: flex; flex-direction: column; gap: 8px; }
+.ed-label { margin: 6px 0 0; font-weight: 600; color: #3b4a41; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-pick { appearance: none; border: 0; background: #eef2ef; color: var(--ink); font: inherit; font-weight: 600; padding: 11px 18px; border-radius: 999px; cursor: pointer; }
+.chip-pick.on { background: var(--brand); color: #fff; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { appearance: none; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px #cfd8d1; cursor: pointer; padding: 0; }
+.swatch.on { box-shadow: 0 0 0 3px var(--brand); }
+.ed-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0), #fff 30%); padding-top: 14px; }
