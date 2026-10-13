@@ -38,24 +38,28 @@ export default async function HomePage() {
     );
   }
 
-  const [player, terms, workFirst, apps] = await Promise.all([
+  const [player, terms, workFirst, apps, levels] = await Promise.all([
     getOrCreatePlayer(user),
     getConfig("terminology"),
     getConfig("workFirst"),
     getConfig("phoneApps"),
+    getConfig("levels"),
   ]);
   const path = placement ? placementCfg.paths.find((p) => p.id === placement.pathId) : undefined;
 
   return (
     <GameShell
       name={user.name}
+      staffId={user.staffId}
+      title={user.title}
+      levels={levels}
       role={user.role}
       initialScene={player.scene}
       look={player.look}
       needs={player.needs}
       points={player.points}
       timezone={workFirst.timezone}
-      terms={{ workspace: terms.workspace, workPhone: terms.workPhone, points: terms.points }}
+      terms={{ workspace: terms.workspace, workPhone: terms.workPhone, points: terms.points, todaysPlan: terms.todaysPlan, academy: terms.academy }}
       apps={apps}
       adminPreview={status.code === "admin_preview"}
       showTour={!player.toured}

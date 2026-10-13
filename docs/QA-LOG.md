@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M3a.4: Me panel, person card and shortcuts match the reference (13 Oct 2026)
+Scope: the menu button opens a "Me" card like the reference game's (picture and mood on top; Profile, Needs, Goals, Skills, People, Career, Settings tabs); clicking a person opens a player-style card; a keyboard shortcuts card; letter shortcuts M, P, S, E, H and ?; the view turns with [ and ] (E is now "people here"). Built from the reference screenshots in `docs/reference`.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 333 passing, including growth level from points |
+| 3 | Real browser | **Pass** | Signed in as a throwaway user: every tab opens, `?` and Esc, `E` lists people, a person opens a card, click-outside closes, the timer counts down in seconds, no console errors; the user was deleted afterwards |
+| 4 | Authorisation | **Pass** | No server change; the panel only shows the signed-in person's own data |
+| 5 | Dependencies and secrets | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities; nothing sensitive staged |
+
+Provisional: Chat, profile viewing, Say hello, Skills, Feelings and Today's Plan show "Soon" because their systems are not built. Night mode from the reference is left out (light-only brand rule). The level on the Career tab treats points as the XP in the Growth levels setting; to be confirmed.
+
+---
+
 ## M3a.3: Full 3D by default, turning the view, clickable world (13 Oct 2026)
 Scope: isometric is the default view (2D only when chosen); camera turns in quarter-turns (buttons, Q/E, sideways drag) without moving the player; people, doors and objects such as the front desk are clickable; people open a small card; the play timer counts down in minutes and seconds; every pop-up closes on an outside click or Escape.
 

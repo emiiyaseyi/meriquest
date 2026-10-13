@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { WorldCanvas } from "./WorldCanvas";
 import { Tour } from "./Tour";
+import { MePanel, type MeTab } from "./MePanel";
+import { PersonCard } from "./PersonCard";
+import { Shortcuts } from "./Shortcuts";
 import { useViewMode } from "./viewMode";
 import { playBeatAction, type BeatResult } from "@/app/actions/placement";
-import { logoutAction } from "@/app/actions/auth";
 import { completeTourAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
 import { moodLabel, type Needs } from "@/lib/world/player";
@@ -24,13 +26,16 @@ export interface PhoneApp {
 
 export interface GameShellProps {
   name: string;
+  staffId: string;
+  title: string;
+  levels: { name: string; xp: number }[];
   role: string;
   initialScene: string;
   look: Skin;
   needs: Needs;
   points: number;
   timezone: string;
-  terms: { workspace: string; workPhone: string; points: string };
+  terms: { workspace: string; workPhone: string; points: string; todaysPlan: string; academy: string };
   apps: PhoneApp[];
   adminPreview: boolean;
   /** The welcome tour: shown on first entry, and again if replayed from the menu. */
@@ -39,7 +44,7 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type Overlay = "map" | "phone" | "menu" | null;
+type Overlay = "map" | "phone" | "me" | "keys" | null;
 
 const BEAT_MS = 30_000;
 
@@ -133,6 +138,7 @@ export function GameShell(props: GameShellProps) {
   const secondsLeft = useSecondsLeft(beatState);
   const [rotation, setRotation] = useState<Quarter>(0);
   const [person, setPerson] = useState<Npc | null>(null);
+  const [meTab, setMeTab] = useState<MeTab>("profile");
 
   const flash = useCallback((m: string) => {
     setToast(m);
@@ -162,7 +168,16 @@ export function GameShell(props: GameShellProps) {
 
   const onPortal = useCallback((p: Portal) => void goTo(() => travelPortalAction(p.id)), [goTo]);
   const onHotspot = useCallback((h: Hotspot) => setSpot(h), []);
-  const onNpc = useCallback((n: Npc) => setPerson(n), []);
+  const onNpc = useCallback((n: Npc) => {
+    setOverlay(null);
+    setPerson(n);
+  }, []);
+  const openMe = useCallback((t: MeTab) => {
+    setPerson(null);
+    setSpot(null);
+    setMeTab(t);
+    setOverlay("me");
+  }, []);
   const onRotate = useCallback((by: 1 | -1) => setRotation((r) => nextQuarter(r, by)), []);
   const closeAll = useCallback(() => {
     setOverlay(null);
@@ -183,6 +198,26 @@ export function GameShell(props: GameShellProps) {
 
   const closed = beat !== null && !beat.allowed;
   const mood = moodLabel(needs);
+
+  // Letter shortcuts, as in the reference game: M map, P phone, S needs, E people here, H Workspace, ? help
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (touring || closed || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const k = e.key.toLowerCase();
+      if (k === "m") setOverlay((o) => (o === "map" ? null : "map"));
+      else if (k === "p") setOverlay((o) => (o === "phone" ? null : "phone"));
+      else if (k === "s") openMe("needs");
+      else if (k === "e") openMe("people");
+      else if (k === "?") setOverlay((o) => (o === "keys" ? null : "keys"));
+      else if (k === "h") void goTo(() => travelMapAction("ikoyi-floor"));
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [touring, closed, openMe, goTo]);
   const building = BUILDINGS.find((b) => b.id === scene.building);
 
   const toggleMode = () => setMode(mode === "iso" ? "flat" : "iso");
@@ -196,7 +231,7 @@ export function GameShell(props: GameShellProps) {
     <div className="game">
       <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} />
 
-      {anyOpen && !touring ? <div className="scrim" onClick={closeAll} aria-hidden="true" /> : null}
+      {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
@@ -225,7 +260,7 @@ export function GameShell(props: GameShellProps) {
               <button type="button" className="btn btn-sm" disabled title="Your work shift starts in the next update">Go to work · soon</button>
             </div>
             <div className="status">
-              <div className="avatar-badge" aria-hidden="true">{initials(name)}</div>
+              <button type="button" className="avatar-badge avatar-btn" onClick={() => openMe("needs")} title="Your needs, goals and profile (S)" aria-label="Open my profile">{initials(name)}</button>
               <div className="needs">
                 <Bar label="Energy" icon="⚡" value={needs.energy} />
                 <Bar label="Focus" icon="🎯" value={needs.focus} />
@@ -236,7 +271,7 @@ export function GameShell(props: GameShellProps) {
           </aside>
 
           <aside className="hud-right">
-            <button type="button" className="round-btn" onClick={() => setOverlay(overlay === "menu" ? null : "menu")} title="Menu" aria-label="Menu">☰</button>
+            <button type="button" className="round-btn" onClick={() => (overlay === "me" ? setOverlay(null) : openMe("profile"))} title="Menu" aria-label="Menu">☰</button>
             <button type="button" className="round-btn" onClick={toggleMode} title={mode === "iso" ? "Switch to the lighter 2D view" : "Switch to the full isometric view"} aria-label="Switch view">{mode === "iso" ? "2D" : "3D"}</button>
             {mode === "iso" ? (
               <div className="turn-pair" role="group" aria-label="Turn the view">
@@ -353,35 +388,38 @@ export function GameShell(props: GameShellProps) {
         </div>
       ) : null}
 
-      {person ? (
-        <div className="sheet sheet-small" role="dialog" aria-label={`${person.name}'s profile`}>
-          <div className="sheet-head">
-            <div>
-              <p className="eyebrow">{scene.name}</p>
-              <h2>{person.name}</h2>
-              <p className="muted">{person.role}</p>
-            </div>
-            <button type="button" className="round-btn sm" onClick={() => setPerson(null)} aria-label="Close profile">✕</button>
-          </div>
-          <p className="muted small">Full profiles arrive in a later update.</p>
-        </div>
+      {person ? <PersonCard person={person} here={scene.name} onClose={() => setPerson(null)} /> : null}
+
+      {overlay === "me" ? (
+        <MePanel
+          tab={meTab}
+          onTab={setMeTab}
+          onClose={() => setOverlay(null)}
+          name={name}
+          staffId={props.staffId}
+          title={props.title}
+          role={props.role}
+          look={look}
+          needs={needs}
+          points={points}
+          moodText={mood}
+          here={scene.name}
+          people={scene.npcs}
+          onPerson={onNpc}
+          path={props.path}
+          levels={props.levels}
+          terms={{ points: terms.points, todaysPlan: terms.todaysPlan, academy: terms.academy }}
+          mode={mode}
+          onMode={setMode}
+          onTour={() => {
+            setOverlay(null);
+            setTouring(true);
+          }}
+          onShortcuts={() => setOverlay("keys")}
+        />
       ) : null}
 
-      {overlay === "menu" ? (
-        <div className="sheet sheet-small" role="dialog" aria-label="Menu">
-          <div className="sheet-head">
-            <h2>Menu</h2>
-            <button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="menu-list">
-            <Link href="/dashboard" className="menu-item">📋 My dashboard</Link>
-            <button type="button" className="menu-item" onClick={() => { setOverlay(null); setTouring(true); }}>👋 Replay the welcome tour</button>
-            {props.role === "admin" ? <Link href="/admin" className="menu-item">🛠️ Admin</Link> : null}
-            <Link href="/change-password" className="menu-item">🔑 Change password</Link>
-            <form action={logoutAction}><button type="submit" className="menu-item">🚪 Sign out</button></form>
-          </div>
-        </div>
-      ) : null}
+      {overlay === "keys" ? <Shortcuts onClose={() => setOverlay(null)} /> : null}
 
       {touring ? <Tour firstName={name.split(" ")[0] || "there"} path={props.path} session={props.session} onDone={finishTour} /> : null}
 

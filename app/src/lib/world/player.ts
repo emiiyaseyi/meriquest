@@ -60,3 +60,23 @@ export function cleanLook(raw: unknown, fallback: Skin): Skin {
     hairStyle: typeof o.hairStyle === "string" && STYLES.has(o.hairStyle) ? (o.hairStyle as Skin["hairStyle"]) : fallback.hairStyle,
   };
 }
+
+export interface LevelStanding {
+  index: number;
+  name: string;
+  /** The next level's name and the points still needed, or null at the top. */
+  next: { name: string; needed: number } | null;
+  /** 0 to 1 progress through the current level. */
+  progress: number;
+}
+
+/** Where a person stands on the growth ladder, from their points. Level thresholds come from admin settings. */
+export function levelFor(points: number, levels: { name: string; xp: number }[]): LevelStanding {
+  let index = 0;
+  for (let i = 0; i < levels.length; i++) if (points >= levels[i].xp) index = i;
+  const here = levels[index];
+  const nxt = levels[index + 1];
+  if (!nxt) return { index, name: here.name, next: null, progress: 1 };
+  const span = nxt.xp - here.xp;
+  return { index, name: here.name, next: { name: nxt.name, needed: nxt.xp - points }, progress: span > 0 ? Math.max(0, Math.min(1, (points - here.xp) / span)) : 0 };
+}

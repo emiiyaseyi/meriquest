@@ -31,7 +31,7 @@ type Then = { kind: "hotspot"; h: Hotspot } | null;
 
 /**
  * The walkable world. Drawing is done in a canvas; the room is plain data from lib/world. Click a tile to
- * walk there, click a person, a door or an object to use it, or use the arrow keys / WASD. Q and E (or a
+ * walk there, click a person, a door or an object to use it, or use the arrow keys / WASD. [ and ] (or a
  * sideways drag) turn the view without moving you. The room's own coordinates never change: the camera turn
  * only affects drawing and picking. Nothing here is trusted by the server: doors are re-checked there.
  */
@@ -236,9 +236,9 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       const key = e.key.toLowerCase();
-      if (mode === "iso" && (key === "q" || key === "e")) {
+      if (mode === "iso" && (key === "[" || key === "]")) {
         e.preventDefault();
-        handlers.current.onRotate(key === "q" ? -1 : 1);
+        handlers.current.onRotate(key === "[" ? -1 : 1);
         return;
       }
       const iso = mode === "iso";
@@ -335,7 +335,7 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
 
   return (
     <div ref={wrap} className="world-wrap">
-      <canvas ref={canvas} className="world-canvas" role="img" aria-label={`${scene.name}. Click to walk, or use the arrow keys. Press Q or E to turn the view.`} />
+      <canvas ref={canvas} className="world-canvas" role="img" aria-label={`${scene.name}. Click to walk, or use the arrow keys. Press [ or ] to turn the view.`} />
     </div>
   );
 }
