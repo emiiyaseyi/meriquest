@@ -24,3 +24,6 @@ Source: `OneDrive - Meristem Securities Limited\NEO Slides 2024` (new employee o
 | Customer Experience | The Meristem Customer Experience; The Art of Selling | The two decks | Planned |
 | More to learn | Understanding the Financial System; Planning Your Personal Finance; Strategy and Corporate Transformation | The three decks | Planned |
 | Scenarios and cases | From the NEO assessment (versions 1 and 2) | NEO EXAM V1 and V2 | Planned |
+
+## Status update (13 Oct 2026)
+Imported: Culture (3), Compliance (3), Products and Services (7), Customer Experience (2), More to learn (3). Extra scenarios and written cases sit in `academy/extra.ts`. Not yet imported: the NEO exam essay questions beyond those used as cases, and the HR report deck.

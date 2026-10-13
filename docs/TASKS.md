@@ -42,7 +42,8 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 ## Work Phone, updates and Meristem Academy
 - [x] Work Phone redesigned like the reference, Messages with Updates (notifications) and announcements from the admin team
 - [~] Meristem Academy: groups, courses, lessons with a timed class, notes, quizzes at three levels that unlock as you pass (Easy, Medium, Hard), certificates, scenarios and case studies; open to every role, with role courses recommended (Customer Experience, Wealth Advisory, Investment Advisory) and general learning for everyone else
-- [~] Import the NEO Slides 2024 folder into Academy content (the admin can review and edit it): many questions at various levels
+- [x] Import the NEO Slides 2024 folder into Academy content (admin can review and edit): 16 courses in Culture, Compliance, Products and Services, Customer Experience and More to learn, with Easy/Medium/Hard questions, extra scenarios and written case studies
+- [ ] Keep adding scenarios, case studies and questions as the owner reviews (ongoing)
   - [x] Culture group (3 courses, 320 questions)
   - [ ] Compliance group
   - [ ] Products and Services group (one course per subsidiary)

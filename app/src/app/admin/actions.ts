@@ -13,6 +13,7 @@ import {
 } from "@/lib/server/auth/admin";
 import { resetConfigToDefault, setConfig } from "@/lib/server/config/registry";
 import { updateConcern } from "@/lib/server/concerns/service";
+import { deleteCourse, moveCourse, restoreBuiltIns, saveCourse } from "@/lib/server/academy/content";
 import { deleteAnnouncement, postAnnouncement } from "@/lib/server/notices/service";
 import { adminResetPlacement, adminSetPath, adminSetRetakeLock } from "@/lib/server/placement/service";
 
@@ -139,4 +140,32 @@ export async function deleteAnnouncementAction(_p: AdminFormState, fd: FormData)
   const r = await deleteAnnouncement(admin, str(fd.get("id")));
   revalidatePath("/admin/announcements");
   return toState(r, "Removed.");
+}
+
+export async function saveCourseAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await saveCourse(admin, fd.get("json"));
+  revalidatePath("/admin/academy");
+  return r.ok ? { ok: "Saved." } : { error: r.errors.join(" · ") };
+}
+
+export async function moveCourseAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await moveCourse(admin, str(fd.get("id")), str(fd.get("group")));
+  revalidatePath("/admin/academy");
+  return r.ok ? { ok: "Moved." } : { error: r.errors.join(" · ") };
+}
+
+export async function deleteCourseAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await deleteCourse(admin, str(fd.get("id")));
+  revalidatePath("/admin/academy");
+  return r.ok ? { ok: "Deleted." } : { error: r.errors.join(" · ") };
+}
+
+export async function restoreBuiltInsAction(): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const { added } = await restoreBuiltIns(admin);
+  revalidatePath("/admin/academy");
+  return { ok: added.length === 0 ? "Nothing was missing." : `Added ${added.length} built-in course${added.length === 1 ? "" : "s"}.` };
 }

@@ -8,6 +8,7 @@ import { recordEvent } from "../game/missions";
 import type { PlayerRecord } from "../world/service";
 import { applyEffects, dayKey } from "@/lib/game";
 import { hashString, seeded } from "@/lib/iso/geometry";
+import { getCourseDoc, listCourseMeta, type CourseDoc, type CourseMeta } from "./content";
 import type { AcademyHome, AcademyResult, CaseView, CourseCard, CourseView, Level, LessonNotes, LessonRow, QuizResult, QuizSet, ScenarioOutcome, ScenarioPlay, ScenarioRow } from "@/lib/academy";
 
 /**
@@ -55,7 +56,26 @@ interface LearningRecord {
 }
 
 type Academy = Awaited<ReturnType<typeof getConfig<"academy">>>;
-type CourseDef = Academy["courses"][number];
+type CourseDef = CourseDoc;
+
+/** What a course card needs: a full course, or just the index entry for the course list. */
+interface CardSource {
+  id: string;
+  group: string;
+  title: string;
+  kicker: string;
+  icon: string;
+  intro: string;
+  units: string[];
+  rewardPoints: number;
+  certificate: string;
+  lessons: { id: string; title: string }[];
+  scenarios: number;
+  cases: number;
+}
+
+const fromMeta = (m: CourseMeta): CardSource => ({ ...m, lessons: m.lessonIds.map((id) => ({ id, title: "" })) });
+const fromDoc = (c: CourseDef): CardSource => ({ ...c, lessons: c.lessons, scenarios: c.scenarios.length, cases: c.cases.length });
 
 const blank = (staffId: string): LearningRecord => ({ id: staffId, staffId, courses: {}, day: "", classesToday: 0, certificates: [] });
 const fresh = (): CourseProgress => ({ best: {}, classed: [], attending: null, retryAt: {}, served: null, scenarios: {} });
@@ -87,7 +107,7 @@ async function load(user: Pick<UserDTO, "staffId">, now: number): Promise<{ rec:
     return rec;
   });
   for (const e of ended) {
-    const course = academy.courses.find((c) => c.id === e.courseId);
+    const course = await getCourseDoc(e.courseId);
     const idx = course ? course.lessons.findIndex((l) => l.id === e.lessonId) : -1;
     if (course && idx >= 0) await notify(user.staffId, { icon: "📖", text: `Class over! ${course.icon} ${course.title}, lesson ${idx + 1}: "${course.lessons[idx].title}". Your notes are ready: read them and pass the quiz in Courses.`, tone: "good" }, now);
   }
@@ -95,7 +115,7 @@ async function load(user: Pick<UserDTO, "staffId">, now: number): Promise<{ rec:
 }
 
 /** Where someone is in a course: the level being worked on, and each lesson's state at that level. */
-function standing(c: CourseDef, p: CourseProgress | undefined): { level: Level | null; rows: LessonRow[]; passedNow: number } {
+function standing(c: { lessons: { id: string; title: string }[] }, p: CourseProgress | undefined): { level: Level | null; rows: LessonRow[]; passedNow: number } {
   const best = p?.best ?? {};
   const floor = Math.min(...c.lessons.map((l) => best[l.id] ?? 0));
   if (floor >= 3) {
@@ -125,7 +145,7 @@ function audience(units: string[]): string {
   return units.includes("*") ? "For everyone" : `For ${units.join(", ")}`;
 }
 
-function card(c: CourseDef, p: CourseProgress | undefined, rec: LearningRecord, unit: string): CourseCard {
+function card(c: CardSource, p: CourseProgress | undefined, rec: LearningRecord, unit: string): CourseCard {
   const st = standing(c, p);
   const next = st.rows.find((r) => r.status !== "passed");
   return {
@@ -144,26 +164,29 @@ function card(c: CourseDef, p: CourseProgress | undefined, rec: LearningRecord, 
     rewardPoints: c.rewardPoints,
     certificate: c.certificate,
     next: next ? next.number : null,
-    scenarios: c.scenarios.length,
-    cases: c.cases.length,
+    scenarios: c.scenarios,
+    cases: c.cases,
   };
 }
 
 export async function getAcademy(user: Pick<UserDTO, "staffId" | "unit">, now: number = Date.now()): Promise<AcademyHome> {
   const { rec, academy } = await load(user, now);
+  const metas = await listCourseMeta();
   let attending: AcademyHome["attending"] = null;
-  for (const c of academy.courses) {
-    const a = rec.courses[c.id]?.attending;
-    const l = a ? c.lessons.find((x) => x.id === a.lessonId) : undefined;
-    if (a && l) attending = { courseId: c.id, courseTitle: c.title, lessonTitle: l.title, endsAt: a.endsAt };
+  for (const m of metas) {
+    const a = rec.courses[m.id]?.attending;
+    if (!a) continue;
+    const doc = await getCourseDoc(m.id);
+    const l = doc?.lessons.find((x) => x.id === a.lessonId);
+    if (doc && l) attending = { courseId: m.id, courseTitle: doc.title, lessonTitle: l.title, endsAt: a.endsAt };
   }
   const groupOrder = new Map(academy.groups.map((g, i) => [g.id, i]));
-  const order = new Map(academy.courses.map((c, i) => [c.id, i]));
   // Your own unit's courses first, then the ones for everyone, then the rest
-  const rank = new Map(academy.courses.map((c) => [c.id, c.units.includes(user.unit) ? 0 : c.units.includes("*") ? 1 : 2]));
-  const cards = academy.courses.map((c) => card(c, rec.courses[c.id], rec, user.unit));
-  // Groups in the order set in settings, courses for your unit first, then the rest in the order written
-  cards.sort((a, b) => (groupOrder.get(a.group) ?? 999) - (groupOrder.get(b.group) ?? 999) || (rank.get(a.id) as number) - (rank.get(b.id) as number) || (order.get(a.id) as number) - (order.get(b.id) as number));
+  const rank = new Map(metas.map((c) => [c.id, c.units.includes(user.unit) ? 0 : c.units.includes("*") ? 1 : 2]));
+  const cards = metas.map((m) => card(fromMeta(m), rec.courses[m.id], rec, user.unit));
+  // Groups in the order set in settings, courses for your unit first, then the rest in the order set by the admin
+  const order = new Map(metas.map((c, i) => [c.id, i]));
+  cards.sort((x, y) => (groupOrder.get(x.group) ?? 999) - (groupOrder.get(y.group) ?? 999) || (rank.get(x.id) as number) - (rank.get(y.id) as number) || (order.get(x.id) as number) - (order.get(y.id) as number));
   return {
     groups: academy.groups,
     courses: cards,
@@ -181,7 +204,7 @@ export async function getAcademy(user: Pick<UserDTO, "staffId" | "unit">, now: n
 export async function getCourse(user: Pick<UserDTO, "staffId" | "unit">, courseId: unknown, now: number = Date.now()): Promise<AcademyResult<CourseView>> {
   if (typeof courseId !== "string" || courseId.length > 41) return { ok: false, error: "That course does not exist." };
   const { rec, academy } = await load(user, now);
-  const c = academy.courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   if (!c) return { ok: false, error: "That course does not exist." };
   const p = rec.courses[c.id];
   const st = standing(c, p);
@@ -198,7 +221,7 @@ export async function getCourse(user: Pick<UserDTO, "staffId" | "unit">, courseI
   return {
     ok: true,
     value: {
-      card: card(c, p, rec, user.unit),
+      card: card(fromDoc(c), p, rec, user.unit),
       lessons: st.rows,
       scenarios,
       cases: c.cases.map((x) => ({ id: x.id, title: x.title })),
@@ -219,7 +242,7 @@ export async function attendLesson(user: Pick<UserDTO, "staffId" | "unit">, cour
   if (!first.ok) return first;
   if (!first.value.canAttend) return { ok: false, error: first.value.blocked ?? "You cannot attend a class right now." };
   const academy = await getConfig("academy");
-  const c = academy.courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const next = first.value.lessons.find((r) => r.status === "next");
   if (!c || !next) return { ok: false, error: "There is no lesson to attend." };
   let started = false;
@@ -240,7 +263,7 @@ export async function attendLesson(user: Pick<UserDTO, "staffId" | "unit">, cour
 export async function readNotes(user: Pick<UserDTO, "staffId" | "unit">, courseId: unknown, lessonId: unknown, now: number = Date.now()): Promise<AcademyResult<LessonNotes>> {
   if (typeof courseId !== "string" || typeof lessonId !== "string") return { ok: false, error: "That lesson does not exist." };
   const { rec, academy } = await load(user, now);
-  const c = academy.courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const idx = c ? c.lessons.findIndex((l) => l.id === lessonId) : -1;
   if (!c || idx < 0) return { ok: false, error: "That lesson does not exist." };
   const p = rec.courses[c.id];
@@ -283,7 +306,7 @@ function shuffleOrder(n: number): number[] {
 export async function getQuiz(user: Pick<UserDTO, "staffId" | "unit">, courseId: unknown, lessonId: unknown, now: number = Date.now()): Promise<AcademyResult<QuizSet>> {
   if (typeof courseId !== "string" || typeof lessonId !== "string") return { ok: false, error: "That lesson does not exist." };
   const { rec, academy } = await load(user, now);
-  const c = academy.courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const l = c?.lessons.find((x) => x.id === lessonId);
   if (!c || !l) return { ok: false, error: "That lesson does not exist." };
   const p = rec.courses[c.id];
@@ -313,7 +336,7 @@ export async function getQuiz(user: Pick<UserDTO, "staffId" | "unit">, courseId:
 export async function submitQuiz(user: Pick<UserDTO, "staffId" | "unit">, courseId: unknown, lessonId: unknown, answers: unknown, now: number = Date.now()): Promise<AcademyResult<QuizResult>> {
   if (typeof courseId !== "string" || typeof lessonId !== "string") return { ok: false, error: "That lesson does not exist." };
   const { rec, academy } = await load(user, now);
-  const c = academy.courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const l = c?.lessons.find((x) => x.id === lessonId);
   const p = rec.courses[courseId];
   if (!c || !l) return { ok: false, error: "That lesson does not exist." };
@@ -389,7 +412,7 @@ function scenarioOrder(staffId: string, scenarioId: string, n: number): number[]
 
 export async function getScenario(user: Pick<UserDTO, "staffId">, courseId: unknown, scenarioId: unknown): Promise<AcademyResult<ScenarioPlay>> {
   if (typeof courseId !== "string" || typeof scenarioId !== "string") return { ok: false, error: "That scenario does not exist." };
-  const c = (await getConfig("academy")).courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const s = c?.scenarios.find((x) => x.id === scenarioId);
   if (!c || !s) return { ok: false, error: "That scenario does not exist." };
   const order = scenarioOrder(user.staffId, s.id, s.choices.length);
@@ -401,7 +424,7 @@ const RANK: Record<Verdict, number> = { wrong: 0, partly: 1, best: 2 };
 export async function answerScenario(user: Pick<UserDTO, "staffId">, courseId: unknown, scenarioId: unknown, choice: unknown, now: number = Date.now()): Promise<AcademyResult<ScenarioOutcome>> {
   if (typeof courseId !== "string" || typeof scenarioId !== "string" || !Number.isInteger(choice)) return { ok: false, error: "That scenario does not exist." };
   const academy = await getConfig("academy");
-  const c = academy.courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const s = c?.scenarios.find((x) => x.id === scenarioId);
   if (!c || !s) return { ok: false, error: "That scenario does not exist." };
   const order = scenarioOrder(user.staffId, s.id, s.choices.length);
@@ -425,7 +448,7 @@ export async function answerScenario(user: Pick<UserDTO, "staffId">, courseId: u
 
 export async function getCase(courseId: unknown, caseId: unknown): Promise<AcademyResult<CaseView>> {
   if (typeof courseId !== "string" || typeof caseId !== "string") return { ok: false, error: "That case does not exist." };
-  const c = (await getConfig("academy")).courses.find((x) => x.id === courseId);
+  const c = await getCourseDoc(courseId);
   const k = c?.cases.find((x) => x.id === caseId);
   if (!c || !k) return { ok: false, error: "That case does not exist." };
   return { ok: true, value: { id: k.id, title: k.title, story: k.story, keyPoints: k.keyPoints } };

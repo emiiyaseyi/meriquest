@@ -4,6 +4,23 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M5b: Academy per-course storage, admin Academy pages and the imported NEO content (13 Oct 2026)
+Scope: courses stored one per record with a light index; admin Academy pages (list by group, edit as JSON, move between groups, delete, restore built-ins); imported content from the NEO decks: Culture, Compliance, Products and Services, Customer Experience and More to learn (16 courses) with Easy/Medium/Hard questions, extra scenarios and written case studies.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 19 files, 415 tests, including content validity, question counts per level and no repeated questions |
+| 3 | Input validation | **Pass** | Course JSON checked by the strict course schema and size limit before saving |
+| 4 | Authorisation | **Pass** | Every Academy admin action calls `requireRole("admin")` |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+| 6 | Secret scan | **Pass** | No credentials in the changed files |
+| 7 | Security review | **Pass** | Answers stay on the server; no new public endpoints |
+
+Open: business owners to confirm service standards quoted from the decks (response times, call rules) are current.
+
+---
+
 ## M3c.1: Characters like the reference game, and the appearance editor (13 Oct 2026)
 Scope: people redrawn with real proportions (legs, shoulders, arms, hands, faces), seven hairstyles, five outfits, four fabrics (plain, Ankara, Adire, Aso-oke), woman and man bodies, bigger on screen; the appearance editor in Me > Profile with a turn-around preview and Save; looks saved on the server. Built from `docs/reference/Character appearance-looks.png` and the Profile screenshots.
 

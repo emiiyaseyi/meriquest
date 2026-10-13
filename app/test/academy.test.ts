@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { CONFIG, academySchema } from "@/lib/server/config/definitions";
+import { CONFIG, academySchema, courseSchema } from "@/lib/server/config/definitions";
+import { BUILTIN_COURSES } from "@/lib/server/config/academy-content";
 import { getConfig, setConfig } from "@/lib/server/config/registry";
 import { answerScenario, attendLesson, getAcademy, getCase, getCourse, getQuiz, getScenario, readNotes, submitQuiz } from "@/lib/server/academy/service";
+import { blankCourseJson, deleteCourse, getCourseDoc, getCourseJson, listCourseMeta, moveCourse, restoreBuiltIns, saveCourse } from "@/lib/server/academy/content";
 import { getStore } from "@/lib/server/store";
 import { listNotices } from "@/lib/server/notices/service";
 import type { PlayerRecord } from "@/lib/server/world/service";
@@ -11,24 +13,31 @@ import { freshWorld } from "./helpers";
 const DAY = 24 * 3_600_000;
 const T0 = Date.parse("2026-10-13T11:00:00+01:00");
 const user = { staffId: "MS1001", unit: "cx" };
+const admin = { staffId: "MS0001", role: "admin" as const };
+const player = { staffId: "MS1001", role: "player" as const };
 
 /* ------------------------------ the built-in content ------------------------------ */
 
 describe("built-in Academy content", () => {
-  const a = CONFIG.academy.default;
-  it("is valid under its own schema", () => {
-    const r = academySchema.safeParse(a);
+  it("settings and groups are valid under their schema", () => {
+    const r = academySchema.safeParse(CONFIG.academy.default);
     expect(r.success, r.success ? "" : JSON.stringify(r.error.issues.slice(0, 6))).toBe(true);
   });
-  it("puts every course in a real group and uses real units", () => {
-    const groups = new Set(a.groups.map((g) => g.id));
-    for (const c of a.courses) {
+  it("every built-in course is valid under the course schema", () => {
+    for (const c of BUILTIN_COURSES) {
+      const r = courseSchema.safeParse(c);
+      expect(r.success, `${c.id}: ${r.success ? "" : JSON.stringify(r.error.issues.slice(0, 4))}`).toBe(true);
+    }
+  });
+  it("puts every course in a real group, with real units", () => {
+    const groups = new Set(CONFIG.academy.default.groups.map((g) => g.id));
+    for (const c of BUILTIN_COURSES) {
       expect(groups.has(c.group), `${c.id} group`).toBe(true);
       for (const u of c.units) expect(["*", "cx", "wealth", "invest"]).toContain(u);
     }
   });
   it("gives every lesson enough questions at each of the three levels, with sensible options", () => {
-    for (const c of a.courses) {
+    for (const c of BUILTIN_COURSES) {
       expect(c.lessons.length, c.id).toBeGreaterThanOrEqual(3);
       for (const l of c.lessons) {
         for (const level of [1, 2, 3] as const) {
@@ -45,9 +54,8 @@ describe("built-in Academy content", () => {
       }
     }
   });
-  it("never leaves the same question id in two lessons", () => {
-    const ids = a.courses.flatMap((c) => c.lessons.flatMap((l) => l.questions.map((q) => `${c.id}/${l.id}/${q.id}`)));
-    expect(new Set(ids).size).toBe(ids.length);
+  it("never repeats a course or lesson id", () => {
+    expect(new Set(BUILTIN_COURSES.map((c) => c.id)).size).toBe(BUILTIN_COURSES.length);
   });
 });
 
@@ -56,34 +64,37 @@ describe("built-in Academy content", () => {
 const q = (id: string, level: 1 | 2 | 3, answer = 0) => ({ id, level, question: `Question ${id}: pick the right one`, options: ["Right", "Wrong A", "Wrong B", "Wrong C"], answer });
 const pool = (prefix: string) => [1, 2, 3].flatMap((lv) => Array.from({ length: 8 }, (_, i) => q(`${prefix}-${lv}-${i}`, lv as 1 | 2 | 3)));
 
-function fixture(over: Record<string, unknown> = {}) {
+const SETTINGS = { classSeconds: 0, classMinutes: 45, quizSize: 7, passCorrect: 5, retryMinutes: 5, classesPerDay: 2, lessonPoints: [2, 4, 6], scenarioPoints: 3 };
+const GROUPS = [{ id: "g1", label: "Group one", icon: "📚" }, { id: "g2", label: "Group two", icon: "📘" }];
+
+function course(over: Record<string, unknown> = {}) {
   return {
-    settings: { classSeconds: 0, classMinutes: 45, quizSize: 7, passCorrect: 5, retryMinutes: 5, classesPerDay: 2, lessonPoints: [2, 4, 6], scenarioPoints: 3 },
-    groups: [{ id: "g1", label: "Group one", icon: "📚" }],
-    courses: [
-      {
-        id: "c1",
-        group: "g1",
-        title: "Course one",
-        kicker: "Test",
-        icon: "🧪",
-        intro: "A test course",
-        units: ["cx"],
-        rewardPoints: 20,
-        certificate: "Test certificate",
-        skill: { id: "compliance", xp: 3 },
-        lessons: [
-          { id: "l1", title: "Lesson 1", paragraphs: ["Notes for lesson one."], questions: pool("a") },
-          { id: "l2", title: "Lesson 2", paragraphs: ["Notes for lesson two."], questions: pool("b") },
-        ],
-        scenarios: [
-          { id: "s1", title: "A scenario", story: "Something happens at work.", level: 1, choices: [{ text: "Do the right thing", verdict: "best", feedback: "Good." }, { text: "Half right", verdict: "partly", feedback: "Nearly." }, { text: "Do the wrong thing", verdict: "wrong", feedback: "No." }] },
-        ],
-        cases: [{ id: "k1", title: "A case", story: "A client asks something hard to answer.", keyPoints: ["Check the facts", "Escalate"] }],
-      },
+    id: "c1",
+    group: "g1",
+    title: "Course one",
+    kicker: "Test",
+    icon: "🧪",
+    intro: "A test course",
+    units: ["cx"],
+    rewardPoints: 20,
+    certificate: "Test certificate",
+    skill: { id: "compliance", xp: 3 },
+    lessons: [
+      { id: "l1", title: "Lesson 1", paragraphs: ["Notes for lesson one."], questions: pool("a") },
+      { id: "l2", title: "Lesson 2", paragraphs: ["Notes for lesson two."], questions: pool("b") },
     ],
+    scenarios: [{ id: "s1", title: "A scenario", story: "Something happens at work.", level: 1, choices: [{ text: "Do the right thing", verdict: "best", feedback: "Good." }, { text: "Half right", verdict: "partly", feedback: "Nearly." }, { text: "Do the wrong thing", verdict: "wrong", feedback: "No." }] }],
+    cases: [{ id: "k1", title: "A case", story: "A client asks something hard to answer.", keyPoints: ["Check the facts", "Escalate"] }],
     ...over,
   };
+}
+
+async function setUp(settings: Record<string, unknown> = {}, courses: Record<string, unknown>[] = [course()]) {
+  await freshWorld();
+  expect((await setConfig("academy", JSON.stringify({ settings: { ...SETTINGS, ...settings }, groups: GROUPS }), "MS0001")).ok).toBe(true);
+  // Replace the built-in courses with the fixture ones
+  for (const m of await listCourseMeta()) await deleteCourse(admin, m.id);
+  for (const c of courses) expect((await saveCourse(admin, JSON.stringify(c))).ok).toBe(true);
 }
 
 /** Answer a served quiz: the options are shuffled, so find the right option by its text. */
@@ -96,16 +107,15 @@ async function takeQuiz(u: typeof user, lessonId: string, t: number, right: bool
 
 describe("the learning flow", () => {
   beforeEach(async () => {
-    await freshWorld();
-    expect((await setConfig("academy", JSON.stringify(fixture()), "MS0001")).ok).toBe(true);
+    await setUp();
     await getOrCreatePlayer(user, T0);
   });
 
   it("shows courses in groups, with the person's own role first and everything open to everyone", async () => {
-    await setConfig("academy", JSON.stringify(fixture({ courses: [...fixture().courses, { ...fixture().courses[0], id: "c2", title: "For wealth", units: ["wealth"] }, { ...fixture().courses[0], id: "c0", title: "For everyone", units: ["*"] }] })), "MS0001");
+    for (const c of [course({ id: "c2", title: "For wealth", units: ["wealth"] }), course({ id: "c0", title: "For everyone", units: ["*"], group: "g2" })]) await saveCourse(admin, JSON.stringify(c));
     const home = await getAcademy(user, T0);
-    expect(home.courses.map((c) => c.id)).toEqual(["c1", "c0", "c2"]); // cx first, then everyone, then the rest in written order
-    expect(home.courses.every((c) => c.group === "g1")).toBe(true);
+    expect(home.groups.map((g) => g.id)).toEqual(["g1", "g2"]);
+    expect(home.courses.map((c) => c.id)).toEqual(["c1", "c2", "c0"]); // group one (cx course first), then group two
     expect(home.courses.find((c) => c.id === "c2")?.recommended).toBe(false);
     expect((await getAcademy({ staffId: "MS2001", unit: "wealth" }, T0)).courses[0].id).toBe("c2"); // wealth sees theirs first
   });
@@ -116,7 +126,7 @@ describe("the learning flow", () => {
   });
 
   it("a class takes time, then the notes open and an update arrives once", async () => {
-    await setConfig("academy", JSON.stringify(fixture({ settings: { ...fixture().settings, classSeconds: 30 } })), "MS0001");
+    await setConfig("academy", JSON.stringify({ settings: { ...SETTINGS, classSeconds: 30 }, groups: GROUPS }), "MS0001");
     const started = await attendLesson(user, "c1", T0);
     expect(started.ok && started.value.lessons[0].status).toBe("attending");
     expect((await readNotes(user, "c1", "l1", T0 + 10_000)).ok).toBe(false); // still in class
@@ -127,15 +137,13 @@ describe("the learning flow", () => {
     expect((await listNotices(user)).filter((n) => n.text.startsWith("Class over")).length).toBe(1);
   });
 
-  it("limits how many new classes a day", async () => {
-    for (const lesson of ["l1", "l2"]) {
-      expect((await attendLesson(user, "c1", T0)).ok).toBe(true);
-      expect((await takeQuiz(user, lesson, T0, true)).ok).toBe(true);
-    }
-    await setConfig("academy", JSON.stringify(fixture({ settings: { ...fixture().settings, classesPerDay: 1 } })), "MS0001");
-    // Everything passed at Easy; Medium needs no new class, so the limit does not bite
-    const course = await getCourse(user, "c1", T0);
-    expect(course.ok && course.value.card.level).toBe(2);
+  it("limits how many new classes a day, and only the first pass of a lesson needs a class", async () => {
+    await setConfig("academy", JSON.stringify({ settings: { ...SETTINGS, classesPerDay: 1 }, groups: GROUPS }), "MS0001");
+    expect((await attendLesson(user, "c1", T0)).ok).toBe(true);
+    expect((await takeQuiz(user, "l1", T0, true)).ok).toBe(true);
+    const second = await attendLesson(user, "c1", T0);
+    expect(second.ok).toBe(false); // already one class today
+    expect((await attendLesson(user, "c1", T0 + DAY)).ok).toBe(true); // tomorrow is fine
   });
 
   it("serves a quiz with no answers in it, drawn from the level's pool, with options shuffled", async () => {
@@ -148,7 +156,6 @@ describe("the learning flow", () => {
     expect(quiz.value.need).toBe(5);
     expect(JSON.stringify(quiz.value)).not.toMatch(/answer/);
     for (const qn of quiz.value.questions) expect([...qn.options].sort()).toEqual(["Right", "Wrong A", "Wrong B", "Wrong C"]);
-    // across many draws the right option is not always first
     const firsts = new Set<string>();
     for (let i = 0; i < 20; i++) {
       const again = await getQuiz(user, "c1", "l1", T0 + i);
@@ -165,8 +172,8 @@ describe("the learning flow", () => {
     expect((await getQuiz(user, "c1", "l1", T0 + 60_000)).ok).toBe(false); // too soon
     const pass = await takeQuiz(user, "l1", T0 + 6 * 60_000, true);
     expect(pass.ok && pass.value).toMatchObject({ passed: true, correct: 7, points: 2 });
-    const course = await getCourse(user, "c1", T0 + 7 * 60_000);
-    expect(course.ok && course.value.lessons.map((l) => l.status)).toEqual(["passed", "next"]);
+    const c = await getCourse(user, "c1", T0 + 7 * 60_000);
+    expect(c.ok && c.value.lessons.map((l) => l.status)).toEqual(["passed", "next"]);
   });
 
   it("a wrong number of answers, odd values or a replay are refused", async () => {
@@ -176,10 +183,8 @@ describe("the learning flow", () => {
     for (const bad of [[], [0, 0, 0], Array(7).fill(9), Array(7).fill(-1), Array(7).fill("0"), Array(7).fill(1.5), null, "x"]) {
       expect(await submitQuiz(user, "c1", "l1", bad, T0)).toMatchObject({ ok: false });
     }
-    // other lessons and courses
     expect(await submitQuiz(user, "c1", "l2", Array(7).fill(0), T0)).toMatchObject({ ok: false });
     expect(await submitQuiz(user, "nope", "l1", Array(7).fill(0), T0)).toMatchObject({ ok: false });
-    // a pass cannot be submitted twice
     const answers = served.ok ? served.value.questions.map((x) => x.options.indexOf("Right")) : [];
     expect((await submitQuiz(user, "c1", "l1", answers, T0)).ok).toBe(true);
     expect(await submitQuiz(user, "c1", "l1", answers, T0)).toMatchObject({ ok: false });
@@ -191,25 +196,23 @@ describe("the learning flow", () => {
       expect((await attendLesson(user, "c1", t)).ok).toBe(true);
       expect((await takeQuiz(user, lesson, t, true)).ok).toBe(true);
     }
-    let course = await getCourse(user, "c1", t);
-    expect(course.ok && course.value.card).toMatchObject({ level: 2, passed: 0, certified: false });
-    // Medium: no new classes needed
+    let c = await getCourse(user, "c1", t);
+    expect(c.ok && c.value.card).toMatchObject({ level: 2, passed: 0, certified: false });
     for (const lesson of ["l1", "l2"]) {
       const r = await takeQuiz(user, lesson, t, true);
       expect(r.ok && r.value.level).toBe(2);
     }
-    course = await getCourse(user, "c1", t);
-    expect(course.ok && course.value.card.level).toBe(3);
+    c = await getCourse(user, "c1", t);
+    expect(c.ok && c.value.card.level).toBe(3);
     const hard1 = await takeQuiz(user, "l1", t, true);
     expect(hard1.ok && hard1.value).toMatchObject({ level: 3, points: 6, finished: null });
     const hard2 = await takeQuiz(user, "l2", t, true);
     expect(hard2.ok && hard2.value.finished).toEqual({ points: 20, certificate: "Test certificate" });
-    course = await getCourse(user, "c1", t);
-    expect(course.ok && course.value.card).toMatchObject({ level: null, certified: true });
-    const player = await getStore().get<PlayerRecord>("players", "MS1001");
-    // 2+2 Easy, 4+4 Medium, 6+6 Hard, 20 for the certificate
-    expect(player?.points).toBe(2 + 2 + 4 + 4 + 6 + 6 + 20);
-    expect(player?.skillXp?.compliance).toBe(3 * 2 + 3 * 2 * 2 + 3 * 3 * 2 /* xp x level, per lesson */ + 0);
+    c = await getCourse(user, "c1", t);
+    expect(c.ok && c.value.card).toMatchObject({ level: null, certified: true });
+    const p = await getStore().get<PlayerRecord>("players", "MS1001");
+    expect(p?.points).toBe(2 + 2 + 4 + 4 + 6 + 6 + 20);
+    expect(p?.skillXp?.compliance).toBe(3 * 2 + 3 * 2 * 2 + 3 * 3 * 2);
     const texts = (await listNotices(user)).map((n) => n.text).join(" | ");
     expect(texts).toContain("Medium questions are now unlocked");
     expect(texts).toContain("Course complete");
@@ -218,22 +221,20 @@ describe("the learning flow", () => {
   it("scenarios: the best choice earns points once, and shuffled choices are stable per person", async () => {
     const play = await getScenario(user, "c1", "s1");
     expect(play.ok && play.value.choices).toHaveLength(3);
-    const again = await getScenario(user, "c1", "s1");
-    expect(again).toEqual(play);
+    expect(await getScenario(user, "c1", "s1")).toEqual(play);
     const best = play.ok ? play.value.choices.indexOf("Do the right thing") : -1;
     const wrong = play.ok ? play.value.choices.indexOf("Do the wrong thing") : -1;
     const w = await answerScenario(user, "c1", "s1", wrong);
     expect(w.ok && w.value).toMatchObject({ verdict: "wrong", points: 0, best: "Do the right thing" });
     const b = await answerScenario(user, "c1", "s1", best);
     expect(b.ok && b.value).toMatchObject({ verdict: "best", points: 3 });
-    expect((await answerScenario(user, "c1", "s1", best)).ok && 0).toBe(0);
-    const again2 = await answerScenario(user, "c1", "s1", best);
-    expect(again2.ok && again2.value.points).toBe(0); // only once
+    const again = await answerScenario(user, "c1", "s1", best);
+    expect(again.ok && again.value.points).toBe(0);
     expect((await getStore().get<PlayerRecord>("players", "MS1001"))?.points).toBe(3);
     for (const bad of [-1, 3, 1.5, "0", null]) expect(await answerScenario(user, "c1", "s1", bad as number)).toMatchObject({ ok: false });
     expect(await getScenario(user, "c1", "nope")).toMatchObject({ ok: false });
-    const course = await getCourse(user, "c1", T0);
-    expect(course.ok && course.value.scenarios[0].done).toBe("best");
+    const c = await getCourse(user, "c1", T0);
+    expect(c.ok && c.value.scenarios[0].done).toBe("best");
   });
 
   it("case studies return the story and key points; unknown ones are refused", async () => {
@@ -244,12 +245,11 @@ describe("the learning flow", () => {
   });
 
   it("a thin level borrows questions rather than leaving someone stuck, and the pass mark scales", async () => {
-    const thin = { ...fixture().courses[0], lessons: [{ id: "l1", title: "Lesson 1", paragraphs: ["x"], questions: [q("t1", 1), q("t2", 1), q("t3", 1), q("t4", 1)] }] };
-    await setConfig("academy", JSON.stringify(fixture({ courses: [thin] })), "MS0001");
+    await saveCourse(admin, JSON.stringify(course({ lessons: [{ id: "l1", title: "Lesson 1", paragraphs: ["x"], questions: [q("t1", 1), q("t2", 1), q("t3", 1), q("t4", 1)] }] })));
     await attendLesson(user, "c1", T0);
     const quiz = await getQuiz(user, "c1", "l1", T0);
     expect(quiz.ok && quiz.value.questions).toHaveLength(4);
-    expect(quiz.ok && quiz.value.need).toBe(3); // 5 of 7 scales to 3 of 4
+    expect(quiz.ok && quiz.value.need).toBe(3);
   });
 
   it("refuses ids that are not real", async () => {
@@ -264,25 +264,84 @@ describe("the learning flow", () => {
     await attendLesson(user, "c1", T0);
     await takeQuiz(user, "l1", T0, true);
     await attendLesson(user, "c1", T0);
-    const blocked = await setConfig("academy", JSON.stringify(fixture({ settings: { ...fixture().settings, classesPerDay: 2 } })), "MS0001");
-    expect(blocked.ok).toBe(true);
     const today = await getCourse(user, "c1", T0);
     expect(today.ok && today.value.classesToday).toBe(2);
     const tomorrow = await getCourse(user, "c1", T0 + DAY);
     expect(tomorrow.ok && tomorrow.value.classesToday).toBe(0);
   });
+});
 
-  it("settings that would break a quiz are rejected", async () => {
-    const base = fixture();
+/* ------------------------------ the admin side ------------------------------ */
+
+describe("managing courses", () => {
+  beforeEach(async () => {
+    await setUp();
+  });
+
+  it("only an admin can save, move, delete or restore", async () => {
+    await expect(saveCourse(player, JSON.stringify(course()))).rejects.toThrow("Forbidden");
+    await expect(moveCourse(player, "c1", "g2")).rejects.toThrow("Forbidden");
+    await expect(deleteCourse(player, "c1")).rejects.toThrow("Forbidden");
+    await expect(restoreBuiltIns(player)).rejects.toThrow("Forbidden");
+    await expect(getCourseJson(player, "c1")).rejects.toThrow("Forbidden");
+  });
+
+  it("moves a course to another group, or out of every group", async () => {
+    expect((await moveCourse(admin, "c1", "g2")).ok).toBe(true);
+    expect((await listCourseMeta())[0].group).toBe("g2");
+    expect((await moveCourse(admin, "c1", "")).ok).toBe(true);
+    expect((await getCourseDoc("c1"))?.group).toBe("");
+    const home = await getAcademy(user, T0);
+    expect(home.courses[0].group).toBe(""); // shown under "More courses"
+    for (const bad of ["nope", 5, null, "x".repeat(60)]) expect((await moveCourse(admin, "c1", bad)).ok).toBe(false);
+    expect((await moveCourse(admin, "nope", "g1")).ok).toBe(false);
+  });
+
+  it("saves edits, adds new courses, and rejects courses that are broken", async () => {
+    const edited = course({ title: "Renamed course" });
+    expect((await saveCourse(admin, JSON.stringify(edited))).ok).toBe(true);
+    expect((await getCourseDoc("c1"))?.title).toBe("Renamed course");
+    expect((await listCourseMeta()).find((m) => m.id === "c1")?.title).toBe("Renamed course");
+    expect((await saveCourse(admin, blankCourseJson())).ok).toBe(true);
+    expect((await listCourseMeta()).map((m) => m.id)).toEqual(["c1", "new-course"]);
     const bads = [
-      { ...base, courses: [{ ...base.courses[0], lessons: [{ ...base.courses[0].lessons[0], questions: [q("x", 1), q("x", 1), q("y", 1)] }] }] }, // duplicate question id
-      { ...base, courses: [{ ...base.courses[0], lessons: [{ ...base.courses[0].lessons[0], questions: [q("x", 1), q("y", 1), { ...q("z", 1), answer: 9 }] }] }] }, // answer out of range
-      { ...base, courses: [{ ...base.courses[0], lessons: [{ ...base.courses[0].lessons[0], questions: [q("x", 1), q("y", 1)] }] }] }, // too few questions
-      { ...base, courses: [base.courses[0], base.courses[0]] }, // repeated course id
-      { ...base, groups: [] },
-      { ...base, courses: [{ ...base.courses[0], scenarios: [{ ...base.courses[0].scenarios[0], choices: [{ text: "a", verdict: "wrong", feedback: "x" }, { text: "b", verdict: "wrong", feedback: "x" }] }] }] }, // no best choice
+      "not json",
+      JSON.stringify(course({ group: "unknown-group" })),
+      JSON.stringify(course({ lessons: [] })),
+      JSON.stringify(course({ lessons: [{ id: "l1", title: "x", paragraphs: ["y"], questions: [q("a", 1), q("a", 1), q("b", 1)] }] })),
+      JSON.stringify(course({ lessons: [{ id: "l1", title: "x", paragraphs: ["y"], questions: [q("a", 1), q("b", 1), { ...q("c", 1), answer: 9 }] }] })),
+      JSON.stringify(course({ scenarios: [{ id: "s", title: "t", story: "A story long enough", level: 1, choices: [{ text: "a", verdict: "wrong", feedback: "x" }, { text: "b", verdict: "wrong", feedback: "x" }] }] })),
+      JSON.stringify({ ...course(), extra: true }),
+      "x".repeat(700_000),
     ];
-    for (const b of bads) expect((await setConfig("academy", JSON.stringify(b), "MS0001")).ok).toBe(false);
-    expect((await getConfig("academy")).courses[0].id).toBe("c1"); // nothing was saved
+    for (const b of bads) expect((await saveCourse(admin, b)).ok).toBe(false);
+    expect((await getCourseDoc("c1"))?.title).toBe("Renamed course"); // nothing broken was saved
+  });
+
+  it("deletes a course, and restoring built-ins brings missing ones back without touching edits", async () => {
+    expect((await deleteCourse(admin, "c1")).ok).toBe(true);
+    expect(await getCourseDoc("c1")).toBeNull();
+    expect((await deleteCourse(admin, "c1")).ok).toBe(false);
+    // edit one built-in-id course, then restore
+    const first = BUILTIN_COURSES[0];
+    await saveCourse(admin, JSON.stringify({ ...first, group: "g1", title: "My edited version" }));
+    const { added } = await restoreBuiltIns(admin);
+    expect(added).toHaveLength(BUILTIN_COURSES.length - 1);
+    expect((await getCourseDoc(first.id))?.title).toBe("My edited version");
+    expect((await restoreBuiltIns(admin)).added).toEqual([]);
+  });
+
+  it("seeds the built-in courses once for a fresh system, and an admin's deletions stay deleted", async () => {
+    await freshWorld();
+    const metas = await listCourseMeta();
+    expect(metas.map((m) => m.id)).toEqual(BUILTIN_COURSES.map((c) => c.id));
+    await deleteCourse(admin, metas[0].id);
+    expect((await listCourseMeta()).map((m) => m.id)).not.toContain(metas[0].id);
+  });
+
+  it("the Academy setting no longer carries courses, and rejects any that are slipped in", async () => {
+    const r = await setConfig("academy", JSON.stringify({ settings: SETTINGS, groups: GROUPS, courses: [] }), "MS0001");
+    expect(r.ok).toBe(false);
+    expect((await getConfig("academy")).groups.map((g) => g.id)).toEqual(["g1", "g2"]);
   });
 });

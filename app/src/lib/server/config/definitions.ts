@@ -493,6 +493,41 @@ const caseSchema = z
   })
   .strict();
 
+export const courseSchema = z
+  .object({
+    id: slug,
+    /** The group it sits in. Leave empty to show it under "More courses". */
+    group: z.string().max(41),
+    title: z.string().min(1).max(60),
+    kicker: z.string().min(1).max(40),
+    icon: z.string().min(1).max(8),
+    intro: z.string().min(1).max(400),
+    /** Units this course is recommended for. "*" means everyone. Every course is open to everyone. */
+    units: z.array(z.string().min(1).max(40)).min(1).max(30),
+    /** Merit points for the certificate (earned by passing every lesson at Hard). */
+    rewardPoints: z.number().int().min(0).max(1000),
+    certificate: z.string().min(1).max(80),
+    skill: skillGain,
+    lessons: z
+      .array(
+        z
+          .object({
+            id: slug,
+            title: z.string().min(1).max(80),
+            paragraphs: z.array(z.string().min(1).max(2500)).min(1).max(20),
+            questions: z.array(quizQuestion).min(3).max(120),
+          })
+          .strict()
+          .refine((l) => new Set(l.questions.map((x) => x.id)).size === l.questions.length, "Each question needs its own id"),
+      )
+      .min(1)
+      .max(12)
+      .refine((l) => new Set(l.map((x) => x.id)).size === l.length, "Each lesson needs its own id"),
+    scenarios: z.array(scenarioSchema).max(20),
+    cases: z.array(caseSchema).max(20),
+  })
+  .strict();
+
 export const academySchema = z
   .object({
     settings: z
@@ -520,46 +555,6 @@ export const academySchema = z
       .min(1)
       .max(20)
       .refine((g) => new Set(g.map((x) => x.id)).size === g.length, "Each group needs its own id"),
-    courses: z
-      .array(
-        z
-          .object({
-            id: slug,
-            /** The group it sits in. Leave empty to show it under "More courses". */
-            group: z.string().max(41),
-            title: z.string().min(1).max(60),
-            kicker: z.string().min(1).max(40),
-            icon: z.string().min(1).max(8),
-            intro: z.string().min(1).max(400),
-            /** Units this course is recommended for. "*" means everyone. Every course is open to everyone. */
-            units: z.array(z.string().min(1).max(40)).min(1).max(30),
-            /** Merit points for the certificate (earned by passing every lesson at Hard). */
-            rewardPoints: z.number().int().min(0).max(1000),
-            certificate: z.string().min(1).max(80),
-            skill: skillGain,
-            lessons: z
-              .array(
-                z
-                  .object({
-                    id: slug,
-                    title: z.string().min(1).max(80),
-                    paragraphs: z.array(z.string().min(1).max(2500)).min(1).max(20),
-                    questions: z.array(quizQuestion).min(3).max(120),
-                  })
-                  .strict()
-                  .refine((l) => new Set(l.questions.map((x) => x.id)).size === l.questions.length, "Each question needs its own id"),
-              )
-              .min(1)
-              .max(12)
-              .refine((l) => new Set(l.map((x) => x.id)).size === l.length, "Each lesson needs its own id"),
-            scenarios: z.array(scenarioSchema).max(20),
-            cases: z.array(caseSchema).max(20),
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(60)
-      .refine((c) => new Set(c.map((x) => x.id)).size === c.length, "Each course needs its own id"),
   })
   .strict();
 
@@ -811,7 +806,7 @@ export const CONFIG = {
   academy: {
     label: "Meristem Academy",
     group: "Content",
-    description: "The courses, lessons and quizzes of Meristem Academy, and how classes run (class time, pass mark, retry delay, classes a day). The built-in courses are draft content for Compliance and L&D to review.",
+    description: "How Meristem Academy runs (class time, quiz size, pass mark, retry delay, classes a day, points) and the groups courses sit in. The courses themselves are edited under Admin → Academy.",
     schema: academySchema,
     default: DEFAULT_ACADEMY,
   },
