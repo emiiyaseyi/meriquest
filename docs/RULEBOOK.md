@@ -208,6 +208,24 @@ Anything below must live in the database or config with an **admin screen**. Cod
 
 ---
 
+### 5.1 QA and security gate (permanent, owner instruction 13 Oct 2026)
+Every piece of code is QA'd and security-checked **before it is committed**. A change that fails any gate is fixed, not committed. The gates:
+1. **Build and types:** `npm run build` and `tsc --noEmit` pass with zero errors. Lint passes with no errors.
+2. **Automated tests:** unit tests for all business logic (auth, lockout, Work First, placement, config validation, permissions). Tests must pass. New logic ships with tests.
+3. **Input validation:** every server input (forms, API routes, server actions) is validated with a schema (zod) with length and type limits. Never trust the client.
+4. **Authentication and authorisation:** server-side checks on every protected route and action (player / manager / admin / reviewer). No security by hiding buttons. Deny by default.
+5. **Passwords and sessions:** hashed with a slow hash (bcrypt), never logged or returned; default password only from server env, never in code or client bundle; signed, `HttpOnly`, `Secure`, `SameSite` cookies with expiry; rotation on login and password change; lockout and rate limiting; generic error messages.
+6. **Web security:** CSRF defence (same-site cookies plus origin checks on state-changing requests), security headers and a strict CSP, no `dangerouslySetInnerHTML` on user input, output escaping, no open redirects, safe file handling, no SSRF.
+7. **Secrets:** none in the repo or the client bundle; `.env*` ignored; a secret scan before each push.
+8. **Server-authoritative scoring:** the client can never set its own score, level, points, role or placement.
+9. **Data safety:** least-privilege data access, audit log for admin and security events, no real client data, no PII in logs.
+10. **Dependencies:** `npm audit` reviewed; no known high or critical vulnerabilities left unaddressed; pinned lockfile committed.
+11. **Error handling:** no unhandled errors, no stack traces or internals shown to users, friendly error pages, graceful failure when storage is unavailable.
+12. **Review:** a security review of the diff (`/security-review`) and a self-review against this list before each commit. Findings are fixed or recorded in `docs/QA-LOG.md` with the reason.
+Results of each gate run are recorded in `docs/QA-LOG.md`. "It works on my machine" is not a pass.
+
+---
+
 ## 6. Content rules
 - Fictional people, clients, numbers and companies. No real client or staff data.
 - Local flavour, Nigerian English and humour are welcome; keep it professional and respectful.
@@ -304,6 +322,7 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Work First defaults approved; learning may also happen outside work hours | Owner |
 | 2026-10-13 | Production build: install Node, new Next.js + TypeScript app in `/app`; `/game` untouched until parity | Owner |
 | 2026-10-13 | Always commit and push after each piece of work | Owner |
+| 2026-10-13 | QA and security gate (§5.1) on everything built: no loopholes, no errors | Owner |
 
 ---
 
@@ -318,3 +337,4 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 8. Approval to use the **Meristem logo** and brand palette (Corporate Communications).
 9. Which subsidiaries are in the first build (pilot is Customer Experience, Wealth Advisory, Investment Advisory).
 10. Who moderates chat and the eNPS owner.
+11. **Account activation (security).** The shared default password lets anyone who knows it, and a colleague's staff ID, claim that colleague's account before they sign in (QA-LOG, Findings). Choose: (a) a one-time activation code per person from L&D, (b) an emailed code at first sign-in, or (c) keep the shared default and accept the risk with a short activation window.
