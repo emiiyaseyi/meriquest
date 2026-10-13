@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## A2: Form editors for every setting (13 Oct 2026)
+Scope: second piece of the admin backend. Every setting under Admin > Settings now opens as a form drawn from its own rules: number boxes with limits, drop-downs, checkboxes, text boxes, and lists with add, remove, duplicate and move up or down; the raw JSON is still there under "Advanced: JSON". One component covers all settings (shifts, room activities, Workspace catalogue, leadership, gameplay, Work First, phone apps, levels, terminology, Academy groups and more).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 481 tests: a form can be drawn for every setting; blank values for new list items; defaults pass the real rules |
+| 3 | Input validation | **Pass** | The form only builds JSON; the server checks it against the same strict rules before saving, so the form can never save an invalid value |
+| 4 | Authorisation | **Pass** | Saving still goes through the admin-only save action |
+| 5 | Real browser | **Pass** | Throwaway admin: Work shifts form renders and saves a changed number; ten other settings render with no console errors; test setting removed afterwards |
+
+Notes: the first page version passed a non-plain object to the browser and logged an error; fixed by sending plain data only. Course editing still uses its JSON editor (next to do if wanted).
+
+---
+
 ## A1: Admin reports and progress dashboard (13 Oct 2026)
 Scope: first piece of the admin backend (order agreed with the owner: reports, then friendly editors, then manager and L&D roles). New Admin > Reports page: totals, by unit, by course, and a searchable people table (points, career level, streak, lessons passed, certificates, last seen), plus a CSV download.
 

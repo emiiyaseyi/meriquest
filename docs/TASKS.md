@@ -78,6 +78,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 
 ## Admin backend (order: reports, friendly editors, manager and L&D roles)
 - [x] Reports and progress dashboard with CSV export
-- [ ] Friendly editors instead of JSON (shifts, room activities, Workspace catalogue, leadership, gameplay)
+- [x] Friendly form editors for every setting (JSON kept under Advanced)
+- [ ] Form editor for Academy courses (still JSON)
 - [ ] Manager and L&D roles (managers assign courses and learning time to their team; L&D authors content; reviewers handle concerns)
 - [ ] Admin pages on phones
