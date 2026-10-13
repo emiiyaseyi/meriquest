@@ -86,6 +86,28 @@ export function pickMissions(defs: readonly MissionDef[], count: number, staffId
   return out;
 }
 
+export interface Streak {
+  /** The last day (YYYY-MM-DD) the person checked in. */
+  last: string;
+  count: number;
+  best: number;
+}
+
+/** The streak after checking in today: it grows when yesterday was checked in, otherwise it starts again. */
+export function nextStreak(prev: Streak | undefined, today: string, yesterday: string): Streak {
+  if (prev && prev.last === today) return prev;
+  const count = prev && prev.last === yesterday ? prev.count + 1 : 1;
+  return { last: today, count, best: Math.max(prev?.best ?? 0, count) };
+}
+
+/** Where a streak count falls in the 7-day track (1 to 7, then it starts a new week). */
+export const streakDay = (count: number): number => ((Math.max(1, count) - 1) % 7) + 1;
+
+/** A label for a mission by how much it pays. */
+export function missionLevel(rewardPoints: number): "Easy" | "Medium" | "Hard" {
+  return rewardPoints <= 3 ? "Easy" : rewardPoints <= 5 ? "Medium" : "Hard";
+}
+
 export interface StoredFeeling {
   id: string;
   label: string;

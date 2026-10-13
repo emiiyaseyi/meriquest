@@ -4,6 +4,7 @@ import { parseVideo } from "@/lib/academy-video";
 import { DEFAULT_DECOR } from "./decor-content";
 import { DEFAULT_SHIFTS } from "./shift-content";
 import { DEFAULT_LOCATIONS } from "./location-content";
+import { DEFAULT_LEADERSHIP } from "./leadership-content";
 import { NEED_KEYS } from "@/lib/world/player";
 
 /**
@@ -454,6 +455,10 @@ export const gameplaySchema = z
       .max(40),
     missionsPerDay: z.number().int().min(0).max(10),
     dailyBonusPoints: z.number().int().min(0).max(1000),
+    /** Free swaps of a mission each day. */
+    swapsPerDay: z.number().int().min(0).max(5).default(1),
+    /** Merit points on reaching a day of the 7-day streak (1 to 7). It starts again after day 7. */
+    streakRewards: z.array(z.object({ day: z.number().int().min(1).max(7), points: z.number().int().min(0).max(1000) }).strict()).max(7).default([{ day: 3, points: 5 }, { day: 5, points: 8 }, { day: 7, points: 15 }]),
   })
   .strict();
 
@@ -731,6 +736,56 @@ export const locationsSchema = z
   })
   .strict();
 
+export const leadershipSchema = z
+  .object({
+    settings: z
+      .object({
+        /** Decisions in one run. */
+        rounds: z.number().int().min(1).max(12),
+        startMeter: z.number().int().min(10).max(90),
+        runsPerDay: z.number().int().min(1).max(10),
+        pointsGreat: z.number().int().min(0).max(200),
+        pointsGood: z.number().int().min(0).max(200),
+        pointsLearning: z.number().int().min(0).max(200),
+        /** Average of the meters needed for a great run, with no meter below the good average. */
+        greatAverage: z.number().int().min(1).max(100),
+        goodAverage: z.number().int().min(1).max(100),
+        /** No meter may end below this for a good run. */
+        floor: z.number().int().min(0).max(100),
+      })
+      .strict(),
+    meters: z.array(z.object({ id: slug, label: z.string().min(1).max(24), icon: z.string().min(1).max(8) }).strict()).min(1).max(8),
+    scenarios: z
+      .array(
+        z
+          .object({
+            id: slug,
+            title: z.string().min(1).max(80),
+            story: z.string().min(1).max(500),
+            choices: z
+              .array(
+                z
+                  .object({
+                    text: z.string().min(1).max(300),
+                    /** Change to each meter, by meter id (-30 to 30). */
+                    effects: z.record(slug, z.number().int().min(-30).max(30)),
+                    feedback: z.string().min(1).max(300),
+                  })
+                  .strict(),
+              )
+              .min(2)
+              .max(4),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(60)
+      .refine((s) => new Set(s.map((x) => x.id)).size === s.length, "Each scenario needs its own id"),
+  })
+  .strict()
+  .refine((d) => d.scenarios.every((s) => s.choices.every((c) => Object.keys(c.effects).every((k) => d.meters.some((m) => m.id === k)))), "A choice changes a meter that is not in the list")
+  .refine((d) => d.settings.goodAverage <= d.settings.greatAverage, "The good average cannot be above the great average");
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -937,6 +992,8 @@ export const CONFIG = {
       ],
       missionsPerDay: 3,
       dailyBonusPoints: 10,
+      swapsPerDay: 1,
+      streakRewards: [{ day: 3, points: 5 }, { day: 5, points: 8 }, { day: 7, points: 15 }],
     },
   },
   academy: {
@@ -966,6 +1023,13 @@ export const CONFIG = {
     description: "The location bar in each room: its zones as tabs, and the timed activities in each zone (how long, which needs it lifts, Merit points, how soon it can be repeated). The room is named by its id, such as ikoyi-floor.",
     schema: locationsSchema,
     default: DEFAULT_LOCATIONS,
+  },
+  leadership: {
+    label: "Leadership simulator",
+    group: "Content",
+    description: "The people-management decisions in the leadership simulator: the meters (such as team morale), the scenarios and what each choice does to the meters, how a run is rated, and the Merit points.",
+    schema: leadershipSchema,
+    default: DEFAULT_LEADERSHIP,
   },
   floors: {
     label: "Floor access",

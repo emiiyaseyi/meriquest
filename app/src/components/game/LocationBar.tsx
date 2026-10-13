@@ -52,6 +52,19 @@ export function LocationBar({ sceneId, hidden, onGame, onToast }: { sceneId: str
     [onGame, onToast],
   );
 
+  // The timer starts at once in the browser; the server is told in the background and the screen is corrected if it says no
+  const begin = useCallback((act: { id: string; label: string; seconds: number } | null) => {
+    const before = loc;
+    if (act && loc) setLoc({ ...loc, running: { id: act.id, label: act.label, endsAt: Date.now() + act.seconds * 1000 } });
+    else if (loc) setLoc({ ...loc, running: null });
+    start(async () => {
+      const r = act ? await startActivityAction(act.id) : await cancelActivityAction();
+      if (!r.ok) setLoc(before);
+      // On success the screen already shows it, so only a refusal changes anything
+      if (!r.ok) onToast(r.error);
+    });
+  }, [loc, onToast]);
+
   const running = loc?.running ?? null;
   const clock = now ?? 0;
   const due = running !== null && clock >= running.endsAt;
@@ -94,7 +107,7 @@ export function LocationBar({ sceneId, hidden, onGame, onToast }: { sceneId: str
               const wait = a.readyAt && a.readyAt > clock ? a.readyAt - clock : 0;
               const disabled = busy || running !== null || wait > 0;
               return (
-                <button key={a.id} type="button" className={`locbar-card${isRunning ? " running" : ""}`} disabled={disabled && !isRunning} onClick={() => (isRunning ? start(async () => apply(await cancelActivityAction())) : start(async () => apply(await startActivityAction(a.id))))}>
+                <button key={a.id} type="button" className={`locbar-card${isRunning ? " running" : ""}`} disabled={disabled && !isRunning} onClick={() => (isRunning ? begin(null) : begin(a))}>
                   <span className="locbar-card-top">
                     <span className="locbar-icon" aria-hidden="true">{a.icon}</span>
                     <span className="locbar-secs">⏱ {isRunning && running ? `${secs(running.endsAt - clock)}s` : `${a.seconds}s`}</span>

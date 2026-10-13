@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LookEditor } from "./LookEditor";
 import { PersonPortrait } from "./PersonPortrait";
 import { NEED_COLOUR, NEED_ICON } from "./needs";
@@ -51,6 +51,7 @@ export interface MePanelProps {
   sceneName: string;
   onClaim: (missionId: string) => void;
   onClaimBonus: () => void;
+  onSwap: (id: string) => void;
 }
 
 /**
@@ -131,6 +132,21 @@ export function MePanel(p: MePanelProps) {
 
         {p.tab === "goals" ? (
           <div className="stack">
+            <div className="streak-card">
+              <div className="streak-top">
+                <strong>🔥 {p.game.streak.count}-day streak</strong>
+                <span className="muted small">Best {p.game.streak.best}</span>
+              </div>
+              <div className="streak-track" role="list" aria-label="Streak days">
+                {p.game.streak.track.map((t) => (
+                  <span key={t.day} role="listitem" className={`streak-day${t.done ? " done" : ""}`} title={t.points > 0 ? `+${t.points} Merit points` : undefined}>
+                    {t.done ? "✓" : t.points > 0 ? "🎁" : "·"}
+                    <small>Day {t.day}</small>
+                  </span>
+                ))}
+              </div>
+              <p className="muted small" style={{ margin: 0 }}>{p.game.streak.checkedInToday ? "Checked in today ✓ Come back tomorrow to keep it going" : "Check in by coming back each day"} · <NewMissionsIn at={p.game.plan.newAt} /></p>
+            </div>
             <div className="goal-plan">
               <span className="goal-icon" aria-hidden="true">🎁</span>
               <div>
@@ -142,6 +158,7 @@ export function MePanel(p: MePanelProps) {
             {p.game.plan.missions.map((m) => (
               <div key={m.id} className="mission">
                 <div className="mission-main">
+                  <span className="mission-meta"><em className={`lvl ${m.level.toLowerCase()}`}>{m.level}</em>{m.canSwap ? <button type="button" className="swap-btn" onClick={() => p.onSwap(m.id)} title={`${p.game.plan.swapsLeft} free swap left today`}>⇄ Swap</button> : null}</span>
                   <strong>{m.title}</strong>
                   <span className="muted small">{m.description}</span>
                   <div className="bar"><span style={{ width: `${(m.progress / m.target) * 100}%`, background: m.done ? "#2d5d41" : "#8db74e" }} /></div>
@@ -231,4 +248,19 @@ export function MePanel(p: MePanelProps) {
       </div>
     </div>
   );
+}
+
+
+/** "New missions in 5h 12m", counting down to the next day. */
+function NewMissionsIn({ at }: { at: number }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    const t = setInterval(tick, 30_000);
+    return () => clearInterval(t);
+  }, []);
+  if (now === null) return <>New missions tomorrow</>;
+  const mins = Math.max(0, Math.ceil((at - now) / 60_000));
+  return <>New missions in {Math.floor(mins / 60)}h {String(mins % 60).padStart(2, "0")}m</>;
 }

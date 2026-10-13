@@ -69,3 +69,9 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Location bar: zones as tabs, timed activity cards with effects and points, per room, admin-editable
 - [x] Play limit (30 min) only in working hours 8:30 am to 4:30 pm; no limit outside them
 - [ ] Room chat with moderation (later)
+
+- [x] Buy mode over the live room with ghost placing (reference), aligned cards
+- [x] Today's Hustle: 7-day streak, mission swap, level tags, new-missions countdown
+- [x] Leadership simulator (Academy), admin-editable
+- [~] Speed: instant room moves and timers in the browser, settings cache. Next: more optimistic actions; database in the same region as Vercel
+- [ ] Daily gem hunt style clue (not built) and Meristem Stories

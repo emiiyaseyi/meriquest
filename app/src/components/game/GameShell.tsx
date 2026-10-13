@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WorldCanvas } from "./WorldCanvas";
 import { Tour } from "./Tour";
 import { MePanel, type MeTab } from "./MePanel";
@@ -12,7 +12,7 @@ import { PhoneUI } from "./PhoneUI";
 import { AcademyApp } from "@/components/AcademyApp";
 import { PlaceCard } from "./PlaceCard";
 import { CityMap, type MapPick } from "./CityMap";
-import { BuyMode } from "./BuyMode";
+import { BuyMode, type Ghost } from "./BuyMode";
 import { ShiftHud } from "./ShiftHud";
 import { LocationBar } from "./LocationBar";
 import { getDecorAction } from "@/app/actions/decor";
@@ -21,7 +21,7 @@ import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
 import { playBeatAction, type BeatResult } from "@/app/actions/placement";
-import { claimBonusAction, claimMissionAction, completeTourAction, gameStateAction, spotAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
+import { claimBonusAction, claimMissionAction, swapMissionAction, completeTourAction, gameStateAction, spotAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
 import type { GameState } from "@/lib/server/game/service";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
 import { NEED_ICON } from "./needs";
@@ -136,6 +136,12 @@ function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "ME";
 }
 
+/** Where you arrive in a room when you pick it from the map or the lift. */
+const spawnOf = (id: string) => {
+  const sc = getScene(id);
+  return sc ? { scene: id, arrive: sc.spawn } : undefined;
+};
+
 export function GameShell(props: GameShellProps) {
   const { name, terms, apps, adminPreview } = props;
   const [game, setGame] = useState<GameState>(props.game);
@@ -149,6 +155,10 @@ export function GameShell(props: GameShellProps) {
   const [academyCard, setAcademyCard] = useState(false);
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
   const [decorView, setDecorView] = useState<Awaited<ReturnType<typeof getDecorAction>> | null>(null);
+  const [ghost, setGhost] = useState<Ghost | null>(null);
+  /** Moves to the server are sent one after another, in the order they were made. */
+  const travelQueue = useRef<Promise<void>>(Promise.resolve());
+  const decorFetched = useRef(false);
   const [spot, setSpot] = useState<Hotspot | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -208,8 +218,38 @@ export function GameShell(props: GameShellProps) {
   );
 
   const goTo = useCallback(
-    async (call: () => Promise<{ ok: true; scene: string; arrive: { x: number; y: number } } | { ok: false; error: string }>) => {
-      if (busy) return;
+    async (call: () => Promise<{ ok: true; scene: string; arrive: { x: number; y: number } } | { ok: false; error: string }>, guess?: { scene: string; arrive: { x: number; y: number } }): Promise<boolean> => {
+      // The browser moves you at once, using the room data it already has, and the server confirms in the background.
+      // If the server says no (a closed floor, play hours...) you are put back where you were.
+      if (guess && getScene(guess.scene)) {
+        const target = getScene(guess.scene) as Scene;
+        const closedNote = props.floorStatus[target.level]?.blocked ? props.floorStatus[target.level].note : null;
+        if (closedNote) {
+          flash(closedNote);
+          return false;
+        }
+        const back = { scene: sceneId, arrive };
+        setSpot(null);
+        setSceneId(guess.scene);
+        setArrive(guess.arrive);
+        setOverlay(null);
+        travelQueue.current = travelQueue.current.then(async () => {
+          try {
+            const r = await call();
+            if (!r.ok) {
+              setSceneId(back.scene);
+              setArrive(back.arrive);
+              flash(r.error);
+            }
+          } catch {
+            setSceneId(back.scene);
+            setArrive(back.arrive);
+            flash("Could not move just now. Please try again.");
+          }
+        });
+        return true;
+      }
+      if (busy) return false;
       setBusy(true);
       setSpot(null);
       try {
@@ -218,14 +258,18 @@ export function GameShell(props: GameShellProps) {
           setSceneId(r.scene);
           setArrive(r.arrive);
           setOverlay(null);
-        } else flash(r.error);
+          return true;
+        }
+        flash(r.error);
+        return false;
       } catch {
         flash("Could not move just now. Please try again.");
+        return false;
       } finally {
         setBusy(false);
       }
     },
-    [busy, flash],
+    [busy, flash, props.floorStatus, sceneId, arrive],
   );
 
   const onPortal = useCallback(
@@ -234,7 +278,7 @@ export function GameShell(props: GameShellProps) {
       if (p.lift) {
         setSpot(null);
         setOverlay("lift");
-      } else void goTo(() => travelPortalAction(p.id));
+      } else void goTo(() => travelPortalAction(p.id), { scene: p.to, arrive: p.arrive });
     },
     [goTo],
   );
@@ -251,7 +295,8 @@ export function GameShell(props: GameShellProps) {
   }, []);
   // In My Workspace, show what the person has bought. Fetched on entering the room and again after Buy mode closes.
   useEffect(() => {
-    if (sceneId !== WORKSPACE_ID || overlay === "buy") return;
+    if (overlay === "buy" || (sceneId !== WORKSPACE_ID && decorFetched.current)) return;
+    decorFetched.current = true;
     let live = true;
     void getDecorAction().then((v) => live && setDecorView(v));
     return () => {
@@ -260,8 +305,21 @@ export function GameShell(props: GameShellProps) {
   }, [sceneId, overlay]);
   const drawScene = useMemo(() => {
     if (!decorView || scene.id !== WORKSPACE_ID) return scene;
-    return withDecor(scene, decorView.decor.placed, new Map(decorView.items.map((i) => [i.id, i])));
-  }, [scene, decorView]);
+    // The item being moved is drawn once, as the ghost
+    const placed: { item: string; x: number; y: number; rot?: number; tint?: string }[] = decorView.decor.placed.filter((p) => p.uid !== ghost?.uid);
+    if (ghost) placed.push({ item: ghost.item, x: ghost.x, y: ghost.y, rot: ghost.rot, tint: ghost.ok ? "#8fe3a0" : "#f0a199" });
+    return withDecor(scene, placed, new Map(decorView.items.map((i) => [i.id, i])));
+  }, [scene, decorView, ghost]);
+
+  // Open Buy mode over the live room: go to My Workspace first when somewhere else
+  const openBuy = useCallback(async () => {
+    setSpot(null);
+    if (sceneId === WORKSPACE_ID) {
+      setOverlay("buy");
+      return;
+    }
+    if (await goTo(() => travelMapAction(WORKSPACE_ID), spawnOf(WORKSPACE_ID))) setOverlay("buy");
+  }, [sceneId, goTo]);
 
   const onRotate = useCallback((by: 1 | -1) => setRotation((r) => nextQuarter(r, by)), []);
   const closeAll = useCallback(() => {
@@ -299,7 +357,7 @@ export function GameShell(props: GameShellProps) {
       else if (k === "s") openMe("needs");
       else if (k === "e") openMe("people");
       else if (k === "?") setOverlay((o) => (o === "keys" ? null : "keys"));
-      else if (k === "h") void goTo(() => travelMapAction("ikoyi-floor"));
+      else if (k === "h") void goTo(() => travelMapAction(WORKSPACE_ID), spawnOf(WORKSPACE_ID));
       else return;
       e.preventDefault();
     };
@@ -319,7 +377,7 @@ export function GameShell(props: GameShellProps) {
     <div className="game">
       <WorldCanvas scene={drawScene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
 
-      {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || overlay === "lift" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
+      {anyOpen && !touring && overlay !== "buy" ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || overlay === "lift" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
@@ -341,11 +399,13 @@ export function GameShell(props: GameShellProps) {
           </header>
 
           <aside className="hud-left">
+            {overlay !== "buy" ? (
             <div className="venue">
               <p className="eyebrow">{building?.name ?? "Meristem"}</p>
               <h2>{scene.name}</h2>
               <p className="muted">{scene.subtitle}</p>
             </div>
+            ) : null}
             <button type="button" className="status" onClick={() => openMe("needs")} title="Your needs, goals and profile (S)" aria-label="Open my needs">
               <span className="avatar-badge" aria-hidden="true">{initials(name)}</span>
               <span className="needs">
@@ -367,11 +427,11 @@ export function GameShell(props: GameShellProps) {
           </aside>
 
           <nav className="hud-nav" aria-label="Game menu">
-            <button type="button" className="nav-btn nav-active" onClick={() => void goTo(() => travelMapAction(WORKSPACE_ID))}>
+            <button type="button" className="nav-btn nav-active" onClick={() => void goTo(() => travelMapAction(WORKSPACE_ID), spawnOf(WORKSPACE_ID))}>
               <span aria-hidden="true">🏢</span>
               {terms.workspace}
             </button>
-            <button type="button" className="nav-btn" onClick={() => setOverlay(overlay === "buy" ? null : "buy")} title="Buy things for your Workspace">
+            <button type="button" className="nav-btn" onClick={() => (overlay === "buy" ? setOverlay(null) : void openBuy())} title="Buy things for your Workspace">
               <span aria-hidden="true">🪑</span>
               Desk items
             </button>
@@ -479,7 +539,7 @@ export function GameShell(props: GameShellProps) {
             {spot.kind === "workspace" ? (
               <>
                 <div className="activity locked"><strong>Start my day</strong><span className="muted">Coming next</span></div>
-                <button type="button" className="activity" onClick={() => { setSpot(null); setOverlay("buy"); }}><strong>Customise my desk</strong><span className="muted">Buy and place things</span></button>
+                <button type="button" className="activity" onClick={() => void openBuy()}><strong>Customise my desk</strong><span className="muted">Buy and place things</span></button>
               </>
             ) : game.spots[spot.kind] ? (
               <button type="button" className="activity" onClick={() => void runGame(() => spotAction(spot.kind))} disabled={(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt}>
@@ -529,6 +589,7 @@ export function GameShell(props: GameShellProps) {
           sceneName={scene.name}
           onClaim={(id) => void runGame(() => claimMissionAction(id))}
           onClaimBonus={() => void runGame(() => claimBonusAction())}
+          onSwap={(id) => void runGame(() => swapMissionAction(id))}
           people={scene.npcs}
           onPerson={onNpc}
           path={props.path}
@@ -582,7 +643,7 @@ export function GameShell(props: GameShellProps) {
 
       {!touring ? <ShiftHud hidden={clean || (overlay !== null && overlay !== "map")} onPoints={() => void gameStateAction().then((g) => setGame(g))} onUpdate={() => void gameStateAction().then((g) => setGame(g))} /> : null}
 
-      {overlay === "buy" ? <BuyMode pointsLabel={terms.points} onPoints={(n) => setGame((g) => ({ ...g, points: n }))} onClose={() => setOverlay(null)} /> : null}
+      {overlay === "buy" ? <BuyMode initial={decorView} pointsLabel={terms.points} onPoints={(n) => setGame((g) => ({ ...g, points: n }))} onClose={() => { setGhost(null); setOverlay(null); }} onView={setDecorView} onGhost={setGhost} /> : null}
 
       {overlay === "academy" ? (
         <div className="academy-screen" role="dialog" aria-label={terms.academy}>
@@ -606,14 +667,14 @@ export function GameShell(props: GameShellProps) {
           onGo={() => {
             const id = place;
             setPlace(null);
-            void goTo(() => travelMapAction(id));
+            void goTo(() => travelMapAction(id), spawnOf(id));
           }}
           onClose={() => setPlace(null)}
         />
       ) : null}
 
       {overlay === "lift" && building ? (
-        <LiftPanel building={building} scenes={Object.values(SCENES)} hereLevel={scene.level} status={props.floorStatus} busy={busy} onPick={(id) => void goTo(() => travelMapAction(id))} onClose={() => setOverlay(null)} />
+        <LiftPanel building={building} scenes={Object.values(SCENES)} hereLevel={scene.level} status={props.floorStatus} busy={busy} onPick={(id) => void goTo(() => travelMapAction(id), spawnOf(id))} onClose={() => setOverlay(null)} />
       ) : null}
 
       {touring ? <Tour firstName={name.split(" ")[0] || "there"} path={props.path} session={props.session} onDone={finishTour} /> : null}

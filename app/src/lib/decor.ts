@@ -25,7 +25,12 @@ export interface PlacedItem {
   item: string;
   x: number;
   y: number;
+  /** 1 when turned a quarter, so its width and depth swap. */
+  rot?: 0 | 1;
 }
+
+/** The floor space an item takes, allowing for a turn. */
+export const footprint = (it: { w: number; d: number }, rot?: number): { w: number; d: number } => (rot === 1 ? { w: it.d, d: it.w } : { w: it.w, d: it.d });
 
 export interface DecorState {
   owned: Record<string, number>;
@@ -36,18 +41,21 @@ export interface DecorState {
 
 export const EMPTY_DECOR: DecorState = { owned: {}, placed: [], mode: "grid" };
 
-const fits = (it: DecorItem, x: number, y: number, gridW: number, gridD: number) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x + it.w <= gridW && y + it.d <= gridD;
+const fits = (f: { w: number; d: number }, x: number, y: number, gridW: number, gridD: number) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x + f.w <= gridW && y + f.d <= gridD;
 
 const overlaps = (a: { x: number; y: number; w: number; d: number }, b: { x: number; y: number; w: number; d: number }) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.d && b.y < a.y + a.d;
 
 /** Whether an item may stand with its top-left tile at (x, y): inside the room and not on anything else. */
-export function canPlace(placed: PlacedItem[], byId: Map<string, DecorItem>, gridW: number, gridD: number, item: DecorItem, x: number, y: number, ignoreUid?: string): boolean {
-  if (!fits(item, x, y, gridW, gridD)) return false;
-  const me = { x, y, w: item.w, d: item.d };
+export function canPlace(placed: PlacedItem[], byId: Map<string, DecorItem>, gridW: number, gridD: number, item: DecorItem, x: number, y: number, ignoreUid?: string, rot?: number): boolean {
+  const f = footprint(item, rot);
+  if (!fits(f, x, y, gridW, gridD)) return false;
+  const me = { x, y, w: f.w, d: f.d };
   return !placed.some((p) => {
     if (p.uid === ignoreUid) return false;
     const other = byId.get(p.item);
-    return other ? overlaps(me, { x: p.x, y: p.y, w: other.w, d: other.d }) : false;
+    if (!other) return false;
+    const of = footprint(other, p.rot);
+    return overlaps(me, { x: p.x, y: p.y, w: of.w, d: of.d });
   });
 }
 
@@ -84,9 +92,10 @@ export function cleanDecor(raw: unknown, byId: Map<string, DecorItem>, gridW: nu
   for (const p of Array.isArray(r.placed) ? r.placed : []) {
     const it = typeof p?.item === "string" ? byId.get(p.item) : undefined;
     if (!it || typeof p.uid !== "string" || (used[it.id] ?? 0) >= (owned[it.id] ?? 0)) continue;
-    if (!canPlace(placed, byId, gridW, gridD, it, p.x, p.y)) continue;
+    const rot = p.rot === 1 ? 1 : 0;
+    if (!canPlace(placed, byId, gridW, gridD, it, p.x, p.y, undefined, rot)) continue;
     used[it.id] = (used[it.id] ?? 0) + 1;
-    placed.push({ uid: p.uid, item: it.id, x: p.x, y: p.y });
+    placed.push({ uid: p.uid, item: it.id, x: p.x, y: p.y, rot });
   }
   return { owned, placed, mode: r.mode === "auto" ? "auto" : "grid" };
 }

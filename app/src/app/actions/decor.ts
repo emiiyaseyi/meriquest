@@ -1,7 +1,7 @@
 "use server";
 
 import { requireUser } from "@/lib/server/auth/dal";
-import { buyItem, getDecor, moveItem, placeItem, removeItem, setDecorMode, type DecorResult, type DecorView } from "@/lib/server/decor/service";
+import { buyAndPlace, buyItem, getDecor, moveItem, placeItem, removeItem, setDecorMode, type DecorResult, type DecorView } from "@/lib/server/decor/service";
 
 /* Every action re-checks the signed-in user: Server Actions can be called directly. */
 
@@ -15,14 +15,19 @@ export async function buyItemAction(itemId: string): Promise<DecorResult> {
   return buyItem(user, String(itemId));
 }
 
-export async function placeItemAction(itemId: string, x: number, y: number): Promise<DecorResult> {
+export async function placeItemAction(itemId: string, x: number, y: number, rot: number = 0): Promise<DecorResult> {
   const user = await requireUser();
-  return placeItem(user, String(itemId), x, y);
+  return placeItem(user, String(itemId), x, y, Date.now(), rot);
 }
 
-export async function moveItemAction(uid: string, x: number, y: number): Promise<DecorResult> {
+export async function buyAndPlaceAction(itemId: string, x: number, y: number, rot: number = 0): Promise<DecorResult> {
   const user = await requireUser();
-  return moveItem(user, String(uid), x, y);
+  return buyAndPlace(user, String(itemId), x, y, rot);
+}
+
+export async function moveItemAction(uid: string, x: number, y: number, rot?: number): Promise<DecorResult> {
+  const user = await requireUser();
+  return moveItem(user, String(uid), x, y, Date.now(), rot);
 }
 
 export async function removeItemAction(uid: string): Promise<DecorResult> {

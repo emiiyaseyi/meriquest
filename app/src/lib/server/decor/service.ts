@@ -84,24 +84,44 @@ export function buyItem(user: Pick<UserDTO, "staffId">, itemId: string, now: num
   });
 }
 
-export function placeItem(user: Pick<UserDTO, "staffId">, itemId: string, x: unknown, y: unknown, now: number = Date.now()): Promise<DecorResult> {
+const turn = (r: unknown): 0 | 1 => (r === 1 ? 1 : 0);
+
+/** Buy an item and put it down in one step, as the placing panel does: a copy already owned is used first, otherwise it is bought. */
+export function buyAndPlace(user: Pick<UserDTO, "staffId">, itemId: string, x: unknown, y: unknown, rot: unknown, now: number = Date.now()): Promise<DecorResult> {
+  return change(user, now, (d, p, cfg, byId) => {
+    const it = byId.get(itemId);
+    if (!it) return "That item is not in the catalogue.";
+    if (d.placed.length >= cfg.settings.maxPlaced) return `Your Workspace is full (${cfg.settings.maxPlaced} things).`;
+    const r = turn(rot);
+    if (typeof x !== "number" || typeof y !== "number" || !canPlace(d.placed, byId, cfg.settings.gridW, cfg.settings.gridD, it, x, y, undefined, r)) return "That spot is not free.";
+    const have = (d.owned[it.id] ?? 0) > placedCount(d, it.id);
+    if (!have && p.points < it.price) return `You need ${it.price} Merit points for the ${it.name}.`;
+    if (!have && (d.owned[it.id] ?? 0) >= 20) return "You already have plenty of those.";
+    const owned = have ? d.owned : { ...d.owned, [it.id]: (d.owned[it.id] ?? 0) + 1 };
+    return { decor: { ...d, owned, placed: [...d.placed, { uid: newUid(), item: it.id, x, y, rot: r }] }, points: have ? p.points : p.points - it.price, message: have ? `Placed the ${it.name}.` : `You bought the ${it.name} and placed it.` };
+  });
+}
+
+export function placeItem(user: Pick<UserDTO, "staffId">, itemId: string, x: unknown, y: unknown, now: number = Date.now(), rot?: unknown): Promise<DecorResult> {
   return change(user, now, (d, _p, cfg, byId) => {
     const it = byId.get(itemId);
     if (!it) return "That item is not in the catalogue.";
     if ((d.owned[it.id] ?? 0) <= placedCount(d, it.id)) return "You have none of those left to place. Buy another, or take one out of the room first.";
     if (d.placed.length >= cfg.settings.maxPlaced) return `Your Workspace is full (${cfg.settings.maxPlaced} things).`;
-    if (typeof x !== "number" || typeof y !== "number" || !canPlace(d.placed, byId, cfg.settings.gridW, cfg.settings.gridD, it, x, y)) return "That spot is not free.";
-    return { decor: { ...d, placed: [...d.placed, { uid: newUid(), item: it.id, x, y }] }, message: `Placed the ${it.name}.` };
+    const r = turn(rot);
+    if (typeof x !== "number" || typeof y !== "number" || !canPlace(d.placed, byId, cfg.settings.gridW, cfg.settings.gridD, it, x, y, undefined, r)) return "That spot is not free.";
+    return { decor: { ...d, placed: [...d.placed, { uid: newUid(), item: it.id, x, y, rot: r }] }, message: `Placed the ${it.name}.` };
   });
 }
 
-export function moveItem(user: Pick<UserDTO, "staffId">, uid: string, x: unknown, y: unknown, now: number = Date.now()): Promise<DecorResult> {
+export function moveItem(user: Pick<UserDTO, "staffId">, uid: string, x: unknown, y: unknown, now: number = Date.now(), rot?: unknown): Promise<DecorResult> {
   return change(user, now, (d, _p, cfg, byId) => {
     const at = d.placed.find((p) => p.uid === uid);
     const it = at ? byId.get(at.item) : undefined;
     if (!at || !it) return "That item is not in your Workspace.";
-    if (typeof x !== "number" || typeof y !== "number" || !canPlace(d.placed, byId, cfg.settings.gridW, cfg.settings.gridD, it, x, y, uid)) return "That spot is not free.";
-    return { decor: { ...d, placed: d.placed.map((p) => (p.uid === uid ? { ...p, x, y } : p)) }, message: `Moved the ${it.name}.` };
+    const r = rot === undefined ? turn(at.rot) : turn(rot);
+    if (typeof x !== "number" || typeof y !== "number" || !canPlace(d.placed, byId, cfg.settings.gridW, cfg.settings.gridD, it, x, y, uid, r)) return "That spot is not free.";
+    return { decor: { ...d, placed: d.placed.map((p) => (p.uid === uid ? { ...p, x, y, rot: r } : p)) }, message: `Moved the ${it.name}.` };
   });
 }
 

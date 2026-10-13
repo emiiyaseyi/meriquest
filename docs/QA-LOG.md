@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M7c: Buy mode over the live room, Today's Hustle upgrades, leadership simulator and speed (13 Oct 2026)
+Scope: (1) Buy mode now keeps the live Workspace room on screen with the Catalogue sliding up over it, like the reference: pick an item, a ghost appears in the room, move it with the arrows or keys, turn it, then Place, Place + 1 more or Cancel; things are bought when placed; "In storage" and "In my room" tabs; cards are aligned (size and stars, picture, name, help line, price in the same places). (2) Goals tab: 7-day streak with reward days, a daily mission swap, Easy/Medium/Hard tags and a "New missions in" countdown. (3) Leadership simulator in the Academy: meters, decisions with consequences, rating and points; admin-editable. (4) Speed, owner request "instant in the browser, server stays the judge": moving between rooms is instant in the browser and confirmed by the server in the background (put back if refused); room activity timers start at once; settings are cached in the server for 15 seconds (cleared at once when an admin saves); Buy mode opens with data loaded ahead.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 475 tests: rotation and buy-and-place rules, streak and swaps, leadership rules and runs |
+| 3 | Authorisation and validation | **Pass** | Server still decides price, ownership, bounds, points, streak and ratings; browser only predicts and is corrected |
+| 4 | Real browser | **Pass** | Throwaway user: Catalogue over the live room, ghost placed with arrow keys and R, Place charges points, price rows aligned, no horizontal scroll, no console errors |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Notes: RULEBOOK 2.8 (server-authoritative scoring) is kept: the owner chose the "instant in the browser, server stays the judge" option. Each database trip from the development computer takes about half a second to a second, so server actions still take 2 to 7 seconds in development; hosting the database in the same region as Vercel is the main remaining fix. The leadership simulator and Hustle upgrades were checked by tests only, not yet in a browser.
+
+---
+
 ## M7b: Bought items shown in My Workspace (13 Oct 2026)
 Scope: a new room, My Workspace (reached from the Workspace button, the open-plan floor, or the map); what the person buys and places in Buy mode is drawn into the room in both the 3D and Lite views; the decoration area is limited to the room size (at most 10 by 8 tiles). Things are walk-through, so nobody can be boxed in.
 

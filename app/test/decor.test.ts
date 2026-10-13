@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { buyItem, getDecor, moveItem, placeItem, ratesFor, removeItem, setDecorMode } from "@/lib/server/decor/service";
+import { buyAndPlace, buyItem, getDecor, moveItem, placeItem, ratesFor, removeItem, setDecorMode } from "@/lib/server/decor/service";
 import { getConfig } from "@/lib/server/config/registry";
 import { getStore } from "@/lib/server/store";
 import { getOrCreatePlayer, type PlayerRecord } from "@/lib/server/world/service";
@@ -83,6 +83,41 @@ describe("Workspace decoration", () => {
     await getStore().update<PlayerRecord>("players", me.staffId, (cur) => (cur ? ({ ...cur, decor: { owned: { palm: -3, ghost: 5 }, placed: [{ uid: "x", item: "palm", x: 0, y: 0 }], mode: "evil" } } as unknown as PlayerRecord) : cur));
     const v = await getDecor(me);
     expect(v.decor).toEqual({ owned: {}, placed: [], mode: "grid" });
+  });
+});
+
+describe("placing panel: buy and place, and turning", () => {
+  beforeEach(async () => {
+    await freshWorld();
+  });
+
+  it("buys and places in one step, only when the spot is free and the points are enough", async () => {
+    await withPoints(10);
+    expect((await buyAndPlace(me, "standing-desk", 0, 0, 0, NOW)).ok).toBe(false); // costs 24
+    const r = await buyAndPlace(me, "plain-desk", 0, 0, 0, NOW);
+    expect(r.ok && r.view.points).toBe(4);
+    expect(r.ok && r.view.decor.placed).toHaveLength(1);
+    expect((await buyAndPlace(me, "pen-tray", 1, 0, 0, NOW)).ok).toBe(false); // on the desk, and nothing is charged
+    expect((await getDecor(me)).points).toBe(4);
+  });
+
+  it("uses a copy already owned instead of charging again", async () => {
+    await withPoints(20);
+    await buyItem(me, "rug", NOW);
+    const before = (await getDecor(me)).points;
+    const r = await buyAndPlace(me, "rug", 0, 0, 0, NOW);
+    expect(r.ok && r.view.points).toBe(before);
+  });
+
+  it("swaps the footprint when turned, and keeps turned things apart", async () => {
+    await withPoints(100);
+    const a = await buyAndPlace(me, "plain-desk", 7, 0, 1, NOW); // 2x1 turned is 1x2: fits at the edge
+    expect(a.ok).toBe(true);
+    expect((await buyAndPlace(me, "plain-desk", 7, 0, 0, NOW)).ok).toBe(false); // 2 wide would leave the room
+    expect((await buyAndPlace(me, "pen-tray", 7, 1, 0, NOW)).ok).toBe(false); // the turned desk covers (7,1)
+    expect((await buyAndPlace(me, "pen-tray", 6, 1, 0, NOW)).ok).toBe(true);
+    const uid = (await getDecor(me)).decor.placed[0].uid;
+    expect((await moveItem(me, uid, 0, 0, NOW, 0)).ok).toBe(true); // turned back and moved
   });
 });
 

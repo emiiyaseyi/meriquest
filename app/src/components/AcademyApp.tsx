@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { academyHomeAction, attendAction, caseAction, courseAction, notesAction, quizAction, scenarioAction, scenarioAnswerAction, submitQuizAction } from "@/app/actions/academy";
 import { LEVEL_NAME, type AcademyHome, type CaseView, type CourseCard, type CourseView, type LessonNotes, type Level, type QuizResult, type QuizSet, type ScenarioOutcome, type ScenarioPlay } from "@/lib/academy";
 
+import { LeadershipSim } from "@/components/LeadershipSim";
+
 type View =
   | { kind: "home" }
+  | { kind: "lead" }
   | { kind: "course"; id: string }
   | { kind: "notes"; course: string; lesson: string }
   | { kind: "quiz"; course: string; lesson: string }
@@ -133,6 +136,8 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
   const err = error ? <p className="error" role="alert">{error}</p> : null;
 
   /* ------------------------------------- home ------------------------------------- */
+  if (view.kind === "lead") return wrap(<LeadershipSim onBack={() => go({ kind: "home" })} />);
+
   if (view.kind === "home") {
     const byGroup = home ? [...home.groups.map((g) => ({ ...g, courses: home.courses.filter((c) => c.group === g.id) })), { id: "", label: "More courses", icon: "📚", courses: home.courses.filter((c) => !home.groups.some((g) => g.id === c.group)) }].filter((g) => g.courses.length > 0) : [];
     return wrap(
@@ -152,6 +157,10 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
         ) : null}
         {err}
         {!home ? <p className="phone-note">Loading…</p> : null}
+        <button type="button" className="ac-lead-card" onClick={() => go({ kind: "lead" })}>
+          <span className="ac-icon" aria-hidden="true">🧭</span>
+          <span><strong>Leadership simulator</strong><span className="muted small"> Make people-management decisions and see what they do to your team, delivery, clients and compliance</span></span>
+        </button>
         {byGroup.map((g) => (
           <section key={g.id} className="ac-group">
             <h4><span aria-hidden="true">{g.icon}</span> {g.label}</h4>

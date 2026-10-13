@@ -8,6 +8,7 @@ import { cleanLook, cleanNeeds, defaultLook, DEFAULT_NEEDS, type Needs } from "@
 import { cleanProgress, type StoredFeeling } from "@/lib/game";
 import type { DecorState } from "@/lib/decor";
 import type { ShiftRecord } from "@/lib/shift";
+import type { Streak } from "@/lib/game";
 import { floorBlock } from "@/lib/world/access";
 import { getConfig } from "../config/registry";
 import { recordEvent } from "../game/missions";
@@ -38,6 +39,10 @@ export interface PlayerRecord {
   /** The work shift in progress, and how many have been started today. */
   shift?: ShiftRecord;
   shiftDay?: { day: string; count: number };
+  /** The leadership simulator: runs started today, and the run in progress. */
+  lead?: { day: string; count: number; run?: { ids: string[]; idx: number; meters: Record<string, number>; seed: number } };
+  /** Days in a row the person has checked in. */
+  streak?: Streak;
   /** A timed activity in the location bar that is running. */
   activity?: { key: string; endsAt: number };
   /** True once the person has finished or skipped the welcome tour. */

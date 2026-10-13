@@ -12,6 +12,8 @@ export interface MissionDay {
   progress: Record<string, number>;
   claimed: Record<string, boolean>;
   bonusClaimed: boolean;
+  /** Missions swapped today. */
+  swaps?: number;
 }
 
 export async function ensureMissionDay(staffId: string, now: number): Promise<MissionDay> {

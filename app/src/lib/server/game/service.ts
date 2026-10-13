@@ -9,7 +9,9 @@ import { ratesFor } from "../decor/service";
 import { ensureMissionDay, recordEvent, type MissionDay } from "./missions";
 import { notify, unreadCount } from "../notices/service";
 import { getScene } from "@/lib/world/scenes";
-import { applyEffects, decayNeeds, effectTags, skillStanding, type Effects, type SkillStanding } from "@/lib/game";
+import { localTime } from "@/lib/workfirst";
+import { hashString, seeded } from "@/lib/iso/geometry";
+import { applyEffects, decayNeeds, dayKey, effectTags, missionLevel, nextStreak, streakDay, skillStanding, type Effects, type SkillStanding } from "@/lib/game";
 import { NEED_KEYS, type NeedKey } from "@/lib/world/player";
 import { SCENES } from "@/lib/world/scenes";
 import type { Needs } from "@/lib/world/player";
@@ -34,8 +36,20 @@ export interface MissionView {
   progress: number;
   target: number;
   rewardPoints: number;
+  level: "Easy" | "Medium" | "Hard";
   done: boolean;
   claimed: boolean;
+  /** True when it can still be swapped for another. */
+  canSwap: boolean;
+}
+
+export interface StreakView {
+  count: number;
+  best: number;
+  /** Today's place in the 7-day track. */
+  day: number;
+  checkedInToday: boolean;
+  track: { day: number; points: number; done: boolean }[];
 }
 
 export interface InteractionView {
@@ -52,7 +66,8 @@ export interface GameState {
   points: number;
   feelings: Feeling[];
   skills: SkillStanding[];
-  plan: { day: string; missions: MissionView[]; allDone: boolean; bonusPoints: number; bonusClaimed: boolean };
+  plan: { day: string; missions: MissionView[]; allDone: boolean; bonusPoints: number; bonusClaimed: boolean; /** When new missions arrive (epoch ms). */ newAt: number; swapsLeft: number };
+  streak: StreakView;
   interactions: InteractionView[];
   /** Places that recharge needs, by the kind of hotspot. */
   spots: Record<string, { label: string; icon: string; tags: string[]; cooldownMinutes: number }>;
@@ -96,21 +111,33 @@ async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
 
 async function view(player: PlayerRecord, mission: MissionDay, now: number): Promise<GameState> {
   const unread = await unreadCount(player);
-  const gameplay = await getConfig("gameplay");
+  const [gameplay, work] = await Promise.all([getConfig("gameplay"), getConfig("workFirst")]);
   const skills = gameplay.skills.map((s) => skillStanding(s, player.skillXp?.[s.id] ?? 0));
   const missions: MissionView[] = mission.picks.flatMap((id) => {
     const m = gameplay.missions.find((x) => x.id === id);
     if (!m) return [];
     const progress = Math.min(m.target, mission.progress[id] ?? 0);
-    return [{ id, title: m.title, description: m.description, progress, target: m.target, rewardPoints: m.rewardPoints, done: progress >= m.target, claimed: mission.claimed[id] === true }];
+    return [{ id, title: m.title, description: m.description, progress, target: m.target, rewardPoints: m.rewardPoints, level: missionLevel(m.rewardPoints), done: progress >= m.target, claimed: mission.claimed[id] === true, canSwap: progress === 0 && mission.claimed[id] !== true && (mission.swaps ?? 0) < gameplay.swapsPerDay }];
   });
+  const today = dayKey(now, work.timezone);
+  const streak = player.streak && (player.streak.last === today || player.streak.last === dayKey(now - 86_400_000, work.timezone)) ? player.streak : undefined;
+  const checked = player.streak?.last === today;
+  const cycleDay = streak ? streakDay(streak.count) : 0;
+  const lt = localTime(now, work.timezone);
   const cooldowns = Object.fromEntries(Object.entries(player.cooldowns ?? {}).filter(([, until]) => until > now));
   return {
     needs: player.needs,
     points: player.points,
     feelings: (player.feelings ?? []).slice(0, MAX_FEELINGS),
     skills,
-    plan: { day: mission.day, missions, allDone: missions.length > 0 && missions.every((m) => m.done), bonusPoints: gameplay.dailyBonusPoints, bonusClaimed: mission.bonusClaimed },
+    plan: { day: mission.day, missions, allDone: missions.length > 0 && missions.every((m) => m.done), bonusPoints: gameplay.dailyBonusPoints, bonusClaimed: mission.bonusClaimed, newAt: now + (1440 - lt.minutes) * 60_000, swapsLeft: Math.max(0, gameplay.swapsPerDay - (mission.swaps ?? 0)) },
+    streak: {
+      count: streak?.count ?? 0,
+      best: player.streak?.best ?? 0,
+      day: cycleDay,
+      checkedInToday: checked,
+      track: Array.from({ length: 7 }, (_, i) => ({ day: i + 1, points: gameplay.streakRewards.find((r) => r.day === i + 1)?.points ?? 0, done: streak !== undefined && i + 1 <= cycleDay })),
+    },
     interactions: gameplay.interactions.map((i) => ({ id: i.id, label: i.label, icon: i.icon, tags: effectTags(i.effects), cost: i.cost, cooldownMinutes: i.cooldownMinutes })),
     spots: Object.fromEntries(gameplay.spots.map((s) => [s.kind, { label: s.label, icon: s.icon, tags: effectTags(s.effects), cooldownMinutes: s.cooldownMinutes }])),
     recharge: rechargeHints(gameplay),
@@ -119,9 +146,59 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
   };
 }
 
+/** Check in for today: the streak grows (or starts again) and a day with a reward pays it, once. */
+async function checkIn(staffId: string, now: number): Promise<void> {
+  const [gameplay, work] = await Promise.all([getConfig("gameplay"), getConfig("workFirst")]);
+  const today = dayKey(now, work.timezone);
+  const yesterday = dayKey(now - 86_400_000, work.timezone);
+  let reward = 0;
+  let count = 0;
+  await getStore().update<PlayerRecord>("players", staffId, (cur) => {
+    if (!cur || cur.streak?.last === today) return cur;
+    const streak = nextStreak(cur.streak, today, yesterday);
+    count = streak.count;
+    reward = gameplay.streakRewards.find((r) => r.day === streakDay(streak.count))?.points ?? 0;
+    return { ...cur, streak, points: cur.points + reward, updatedAt: now };
+  });
+  if (reward > 0) await notify(staffId, { icon: "🔥", text: `Day ${count} streak. +${reward} Merit points.`, tone: "good" }, now);
+}
+
 export async function getGameState(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<GameState> {
+  await getOrCreatePlayer(user, now);
+  await checkIn(user.staffId, now);
   const player = await applyDecay(user.staffId, now);
   return view(player, await ensureMissionDay(user.staffId, now), now);
+}
+
+/** Swap a mission you have not started for another one, up to the daily number of free swaps. */
+export async function swapMission(user: Pick<UserDTO, "staffId">, missionId: unknown, now: number = Date.now()): Promise<ActionResult> {
+  if (typeof missionId !== "string" || missionId.length > 41) return { ok: false, error: "That mission is not in today's plan." };
+  const gameplay = await getConfig("gameplay");
+  const doc = await ensureMissionDay(user.staffId, now);
+  let refusal: string | null = null;
+  await getStore().update<MissionDay>("missions", doc.id, (cur) => {
+    if (!cur || !cur.picks.includes(missionId)) {
+      refusal = "That mission is not in today's plan.";
+      return cur;
+    }
+    if ((cur.swaps ?? 0) >= gameplay.swapsPerDay) {
+      refusal = "You have used today's free swap.";
+      return cur;
+    }
+    if (cur.claimed[missionId] || (cur.progress[missionId] ?? 0) > 0) {
+      refusal = "You can only swap a mission you have not started.";
+      return cur;
+    }
+    const options = gameplay.missions.filter((m) => !cur.picks.includes(m.id));
+    if (options.length === 0) {
+      refusal = "There is no other mission to swap to.";
+      return cur;
+    }
+    const pick = options[Math.floor(seeded(hashString(`${cur.id}|swap|${cur.swaps ?? 0}|${missionId}`))() * options.length) % options.length];
+    return { ...cur, picks: cur.picks.map((id) => (id === missionId ? pick.id : id)), swaps: (cur.swaps ?? 0) + 1 };
+  });
+  if (refusal) return { ok: false, error: refusal };
+  return { ok: true, state: await getGameState(user, now), message: "Swapped for a new mission." };
 }
 
 async function guard(user: Pick<UserDTO, "staffId" | "unit" | "role">, now: number): Promise<string | null> {

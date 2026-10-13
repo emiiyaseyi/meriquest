@@ -14,8 +14,28 @@ export interface ConfigHistoryEntry extends StoredConfig {
   key: string;
 }
 
+/**
+ * A short memory of settings in this server process. Settings change rarely and almost every action reads several,
+ * so reading them from the database each time was the biggest cost. A change made by an admin clears it at once
+ * on that server and is picked up everywhere else within a few seconds.
+ */
+const CACHE_MS = process.env.NODE_ENV === "test" ? 0 : 15_000;
+const g = globalThis as unknown as { __mqConfigCache?: Map<string, { at: number; value: unknown }> };
+const cache = (g.__mqConfigCache ??= new Map());
+export const clearConfigCache = () => cache.clear();
+
 /** Current value of a config key: the admin's saved value, or the seeded default. */
 export async function getConfig<K extends ConfigKey>(key: K): Promise<ConfigValue<K>> {
+  if (CACHE_MS > 0) {
+    const hit = cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_MS) return hit.value as ConfigValue<K>;
+  }
+  const value = await readConfig(key);
+  if (CACHE_MS > 0) cache.set(key, { at: Date.now(), value });
+  return value;
+}
+
+async function readConfig<K extends ConfigKey>(key: K): Promise<ConfigValue<K>> {
   const def = CONFIG[key];
   const stored = await getStore().get<StoredConfig>("config", key);
   if (stored) {
@@ -74,6 +94,7 @@ export async function setConfig(
     updatedAt: now,
     updatedBy: actorStaffId,
   }));
+  clearConfigCache();
   const version = saved?.version ?? 1;
   await getStore().put<ConfigHistoryEntry>("config_history", `${key}@${version}`, {
     key,

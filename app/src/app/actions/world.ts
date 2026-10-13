@@ -3,7 +3,7 @@
 import { requireUser } from "@/lib/server/auth/dal";
 import { markToured, saveLook, travelByMap, travelByPortal, type TravelResult } from "@/lib/server/world/service";
 import { cancelActivity, completeActivity, getLocation, startActivity, type ActivityResult, type LocationView } from "@/lib/server/game/activities";
-import { claimDailyBonus, claimMission, getGameState, interact, visitSpot, type ActionResult, type GameState } from "@/lib/server/game/service";
+import { claimDailyBonus, claimMission, getGameState, interact, swapMission, visitSpot, type ActionResult, type GameState } from "@/lib/server/game/service";
 import type { Skin } from "@/lib/world/types";
 
 /* Every action re-checks the signed-in user: Server Actions can be called directly. */
@@ -51,6 +51,11 @@ export async function claimBonusAction(): Promise<ActionResult> {
 export async function gameStateAction(): Promise<GameState> {
   const user = await requireUser();
   return getGameState(user);
+}
+
+export async function swapMissionAction(missionId: string): Promise<ActionResult> {
+  const user = await requireUser();
+  return swapMission(user, missionId);
 }
 
 export async function locationAction(): Promise<LocationView | null> {
