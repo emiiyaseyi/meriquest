@@ -18,9 +18,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // Browser extensions add attributes to <html> before React loads; this only silences that one element
+    // Browser extensions add attributes to <html> before React loads; this only silences that one element (and the body, where Grammarly adds its own attributes)
     <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
