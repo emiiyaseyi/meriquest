@@ -335,6 +335,8 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 Reference: `docs/reference/meristem look and feel/` (the staff portal at meristudy.meristem.com.ng).
 - **Palette:** forest green `#2d5d41` for navigation and buttons; lime `#8db74e` for the active tab; sign-in gradient `#2f6244` to `#1d452b` with a pale card `#ebf1ed`; page `#f7f8f7`; alert tint `#fcf3f2`. Defined as CSS tokens in `app/src/app/globals.css`.
 - **Logo:** the Meristem wordmark with the leaf, white on green, full colour on light. Files in `app/public/brand/`. Use only via the `Logo` component.
+- **Never alter the logo.** The full-colour file is a byte-for-byte copy of the owner's original (`docs/reference/meristem look and feel/meristem logo.png`, 2676 x 664). The white version has the same size and artwork; only the dark-green parts turn white and the lime leaf keeps its colour. No recolouring, redrawing, stretching or cropping. (A first white version wrongly turned the lime leaf white; the owner caught it on 13 Oct 2026.)
+- **Light-only:** the portal has no dark mode, so MeriQuest has none.
 - **Style:** clean sans-serif, rounded cards, pill buttons, small uppercase section labels, green icons. The isometric game scenes use the same green palette.
 - Use of the logo and palette still needs Corporate Communications approval (§13 item 8).
 
