@@ -18,7 +18,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // Browser extensions add attributes to <html> before React loads; this only silences that one element
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
