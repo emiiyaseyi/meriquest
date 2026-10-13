@@ -61,3 +61,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Workspace decoration: Buy mode with Catalogue, place yourself or auto-place, items that help needs (admin-editable)
 - [ ] Show bought items inside the 3D Workspace room
 - [x] Break screen: countdown and a button to the Academy
+
+- [x] Go to work shift: shift card with timer, situations with scored choices, pay at the end, admin-editable length and situations
+- [ ] Commute ride (car, pool car, Uber) before a shift
+- [ ] Review the shift situations with the business owners

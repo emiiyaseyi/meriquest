@@ -7,6 +7,7 @@ import { FIRST_SCENE, getScene } from "@/lib/world/scenes";
 import { cleanLook, cleanNeeds, defaultLook, DEFAULT_NEEDS, type Needs } from "@/lib/world/player";
 import { cleanProgress, type StoredFeeling } from "@/lib/game";
 import type { DecorState } from "@/lib/decor";
+import type { ShiftRecord } from "@/lib/shift";
 import { floorBlock } from "@/lib/world/access";
 import { getConfig } from "../config/registry";
 import { recordEvent } from "../game/missions";
@@ -34,6 +35,9 @@ export interface PlayerRecord {
   cooldowns?: Record<string, number>;
   /** What they have bought for their Workspace, and where it stands. */
   decor?: DecorState;
+  /** The work shift in progress, and how many have been started today. */
+  shift?: ShiftRecord;
+  shiftDay?: { day: string; count: number };
   /** True once the person has finished or skipped the welcome tour. */
   toured?: boolean;
   updatedAt: number;

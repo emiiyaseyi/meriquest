@@ -13,6 +13,7 @@ import { AcademyApp } from "@/components/AcademyApp";
 import { PlaceCard } from "./PlaceCard";
 import { CityMap, type MapPick } from "./CityMap";
 import { BuyMode } from "./BuyMode";
+import { ShiftHud } from "./ShiftHud";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -326,7 +327,6 @@ export function GameShell(props: GameShellProps) {
               <p className="eyebrow">{building?.name ?? "Meristem"}</p>
               <h2>{scene.name}</h2>
               <p className="muted">{scene.subtitle}</p>
-              <button type="button" className="btn btn-sm" disabled title="Your work shift starts in the next update">Go to work · soon</button>
             </div>
             <button type="button" className="status" onClick={() => openMe("needs")} title="Your needs, goals and profile (S)" aria-label="Open my needs">
               <span className="avatar-badge" aria-hidden="true">{initials(name)}</span>
@@ -559,6 +559,8 @@ export function GameShell(props: GameShellProps) {
           </div>
         </div>
       ) : null}
+
+      {!touring ? <ShiftHud hidden={clean || (overlay !== null && overlay !== "map")} onPoints={() => void gameStateAction().then((g) => setGame(g))} onUpdate={() => void gameStateAction().then((g) => setGame(g))} /> : null}
 
       {overlay === "buy" ? <BuyMode pointsLabel={terms.points} onPoints={(n) => setGame((g) => ({ ...g, points: n }))} onClose={() => setOverlay(null)} /> : null}
 

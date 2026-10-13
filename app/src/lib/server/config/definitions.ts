@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DEFAULT_ACADEMY } from "./academy-content";
 import { parseVideo } from "@/lib/academy-video";
 import { DEFAULT_DECOR } from "./decor-content";
+import { DEFAULT_SHIFTS } from "./shift-content";
 import { NEED_KEYS } from "@/lib/world/player";
 
 /**
@@ -636,6 +637,44 @@ export const decorSchema = z
   .refine((d) => d.items.every((i) => d.categories.some((c) => c.id === i.category)), "Every item must belong to a category in the list")
   .refine((d) => d.items.every((i) => i.w <= d.settings.gridW && i.d <= d.settings.gridD), "An item is bigger than the room");
 
+export const shiftsSchema = z
+  .object({
+    settings: z
+      .object({
+        /** How long a shift lasts. Short by default; raise it for a longer shift. */
+        minutes: z.number().int().min(1).max(480),
+        tasksPerShift: z.number().int().min(1).max(12),
+        shiftsPerDay: z.number().int().min(1).max(10),
+        pointsBest: z.number().int().min(0).max(100),
+        pointsPartly: z.number().int().min(0).max(100),
+        completionBonus: z.number().int().min(0).max(200),
+        skillXpBest: z.number().int().min(0).max(20),
+      })
+      .strict(),
+    tasks: z
+      .array(
+        z
+          .object({
+            id: slug,
+            /** Units this is for, or "*" for everyone. */
+            units: z.array(z.string().min(1).max(30)).min(1).max(10),
+            title: z.string().min(1).max(80),
+            story: z.string().min(1).max(600),
+            skill: slug.optional(),
+            choices: z
+              .array(z.object({ text: z.string().min(1).max(300), verdict: z.enum(["best", "partly", "wrong"]), feedback: z.string().min(1).max(300) }).strict())
+              .min(2)
+              .max(4)
+              .refine((c) => c.some((x) => x.verdict === "best"), "One choice must be the best"),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(200)
+      .refine((t) => new Set(t.map((x) => x.id)).size === t.length, "Each situation needs its own id"),
+  })
+  .strict();
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -857,6 +896,13 @@ export const CONFIG = {
     description: "What people can buy with Merit points to decorate their Workspace: the room size, the tabs, and each item (size, stars, price, and an optional help to a need, as a share by which that need falls more slowly). People choose whether to place things themselves or have them placed.",
     schema: decorSchema,
     default: DEFAULT_DECOR,
+  },
+  shifts: {
+    label: "Work shifts",
+    group: "Content",
+    description: "Go to work: how long a shift lasts (minutes), how many situations come up, how many shifts a day, the points, and the situations themselves for each unit (use * for everyone). A shift is only paid when the person stays to the end.",
+    schema: shiftsSchema,
+    default: DEFAULT_SHIFTS,
   },
   floors: {
     label: "Floor access",

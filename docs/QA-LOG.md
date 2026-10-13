@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M4a: Go to work shifts (13 Oct 2026)
+Scope: a Go to work button starts a shift; a shift card shows the time left and progress; workplace situations appear through the shift, each with choices scored on the server; the shift pays Merit points and skill XP when the time is up, and leaving early pays nothing. Length (8 minutes by default, raisable up to a full day), situations per shift, shifts a day, points and the 21 starting situations (Customer Experience, Wealth Advisory, Investment Advisory and everyone) are admin settings.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 438 tests; shifts: valid content, drawing, spacing, hidden answers, one active shift, daily limit, server scoring once, pay only at the end, early leave pays nothing |
+| 3 | Authorisation and validation | **Pass** | Every action calls `requireUser`; verdicts and choice order are decided on the server; answers never reach the browser before answering; settings checked by a strict schema |
+| 4 | Real browser | **Pass** | Throwaway user: start a shift, card and countdown, situation pop-up, answer, result, no horizontal scroll on a phone, no console errors; user removed |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: the commute ride (car, pool car, Uber) is not built; situations are drafts for the business owners to review; a shift is not yet tied to Work First hours beyond the existing play gate.
+
+---
+
 ## M7a: Workspace decoration (Buy mode) and the break countdown (13 Oct 2026)
 Scope: Buy mode built from the reference: Workspace from above, Catalogue with tabs (Desk, Comfort, Plants, Tech, Wall art, Light), item cards with size, stars and price in Merit points; people choose to place things themselves on a tile grid or have them placed; some items slow how fast a need falls (capped, set by the admin); catalogue editable under Settings. The break screen now shows a live countdown and a button to go to the Academy.
 
