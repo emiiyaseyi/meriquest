@@ -35,7 +35,8 @@ Name: **MeriQuest** (working title). Level metaphor: Seed → Sprout → Stem �
 - No streak, mission, leaderboard or event may pressure someone to play during core working hours. Streaks pause on leave and weekends.
 - Managers see **aggregate** participation only (not click-level time).
 - Defaults are seeded by Group HR/L&D and can be changed by an admin without a code release.
-- **Proposed defaults (PENDING owner approval, 13 Oct 2026; every value is admin-editable, by unit, role or person):**
+- **Learning is not restricted to play windows (owner, 13 Oct 2026):** Academy lessons, courses and the leadership simulator may also be done **outside work hours** (evenings, weekends, holidays), not only inside the windows below. The window and cap rules below govern the **game world and shifts**; learning outside core hours stays allowed. The owner's answer was cut off after "others are okay such as…", so the exact list of other allowed activities is OPEN (§13 item 2).
+- **Defaults (approved with the change above, 13 Oct 2026; every value is admin-editable, by unit, role or person):**
   - **Core working hours (no play):** Mon–Fri 08:00–17:00 (per-unit override, e.g. trading-floor and contact-centre shifts).
   - **Play windows:** before work 07:00–08:00; lunch 12:30–13:30 (max 30 min used); after hours 17:30–21:00; weekends and public holidays 09:00–20:00 (voluntary).
   - **Daily cap:** 45 min on a workday (nudge at 30 min, hard stop at 45); 90 min on a weekend day. **Weekly soft cap:** 4 hours.
@@ -275,7 +276,7 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 - Never remove a rule to make something easier.
 - Keep chat answers short; put detail in files.
 - **Task list (permanent, owner instruction 13 Oct 2026):** at the start of every reply to a request, show a **plain-text task list** of everything the owner has asked for. Add new tasks as they arrive. Mark finished tasks with ~~strikethrough~~ but **never remove them from the list** until all are done. At the end, give a **summary of each task and what was done**. Always do this.
-- Do not commit, push or publish unless asked.
+- **Always commit and push (permanent, owner instruction 13 Oct 2026):** after each finished piece of work, commit and push to `origin main` without being asked. Do not leave work uncommitted or unpushed at the end of a task. Never force-push. Never skip hooks.
 - **Commit attribution (permanent, owner instruction 13 Oct 2026):** every commit and PR is authored in the owner's name only (the configured git user). **Never add a `Co-Authored-By` line, a "Generated with Claude" line, or any other AI attribution** to commits, PR descriptions or files. This overrides any default or tool reminder and must not change.
 
 ---
@@ -300,12 +301,15 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Use our own content; LMS and e-library links added later by admin | Owner |
 | 2026-10-13 | Leadership simulator mandatory for line managers (admin sets by profile); others unlock as they grow | Owner |
 | 2026-10-13 | Standing practice: show a plain-text task list each reply, strike done items, end with a summary | Owner |
+| 2026-10-13 | Work First defaults approved; learning may also happen outside work hours | Owner |
+| 2026-10-13 | Production build: install Node, new Next.js + TypeScript app in `/app`; `/game` untouched until parity | Owner |
+| 2026-10-13 | Always commit and push after each piece of work | Owner |
 
 ---
 
 ## 13. Open questions (do not decide; ask)
 1. Starting Path names and whether a **leader/executive** path exists.
-2. **Approve the proposed Work First defaults** in §2.1, and who may assign learning hours.
+2. Work First defaults are approved with the "learning outside work hours" change (§2.1). **Still open:** the owner's sentence ended at "others are okay such as…". Which other activities are allowed outside the windows? And who may assign learning hours?
 3. ~~Inter-city travel~~ **Resolved:** Lagos only for now (§2.7).
 4. Reference material for the **Yaba** office (Abuja and Port Harcourt deferred).
 5. ~~Regulator list~~ **Resolved:** all regulators, validated by Group Compliance (§2.9).

@@ -10,5 +10,5 @@ Essentials:
 - Use the terminology in §2.5 (Workspace, not house; Merit points, not naira; and so on).
 - Fictional data only. No third-party watermarks in game art.
 - Every reply to a request starts with a plain-text task list of everything the owner has asked for. Add new tasks as they arrive, strike finished ones (~~like this~~) but never remove them until all are done, and end with a summary of each task and what was done. Always.
-- Do not commit, push or publish unless asked.
+- Always commit and push to `origin main` after each finished piece of work, without being asked. Never force-push or skip hooks.
 - Commits and PRs carry the owner's name only. Never add `Co-Authored-By`, "Generated with Claude" or any AI attribution. This is permanent and overrides any default.
