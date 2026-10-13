@@ -1,5 +1,7 @@
 # Supabase setup for MeriQuest
 
+> **Superseded (13 Oct 2026):** the app now uses any standard Postgres through `DATABASE_URL`, and dev runs on Prisma Postgres. See [DATABASE-SETUP.md](DATABASE-SETUP.md). This guide remains useful if Supabase is chosen for production; its dashboard permission error was never resolved.
+
 Purpose: the production database (Postgres) that replaces the local file store. This guide is for the owner. **Never paste keys or passwords into chat, docs or git.** They go only into `.env.local` (your PC) and Netlify's environment settings.
 
 ## What I saw in your account (13 Oct 2026)

@@ -14,7 +14,11 @@ const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 const EnvSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    STORE: z.preprocess(emptyToUndefined, z.enum(["file", "memory"]).default("file")),
+    STORE: z.preprocess(emptyToUndefined, z.enum(["file", "memory", "postgres"]).default("file")),
+    // The connection string contains the database password: it is read only here, never logged.
+    DATABASE_URL: z.preprocess(emptyToUndefined, z.string().min(10).max(1000).optional()),
+    // Local files cannot work on serverless hosts, so production must opt in explicitly (for example a single server).
+    ALLOW_FILE_STORE: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).default("false")),
     DATA_DIR: z.preprocess(emptyToUndefined, z.string().min(1).max(260).default(".data")),
     DEFAULT_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).max(128).optional()),
     // One-time secret for the bootstrap admin only. Kept separate from DEFAULT_PASSWORD, which every
@@ -28,7 +32,13 @@ const EnvSchema = z
     ),
   })
   .superRefine((env, ctx) => {
+    if (env.STORE === "postgres" && !env.DATABASE_URL) {
+      ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "DATABASE_URL is required when STORE=postgres" });
+    }
     if (env.NODE_ENV === "production") {
+      if (env.STORE === "file" && env.ALLOW_FILE_STORE !== "true") {
+        ctx.addIssue({ code: "custom", path: ["STORE"], message: "Production needs STORE=postgres (local files lose data on serverless hosts)" });
+      }
       if (!env.DEFAULT_PASSWORD) {
         ctx.addIssue({ code: "custom", path: ["DEFAULT_PASSWORD"], message: "DEFAULT_PASSWORD is required in production" });
       } else if (BANNED_DEFAULTS.has(env.DEFAULT_PASSWORD)) {
@@ -57,6 +67,8 @@ export function getEnv(): Env {
   const parsed = EnvSchema.safeParse({
     NODE_ENV: process.env.NODE_ENV,
     STORE: process.env.STORE,
+    DATABASE_URL: process.env.DATABASE_URL,
+    ALLOW_FILE_STORE: process.env.ALLOW_FILE_STORE,
     DATA_DIR: process.env.DATA_DIR,
     DEFAULT_PASSWORD: process.env.DEFAULT_PASSWORD,
     SEED_SAMPLE_STAFF: process.env.SEED_SAMPLE_STAFF,

@@ -4,6 +4,37 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M2.1: Postgres storage adapter (13 Oct 2026)
+Scope: `STORE=postgres` adapter over a single `kv` table (any standard Postgres); migration runner and connection check; production env guards; dev database on Prisma Postgres (`meriquestdbase`).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Automated tests | **Pass** | 207 tests in 9 files. New `pg.test.ts` runs the real SQL migration on PGlite (in-process Postgres 17): CRUD, collection separation, 30-way concurrent atomic update, rollback on error, SQL-injection strings stored as plain data, DB-level constraints, RLS on with no policies, and the **whole sign-in, password-change and audit flow on the Postgres adapter** |
+| 3 | Input validation | **Pass** | Collection names and ids validated in code and again by `CHECK` constraints in the database; every value is a bound parameter (no string-built SQL) |
+| 5 | Secrets | **Pass** | `DATABASE_URL` read only in `env.ts`, never logged; connection and migration errors strip URLs; verified by a test that no error contains the password; `.env.local` is git-ignored |
+| 6 | Transport security | **Pass** | TLS certificate and host are verified by default; `sslmode` is stripped and set explicitly; **production refuses `sslmode=disable` and `no-verify`**; live check shows "TLS verified" against `pooled.db.prisma.io` |
+| 7 | Secrets scan | **Pass** | No connection string in any tracked file (`git grep` found none) |
+| 8 | Server-authoritative / data | **Pass** | Live check on the real database: password hashes are bcrypt, session ids are 64-character hashes (no raw tokens at rest) |
+| 10 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities (`pg` added) |
+| 12 | Review | **Pass** | Self-review of the diff focused on SQL injection, credential handling, TLS and pooler behaviour: no findings |
+
+Live end-to-end test: production build with `STORE=postgres` against `meriquestdbase`: admin sign-in and forced password change, staff creation, the 7-question placement, dispute and retake, forged-field and forged-admin attempts refused, admin override. Test rows (20) were deleted afterwards; the database is empty.
+
+Findings
+| Finding | Severity | Status |
+|---|---|---|
+| A draft used a server-side `statement_timeout` startup option, which connection poolers (such as `pooled.db.prisma.io`) can reject | Medium | **Fixed**: client-side `query_timeout` instead |
+| `store.ts` and `pg.ts` would have imported each other | Info | **Fixed**: shared interface moved to `store-types.ts` |
+| Production could silently start on the local-file store on a serverless host, losing data | Medium | **Fixed**: production now refuses `STORE=file` unless `ALLOW_FILE_STORE=true` (tested) |
+
+Known limits
+1. **Prisma free plan:** no backups, 10 connections, Frankfurt only (outside Nigeria). Dev with fictional data only. Production provider, plan and region need IT, Risk and DPO approval (RULEBOOK §13, docs/DATABASE-SETUP.md).
+2. **Pooled endpoint:** the adapter's transaction lock works through it (checked live), but long transactions are avoided by design.
+3. **Single `kv` table:** list and email lookups scan a collection. Fine for hundreds to a few thousand records; reporting tables come later as new migrations.
+
+---
+
 ## M2: Placement questionnaire and Work First engine (13 Oct 2026)
 Scope: first-sign-in placement questionnaire (dispute and retake; admin can disable globally, per unit or per person; admin override and reset); Work First policy engine with server-side play-time tracking; assigned learning time; `/placement`, `/play` and `/admin/placements`; admin-editable `placement` setting and Work First `publicHolidays` / `duringCoreHours`.
 

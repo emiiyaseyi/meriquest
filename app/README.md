@@ -12,6 +12,7 @@ Requires Node 24+.
 cd app
 npm install
 cp .env.example .env.local   # then set DEFAULT_PASSWORD (12+ chars, random)
+npm run db:migrate           # if using STORE=postgres (see docs/DATABASE-SETUP.md)
 npm run dev                  # http://localhost:3000
 ```
 
@@ -29,7 +30,7 @@ npm audit --omit=dev
 | Path | What |
 |---|---|
 | `src/lib/server/env.ts` | The only place that reads `process.env`; fails closed |
-| `src/lib/server/store.ts` | Storage interface; file adapter (local dev only) and memory adapter (tests). A Supabase adapter is a tracked task |
+| `src/lib/server/store.ts`, `pg.ts` | Storage interface with Postgres (shared dev and production), file (single-process dev) and memory (tests) adapters. See `docs/DATABASE-SETUP.md` |
 | `src/lib/server/config/` | Admin-editable settings: schemas, seeded defaults, registry |
 | `src/lib/server/auth/` | Passwords, sessions, sign-in service, admin operations, Data Access Layer |
 | `src/app/admin/` | Admin console: staff & access, settings, audit log |
@@ -40,5 +41,5 @@ npm audit --omit=dev
 
 - Nothing an admin may want to change is hardcoded: it goes in `src/lib/server/config/definitions.ts` with a schema and a default, and is edited under **Admin → Settings**.
 - Every Server Action starts with `requireRole(...)`/`requireUser()`. Pages are not a security boundary.
-- `STORE=file` is for local development only. Production needs the Postgres adapter.
+- `STORE=file` is for single-process local development only. Production uses `STORE=postgres` with `DATABASE_URL`. Never commit the connection string.
 - Commits are authored in the owner's name only, with no co-author trailer.

@@ -3,34 +3,18 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { getEnv } from "./env";
+import { assertCollection, assertId, type Store } from "./store-types";
+import { createPgDb, PgStore } from "./pg";
+
+// The interface and id/collection checks live in store-types.ts (so the Postgres adapter can use
+// them without a circular import). They are re-exported here for the rest of the app.
+export { assertCollection, assertId };
+export type { Store };
 
 /**
- * Storage boundary. All persistence goes through this interface so the file
- * adapter used for local dev can be swapped for Supabase/Postgres in production
- * without touching business logic. (A Supabase adapter is a tracked task: the
- * file adapter must NOT be used on serverless hosts such as Netlify.)
+ * Adapters: Postgres (production and shared dev), local JSON files (single-process dev only: it
+ * cannot work on serverless hosts such as Netlify), and in-memory (tests).
  */
-export interface Store {
-  get<T>(col: string, id: string): Promise<T | null>;
-  put<T>(col: string, id: string, doc: T): Promise<void>;
-  delete(col: string, id: string): Promise<void>;
-  list<T>(col: string): Promise<T[]>;
-  /** Atomic read-modify-write. Return null to delete. Returns the stored value. */
-  update<T>(col: string, id: string, fn: (current: T | null) => T | null): Promise<T | null>;
-}
-
-const COLLECTION_RE = /^[a-z][a-z0-9_]{0,40}$/;
-const FORBIDDEN_IDS = new Set(["__proto__", "constructor", "prototype"]);
-
-export function assertCollection(col: string): void {
-  if (!COLLECTION_RE.test(col)) throw new Error("Invalid collection name");
-}
-
-export function assertId(id: string): void {
-  if (typeof id !== "string" || id.length < 1 || id.length > 200 || FORBIDDEN_IDS.has(id)) {
-    throw new Error("Invalid id");
-  }
-}
 
 /* ---------------------------- in-memory (tests) ---------------------------- */
 
@@ -207,7 +191,12 @@ const gs = globalThis as unknown as { __mqStore?: Store };
 export function getStore(): Store {
   if (!gs.__mqStore) {
     const env = getEnv();
-    gs.__mqStore = env.STORE === "memory" ? new MemoryStore() : new FileStore(env.DATA_DIR);
+    if (env.STORE === "postgres") {
+      // getEnv() has already guaranteed DATABASE_URL is present for this mode.
+      gs.__mqStore = new PgStore(createPgDb(env.DATABASE_URL as string, env.NODE_ENV));
+    } else {
+      gs.__mqStore = env.STORE === "memory" ? new MemoryStore() : new FileStore(env.DATA_DIR);
+    }
   }
   return gs.__mqStore;
 }

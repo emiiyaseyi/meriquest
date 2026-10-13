@@ -39,7 +39,8 @@ describe("bootstrap admin is not reachable with the shared staff default", () =>
 describe("production env validation", () => {
   const prod = (extra: Record<string, string>) => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("STORE", "file");
+    vi.stubEnv("STORE", "postgres");
+    vi.stubEnv("DATABASE_URL", "postgres://u:p@h.example.io:5432/db?sslmode=require");
     vi.stubEnv("SEED_SAMPLE_STAFF", "false");
     vi.stubEnv("DEFAULT_PASSWORD", "Prod-Default-Pw-ab12!");
     vi.stubEnv("BOOTSTRAP_ADMIN_PASSWORD", "");
@@ -64,6 +65,15 @@ describe("production env validation", () => {
     expect(() => getEnv()).toThrow(/SEED_SAMPLE_STAFF/);
     prod({ BOOTSTRAP_ADMIN_PASSWORD: "Another-Secret-cd34!", STORE: "memory" });
     expect(() => getEnv()).toThrow(/STORE/);
+  });
+
+  it("production refuses local files unless explicitly allowed, and postgres needs a DATABASE_URL", () => {
+    prod({ BOOTSTRAP_ADMIN_PASSWORD: "Another-Secret-cd34!", STORE: "file" });
+    expect(() => getEnv()).toThrow(/STORE/);
+    prod({ BOOTSTRAP_ADMIN_PASSWORD: "Another-Secret-cd34!", STORE: "file", ALLOW_FILE_STORE: "true" });
+    expect(getEnv().STORE).toBe("file");
+    prod({ BOOTSTRAP_ADMIN_PASSWORD: "Another-Secret-cd34!", DATABASE_URL: "" });
+    expect(() => getEnv()).toThrow(/DATABASE_URL/);
   });
 
   it("accepts a correct production configuration", () => {

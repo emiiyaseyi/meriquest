@@ -322,6 +322,7 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Work First defaults approved; learning may also happen outside work hours | Owner |
 | 2026-10-13 | Production build: install Node, new Next.js + TypeScript app in `/app`; `/game` untouched until parity | Owner |
 | 2026-10-13 | Always commit and push after each piece of work | Owner |
+| 2026-10-13 | Database: any standard Postgres via `DATABASE_URL`; dev on Prisma Postgres (`meriquestdbase`, Frankfurt, free plan, fictional data only); production provider, plan and region decided with IT, Risk and the DPO before the pilot | Owner |
 | 2026-10-13 | QA and security gate (§5.1) on everything built: no loopholes, no errors | Owner |
 | 2026-10-13 | Account activation: keep the shared default password and accept the risk (option c) | Owner |
 | 2026-10-13 | Apply the Meristem brand (logo, palette) from the staff-portal reference | Owner |
