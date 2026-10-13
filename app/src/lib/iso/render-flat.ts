@@ -26,6 +26,7 @@ const COLORS: Record<SceneObject["kind"], string> = {
   shelf: "#b79267",
   column: "#d3d7d2",
   cabinet: "#e7e3d8",
+  decor: "#e6dccb",
   printer: "#2c3135",
   watercooler: "#9fd0ea",
 };
@@ -81,6 +82,15 @@ function flatRender(ctx: Ctx, scene: Scene, opts: RenderOptions, view: View): Vi
       ctx.fill();
     } else {
       roundRect(ctx, X(o.x) + 1.5, Y(o.y) + 1.5, w * t - 3, d * t - 3, Math.min(6, t * 0.15));
+    }
+    if (o.kind === "decor" && o.icon) {
+      ctx.save();
+      ctx.font = `${Math.round(t * 0.6 * Math.max(w, d))}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#000";
+      ctx.fillText(o.icon, X(o.x + w / 2), Y(o.y + d / 2));
+      ctx.restore();
     }
   }
 

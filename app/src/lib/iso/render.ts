@@ -543,6 +543,25 @@ function objectDraws(ctx: Ctx, o: SceneObject, time: number): Draw[] {
           }
         },
       }));
+    case "decor":
+      return [
+        {
+          key: key(o.x, o.y, w, d) + 0.2,
+          draw: () => {
+            floorEllipse(ctx, cx, cy, w / 2 - 0.08, d / 2 - 0.08, 0.01, "rgba(0,0,0,0.16)");
+            box(ctx, o.x + 0.12, o.y + 0.12, w - 0.24, d - 0.24, 0.12, 0, o.tint ?? "#d9cfbd", false);
+            if (o.icon) {
+              const p = P(cx, cy, 0.55 + 0.12 * Math.max(w, d));
+              ctx.save();
+              ctx.font = `${Math.round(TW * 0.62 * (0.8 + 0.35 * Math.max(w, d)))}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(o.icon, p.x, p.y);
+              ctx.restore();
+            }
+          },
+        },
+      ];
     case "column":
       return [{ key: key(o.x, o.y) + 0.1, draw: () => box(ctx, o.x + 0.15, o.y + 0.15, 0.7, 0.7, 3.4, 0, { top: "#e4e7e3", left: "#d3d7d2", right: "#b3b8b3" }, false) }];
     case "cabinet":

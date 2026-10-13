@@ -130,6 +130,7 @@ const floor: Scene = {
     { id: "to-lobby", label: "Lifts", x: 1, y: 10, w: 1, d: 3, to: "ikoyi-lobby", arrive: { x: 11, y: 2 }, lift: true },
     { id: "to-boardroom", label: "Boardroom", x: 17, y: 1, w: 1, d: 2, to: "ikoyi-boardroom", arrive: { x: 10, y: 5 } },
     { id: "to-lounge", label: "Executive lounge", x: 17, y: 8, w: 1, d: 2, to: "ikoyi-lounge", arrive: { x: 10, y: 5 } },
+    { id: "to-workspace", label: "My Workspace", x: 5, y: 13, w: 2, d: 1, to: "my-workspace", arrive: { x: 11, y: 7 } },
   ],
   hotspots: [
     { id: "workspace", label: "My Workspace", hint: "Your desk. Customise it and start your day", x: 4, y: 11, kind: "workspace" },
@@ -212,7 +213,45 @@ const lounge: Scene = {
   spawn: { x: 10, y: 5 },
 };
 
+/**
+ * My Workspace: the person's own room, which they decorate in Buy mode. What they bought is drawn into it as
+ * "decor" objects (see withDecor). The decoration grid sits inside it, one tile in from the wall.
+ */
+export const WORKSPACE_ID = "my-workspace";
+export const WORKSPACE_OFFSET = { x: 1, y: 1 };
+const workspace: Scene = {
+  id: WORKSPACE_ID,
+  building: "ikoyi-hq",
+  level: "floor-1",
+  name: "My Workspace",
+  subtitle: "Your own space. Customise it with things you buy",
+  cols: 12,
+  rows: 10,
+  wallHeight: 3.4,
+  floor: "wood",
+  features: [
+    { wall: "x", kind: "slats", from: 0, to: 12 },
+    { wall: "y", kind: "windows", from: 1, to: 11 },
+  ],
+  objects: [],
+  npcs: [],
+  portals: [{ id: "to-floor", label: "Open-plan floor", x: 11, y: 4, w: 1, d: 2, to: "ikoyi-floor", arrive: { x: 5, y: 12 } }],
+  hotspots: [{ id: "workspace", label: "My desk", hint: "Customise your Workspace", x: 0, y: 9, kind: "workspace" }],
+  spawn: { x: 11, y: 7 },
+};
+
+/** The scene with the person's bought things placed in it. Things are walk-through, so nobody can be boxed in. */
+export function withDecor(scene: Scene, placed: { item: string; x: number; y: number }[], items: Map<string, { w: number; d: number; icon: string }>): Scene {
+  if (scene.id !== WORKSPACE_ID || placed.length === 0) return scene;
+  const objects: SceneObject[] = placed.flatMap((p) => {
+    const it = items.get(p.item);
+    return it ? [{ kind: "decor" as const, x: p.x + WORKSPACE_OFFSET.x, y: p.y + WORKSPACE_OFFSET.y, w: it.w, d: it.d, icon: it.icon, solid: false }] : [];
+  });
+  return { ...scene, objects: [...scene.objects, ...objects] };
+}
+
 export const SCENES: Record<string, Scene> = {
+  [workspace.id]: workspace,
   [lobby.id]: lobby,
   [floor.id]: floor,
   [boardroom.id]: boardroom,

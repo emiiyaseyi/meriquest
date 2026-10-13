@@ -608,8 +608,9 @@ export const decorSchema = z
   .object({
     settings: z
       .object({
-        gridW: z.number().int().min(3).max(16),
-        gridD: z.number().int().min(3).max(16),
+        /** The decoration area, at most the size of the Workspace room (10 by 8 tiles). */
+        gridW: z.number().int().min(3).max(10),
+        gridD: z.number().int().min(3).max(8),
         maxPlaced: z.number().int().min(1).max(100),
         /** The most any one need's fall can be slowed by the room, as a share. */
         maxHelpPerNeed: z.number().min(0).max(0.9),

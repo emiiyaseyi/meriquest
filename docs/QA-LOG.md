@@ -4,6 +4,20 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M7b: Bought items shown in My Workspace (13 Oct 2026)
+Scope: a new room, My Workspace (reached from the Workspace button, the open-plan floor, or the map); what the person buys and places in Buy mode is drawn into the room in both the 3D and Lite views; the decoration area is limited to the room size (at most 10 by 8 tiles). Things are walk-through, so nobody can be boxed in.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 461 tests, including the room, placement inside it, and other rooms left alone |
+| 3 | Real browser | **Pass** | Throwaway user: Workspace button travels to the room, a bought palm appears in it, no console errors; user removed |
+| 4 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Notes: items are pictures on a base, not full 3D models; only one of the four items bought in the browser run was placed (the others were clicked while the previous purchase was still saving), the rest is covered by tests.
+
+---
+
 ## M4b: Location bar with zones and timed activities, and the session limit only in working hours (13 Oct 2026)
 Scope: (1) a location bar in each room, like the reference: the room's name and a line about it, its zones as tabs, activity cards with a timer, what they lift and the points they earn; the time is kept on the server and the reward is collected once. Rooms, zones and activities are admin settings. (2) Owner decision: the 30-minute play limit now applies only in working hours, 8:30 am to 4:30 pm on working days; after 4:30 pm, before 8:30 am, at weekends and on holidays there is no session limit. Core hours default changed to 08:30 to 16:30, and the limit has an admin switch (`onlyInCoreHours`).
 

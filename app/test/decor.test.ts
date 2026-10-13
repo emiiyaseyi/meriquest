@@ -85,3 +85,18 @@ describe("Workspace decoration", () => {
     expect(v.decor).toEqual({ owned: {}, placed: [], mode: "grid" });
   });
 });
+
+describe("Workspace room", () => {
+  it("draws only things the person has placed, inside the room, and leaves other rooms alone", async () => {
+    const { SCENES, WORKSPACE_ID, WORKSPACE_OFFSET, withDecor } = await import("@/lib/world/scenes");
+    const items = new Map([["plant", { w: 1, d: 1, icon: "🌱" }]]);
+    const ws = SCENES[WORKSPACE_ID];
+    const out = withDecor(ws, [{ item: "plant", x: 2, y: 3 }, { item: "ghost", x: 0, y: 0 }], items);
+    expect(out.objects).toHaveLength(1);
+    expect(out.objects[0]).toMatchObject({ kind: "decor", x: 2 + WORKSPACE_OFFSET.x, y: 3 + WORKSPACE_OFFSET.y, solid: false, icon: "🌱" });
+    // the largest decoration area still fits inside the room
+    expect(10 + WORKSPACE_OFFSET.x).toBeLessThanOrEqual(ws.cols);
+    expect(8 + WORKSPACE_OFFSET.y).toBeLessThanOrEqual(ws.rows);
+    expect(withDecor(SCENES["ikoyi-floor"], [{ item: "plant", x: 0, y: 0 }], items)).toBe(SCENES["ikoyi-floor"]);
+  });
+});

@@ -15,6 +15,8 @@ import { CityMap, type MapPick } from "./CityMap";
 import { BuyMode } from "./BuyMode";
 import { ShiftHud } from "./ShiftHud";
 import { LocationBar } from "./LocationBar";
+import { getDecorAction } from "@/app/actions/decor";
+import { WORKSPACE_ID, withDecor } from "@/lib/world/scenes";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -146,6 +148,7 @@ export function GameShell(props: GameShellProps) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [academyCard, setAcademyCard] = useState(false);
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
+  const [decorView, setDecorView] = useState<Awaited<ReturnType<typeof getDecorAction>> | null>(null);
   const [spot, setSpot] = useState<Hotspot | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -246,6 +249,20 @@ export function GameShell(props: GameShellProps) {
     setMeTab(t);
     setOverlay("me");
   }, []);
+  // In My Workspace, show what the person has bought. Fetched on entering the room and again after Buy mode closes.
+  useEffect(() => {
+    if (sceneId !== WORKSPACE_ID || overlay === "buy") return;
+    let live = true;
+    void getDecorAction().then((v) => live && setDecorView(v));
+    return () => {
+      live = false;
+    };
+  }, [sceneId, overlay]);
+  const drawScene = useMemo(() => {
+    if (!decorView || scene.id !== WORKSPACE_ID) return scene;
+    return withDecor(scene, decorView.decor.placed, new Map(decorView.items.map((i) => [i.id, i])));
+  }, [scene, decorView]);
+
   const onRotate = useCallback((by: 1 | -1) => setRotation((r) => nextQuarter(r, by)), []);
   const closeAll = useCallback(() => {
     setPlace(null);
@@ -300,7 +317,7 @@ export function GameShell(props: GameShellProps) {
 
   return (
     <div className="game">
-      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
+      <WorldCanvas scene={drawScene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
 
       {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || overlay === "lift" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 
@@ -350,7 +367,7 @@ export function GameShell(props: GameShellProps) {
           </aside>
 
           <nav className="hud-nav" aria-label="Game menu">
-            <button type="button" className="nav-btn nav-active" onClick={() => void goTo(() => travelMapAction("ikoyi-floor"))}>
+            <button type="button" className="nav-btn nav-active" onClick={() => void goTo(() => travelMapAction(WORKSPACE_ID))}>
               <span aria-hidden="true">🏢</span>
               {terms.workspace}
             </button>

@@ -19,7 +19,8 @@ export type ObjectKind =
   | "planter" // long low green planter (used as a divider)
   | "column" // marble column
   | "cabinet" // low cabinet
-  | "printer"; // printer station
+  | "printer" // printer station
+  | "decor"; // something the person bought for their Workspace (shows its icon)
 
 export type Dir = 0 | 1 | 2 | 3; // 0 faces +x, 1 faces +y, 2 faces -x, 3 faces -y
 
@@ -32,6 +33,9 @@ export interface SceneObject {
   dir?: Dir;
   /** Walkers cannot enter solid objects. Defaults to true. */
   solid?: boolean;
+  /** For "decor": the picture shown on it, and a colour for its base. */
+  icon?: string;
+  tint?: string;
 }
 
 export type FloorStyle = "marble" | "office" | "wood";

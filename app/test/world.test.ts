@@ -84,8 +84,8 @@ describe("pathfinding", () => {
 describe("every scene is valid and playable", () => {
   const scenes: Scene[] = Object.values(SCENES);
 
-  it("has the four Ikoyi HQ rooms and a valid first scene", () => {
-    expect(scenes.map((s) => s.id).sort()).toEqual(["ikoyi-boardroom", "ikoyi-floor", "ikoyi-lobby", "ikoyi-lounge"]);
+  it("has the four Ikoyi HQ rooms, the personal Workspace and a valid first scene", () => {
+    expect(scenes.map((s) => s.id).sort()).toEqual(["ikoyi-boardroom", "ikoyi-floor", "ikoyi-lobby", "ikoyi-lounge", "my-workspace"]);
     expect(getScene(FIRST_SCENE)).toBeDefined();
     expect(getScene("__proto__")).toBeUndefined();
     expect(getScene("constructor")).toBeUndefined();
