@@ -379,7 +379,7 @@ button.activity:disabled { opacity: .7; cursor: default; }
 }
 
 /* The city map, like the reference game's illustrated map with pills */
-.citymap { position: absolute; inset: 0; z-index: 5; background: #9fd08a; display: flex; flex-direction: column; }
+.citymap { position: absolute; inset: 0; z-index: 3; background: #9fd08a; display: flex; flex-direction: column; }
 .citymap-bar { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .citymap-tabs { display: flex; gap: 6px; background: rgba(255,255,255,.92); padding: 5px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,.2); overflow-x: auto; max-width: calc(100% - 52px); }
 .citymap-tab { appearance: none; border: 0; background: transparent; font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; color: #26402f; cursor: pointer; white-space: nowrap; }
@@ -389,6 +389,7 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .citymap-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .map-pill { position: absolute; transform: translate(-50%, -50%); appearance: none; border: 0; background: #fff; color: #1b2a21; font: inherit; font-weight: 600; font-size: .86rem; padding: 6px 12px; border-radius: 999px; box-shadow: 0 4px 12px rgba(0,0,0,.25); cursor: pointer; white-space: nowrap; }
 .map-pill:hover:not(:disabled) { background: #eaf5ec; }
-.map-pill.academy { background: #1d452b; color: #fff; }
+.map-pill.academy, .map-pill.academy:hover:not(:disabled) { background: #1d452b; color: #fff; }
+.map-pill.academy:hover:not(:disabled) { background: #2d5d41; }
 .map-pill.scenery { opacity: .85; cursor: default; font-weight: 500; }
 @media (max-width: 640px) { .map-pill { font-size: .74rem; padding: 5px 9px; } }
