@@ -157,6 +157,17 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
         ) : null}
         {err}
         {!home ? <p className="phone-note">Loading…</p> : null}
+        {home && home.assigned.length > 0 ? (
+          <div className="ac-assigned" role="region" aria-label="Assigned to you">
+            <strong>📌 Assigned to you</strong>
+            {home.assigned.map((a) => (
+              <button key={a.courseId} type="button" className="ac-assigned-row" onClick={() => { const c = home.courses.find((x) => x.id === a.courseId); if (c) open(c); }}>
+                <span>{a.title}</span>
+                <span className="muted small">{a.due ? `due ${a.due}` : "no due date"} · from {a.by}{a.note ? ` · ${a.note}` : ""}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         <button type="button" className="ac-lead-card" onClick={() => go({ kind: "lead" })}>
           <span className="ac-icon" aria-hidden="true">🧭</span>
           <span><strong>Leadership simulator</strong><span className="muted small"> Make people-management decisions and see what they do to your team, delivery, clients and compliance</span></span>

@@ -1,3 +1,4 @@
+import { requireArea } from "@/lib/server/auth/dal";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CONFIG, CONFIG_KEYS } from "@/lib/server/config/definitions";
@@ -6,6 +7,8 @@ import { getConfigMeta } from "@/lib/server/config/registry";
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function ConfigList() {
+  // Every admin page checks its own area: a layout is not a security boundary
+  await requireArea("settings");
   const rows = await Promise.all(CONFIG_KEYS.map(async (k) => ({ key: k, def: CONFIG[k], meta: await getConfigMeta(k) })));
   const groups = [...new Set(rows.map((r) => r.def.group))];
   return (

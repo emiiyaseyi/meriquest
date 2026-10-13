@@ -4,6 +4,22 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## A3: Manager screen and admin roles (13 Oct 2026)
+Scope: third piece of the admin backend. (1) My team (/manager) for line managers and admins: their own unit's progress, extra learning time (existing weekly limit), and Academy courses assigned with a due date and note; the person is told in their updates and sees "Assigned to you" on their Academy home; assignments can be removed. (2) Roles: a new learning and development role (reports, Academy, announcements, placements) and the reviewer role limited to conduct concerns; admins keep everything. Every admin page and every admin action now checks its own area (the layout only builds the menu).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 491 tests: manager sees only their own unit and not themselves; admin may pick a unit; players and unready managers refused; course assignment rules (unit, self, dates, unknown course); notices; Academy home; roles and areas; services refuse the wrong role |
+| 3 | Authorisation | **Pass** | Area checks on every page, route and action, plus a second check inside the services; settings, staff and audit pages that used to rely on the layout alone now check too |
+| 4 | Input validation | **Pass** | Due date format, note length and control characters, minutes range, unit and course ids validated on the server |
+| 5 | Real browser | **Pass** | Throwaway manager: My team lists the unit, assigning time and a course works; switched to the learning team role: settings and staff send them home, reports opens, menu shows only their areas; users and test rows removed |
+| 6 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Notes: "team" means the manager's own unit (the existing rule); a separate manager-of field is not added. Managers do not see concerns or settings.
+
+---
+
 ## A2: Form editors for every setting (13 Oct 2026)
 Scope: second piece of the admin backend. Every setting under Admin > Settings now opens as a form drawn from its own rules: number boxes with limits, drop-downs, checkboxes, text boxes, and lists with add, remove, duplicate and move up or down; the raw JSON is still there under "Advanced: JSON". One component covers all settings (shifts, room activities, Workspace catalogue, leadership, gameplay, Work First, phone apps, levels, terminology, Academy groups and more).
 

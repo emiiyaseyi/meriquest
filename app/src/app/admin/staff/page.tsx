@@ -1,3 +1,4 @@
+import { requireArea } from "@/lib/server/auth/dal";
 import type { Metadata } from "next";
 import { ActionForm } from "@/components/ActionForm";
 import { CreateStaffForm, RoleForm } from "@/components/StaffForms";
@@ -17,6 +18,8 @@ export const metadata: Metadata = { title: "Staff & access" };
 const MAX_Q = 60;
 
 export default async function StaffPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
+  // Every admin page checks its own area: a layout is not a security boundary
+  await requireArea("staff");
   const sp = await searchParams;
   // Search text is user input: take one value, trim, cap length; it is only used for filtering.
   const raw = Array.isArray(sp.q) ? sp.q[0] : sp.q;

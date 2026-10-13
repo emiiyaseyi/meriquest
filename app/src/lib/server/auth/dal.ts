@@ -1,3 +1,4 @@
+import { can, type Area } from "./permissions";
 import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
@@ -55,6 +56,13 @@ export async function requireUser(opts?: { allowMustChange?: boolean }): Promise
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.mustChangePassword && !opts?.allowMustChange) redirect("/change-password");
+  return user;
+}
+
+/** Require a role that may use an area of the admin screens. Failing users are sent home without being told why. */
+export async function requireArea(area: Area): Promise<UserDTO> {
+  const user = await requireUser();
+  if (!can(user.role, area)) redirect("/");
   return user;
 }
 

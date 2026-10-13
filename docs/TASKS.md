@@ -80,5 +80,5 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Reports and progress dashboard with CSV export
 - [x] Friendly form editors for every setting (JSON kept under Advanced)
 - [ ] Form editor for Academy courses (still JSON)
-- [ ] Manager and L&D roles (managers assign courses and learning time to their team; L&D authors content; reviewers handle concerns)
+- [x] Manager screen (assign learning time and courses to their unit) and L&D and reviewer roles with per-area access
 - [ ] Admin pages on phones

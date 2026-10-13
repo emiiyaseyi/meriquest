@@ -1,3 +1,4 @@
+import { assertArea } from "../auth/permissions";
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { getStore } from "../store";
@@ -75,7 +76,7 @@ export async function listAnnouncements(limit = 20): Promise<Announcement[]> {
 export type AnnounceResult = { ok: true } | { ok: false; error: string };
 
 export async function postAnnouncement(actor: Pick<UserDTO, "staffId" | "role">, title: unknown, text: unknown, now: number = Date.now()): Promise<AnnounceResult> {
-  if (actor.role !== "admin") throw new Error("Forbidden");
+  assertArea(actor, "announcements");
   const t = cleanText(title, MAX_TITLE).replace(/\n/g, " ");
   const body = cleanText(text, MAX_ANNOUNCEMENT);
   if (t.length < 3) return { ok: false, error: "Please give the announcement a title." };
@@ -87,7 +88,7 @@ export async function postAnnouncement(actor: Pick<UserDTO, "staffId" | "role">,
 }
 
 export async function deleteAnnouncement(actor: Pick<UserDTO, "staffId" | "role">, id: unknown, now: number = Date.now()): Promise<AnnounceResult> {
-  if (actor.role !== "admin") throw new Error("Forbidden");
+  assertArea(actor, "announcements");
   if (typeof id !== "string" || !/^\d{15}-[0-9a-f]{6}$/.test(id)) return { ok: false, error: "That announcement does not exist." };
   await getStore().delete("announcements", id);
   await audit(actor.staffId, "announcement.deleted", id, undefined, now);

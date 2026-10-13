@@ -1,3 +1,4 @@
+import { AREAS_BY_ROLE } from "@/lib/server/auth/permissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -30,7 +31,8 @@ export default async function DashboardPage() {
         <nav className="nav" aria-label="Main">
           <NavLink href="/dashboard" exact>Dashboard</NavLink>
           <NavLink href="/" exact>Back to the game</NavLink>
-          {user.role === "admin" ? <NavLink href="/admin">Admin</NavLink> : null}
+          {user.role === "admin" || user.role === "manager" || user.isLineManager ? <NavLink href="/manager">My team</NavLink> : null}
+          {AREAS_BY_ROLE[user.role].length > 0 ? <NavLink href="/admin">Admin</NavLink> : null}
           <NavLink href="/change-password">Change password</NavLink>
         </nav>
         <form action={logoutAction} className="row">

@@ -1,3 +1,4 @@
+import { requireArea } from "@/lib/server/auth/dal";
 import type { Metadata } from "next";
 import { ActionForm } from "@/components/ActionForm";
 import { PathForm } from "@/components/StaffForms";
@@ -9,6 +10,8 @@ import { resetPlacementAction, setPathAction, setRetakeLockAction } from "@/app/
 export const metadata: Metadata = { title: "Placements" };
 
 export default async function PlacementsPage() {
+  // Every admin page checks its own area: a layout is not a security boundary
+  await requireArea("placements");
   const [cfg, users, placements] = await Promise.all([getConfig("placement"), listUsers(), listPlacements()]);
   const byStaff = new Map(placements.map((p) => [p.staffId, p]));
   const pathName = (id: string) => cfg.paths.find((p) => p.id === id)?.name ?? id;

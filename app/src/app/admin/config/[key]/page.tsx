@@ -1,3 +1,4 @@
+import { requireArea } from "@/lib/server/auth/dal";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -7,6 +8,8 @@ import { getConfigJson, getConfigMeta } from "@/lib/server/config/registry";
 import { resetConfigAction, saveConfigAction } from "@/app/admin/actions";
 
 export default async function ConfigEditPage({ params }: { params: Promise<{ key: string }> }) {
+  // Every admin page checks its own area: a layout is not a security boundary
+  await requireArea("settings");
   const { key } = await params;
   // The URL segment is user input: only known registry keys are accepted.
   if (!isConfigKey(key)) notFound();

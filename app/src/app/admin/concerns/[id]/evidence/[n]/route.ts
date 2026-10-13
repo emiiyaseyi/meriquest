@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { getEvidenceFile } from "@/lib/server/concerns/service";
 import { EXTENSION, type EvidenceType } from "@/lib/concerns";
 
 /** Evidence is only ever handed to an admin, as a download, with its real (checked) type. */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string; n: string }> }) {
-  const admin = await requireRole("admin");
+  const admin = await requireArea("concerns");
   const { id, n } = await ctx.params;
   const file = await getEvidenceFile(admin, id, Number(n));
   if (!file) return new NextResponse("Not found", { status: 404 });

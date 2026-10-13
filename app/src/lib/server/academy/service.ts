@@ -9,6 +9,7 @@ import type { PlayerRecord } from "../world/service";
 import { applyEffects, dayKey } from "@/lib/game";
 import { hashString, seeded } from "@/lib/iso/geometry";
 import { parseVideo } from "@/lib/academy-video";
+import { listMyAssignments } from "../manager/service";
 import { getCourseDoc, listCourseMeta, type CourseDoc, type CourseMeta } from "./content";
 import type { AcademyHome, AcademyResult, CaseView, CourseCard, CourseView, Level, LessonNotes, LessonRow, QuizResult, QuizSet, ScenarioOutcome, ScenarioPlay, ScenarioRow } from "@/lib/academy";
 
@@ -199,6 +200,7 @@ export async function getAcademy(user: Pick<UserDTO, "staffId" | "unit">, now: n
     passCorrect: academy.settings.passCorrect,
     retryMinutes: academy.settings.retryMinutes,
     attending,
+    assigned: (await listMyAssignments(user.staffId)).filter((a) => !(rec.certificates ?? []).some((c) => c.courseId === a.courseId)),
   };
 }
 

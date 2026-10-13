@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { listConcerns } from "@/lib/server/concerns/service";
 import { STATUS_LABEL } from "@/lib/concerns";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Conduct concerns" };
 const fmt = (ms: number) => new Date(ms).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" });
 
 export default async function ConcernsPage() {
-  const admin = await requireRole("admin");
+  const admin = await requireArea("concerns");
   const list = await listConcerns(admin);
   return (
     <>

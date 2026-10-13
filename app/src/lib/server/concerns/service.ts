@@ -1,3 +1,4 @@
+import { assertArea } from "../auth/permissions";
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { getStore } from "../store";
@@ -138,7 +139,7 @@ export async function listMyConcerns(user: Pick<UserDTO, "staffId">): Promise<My
 }
 
 function assertAdmin(actor: Pick<UserDTO, "role">): void {
-  if (actor.role !== "admin") throw new Error("Forbidden");
+  assertArea(actor, "concerns");
 }
 
 export async function listConcerns(actor: Pick<UserDTO, "staffId" | "role">): Promise<ConcernRecord[]> {

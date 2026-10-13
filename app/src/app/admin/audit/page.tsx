@@ -1,9 +1,12 @@
+import { requireArea } from "@/lib/server/auth/dal";
 import type { Metadata } from "next";
 import { recentAudit } from "@/lib/server/audit";
 
 export const metadata: Metadata = { title: "Audit log" };
 
 export default async function AuditPage() {
+  // Every admin page checks its own area: a layout is not a security boundary
+  await requireArea("audit");
   const events = await recentAudit(200);
   return (
     <>

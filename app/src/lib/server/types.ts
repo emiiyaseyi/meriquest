@@ -1,5 +1,5 @@
-export type Role = "player" | "manager" | "admin" | "reviewer";
-export const ROLES: readonly Role[] = ["player", "manager", "admin", "reviewer"];
+export type Role = "player" | "manager" | "admin" | "reviewer" | "ld";
+export const ROLES: readonly Role[] = ["player", "manager", "admin", "reviewer", "ld"];
 
 export type Segment = "front" | "middle" | "back";
 

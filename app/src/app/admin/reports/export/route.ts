@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { audit } from "@/lib/server/audit";
 import { buildReport, reportCsv } from "@/lib/server/reports/service";
 
 /** The progress report as a spreadsheet file. Admin only; the export is recorded in the audit log. */
 export async function GET() {
-  const admin = await requireRole("admin");
+  const admin = await requireArea("reports");
   const csv = reportCsv(await buildReport());
   await audit(admin.staffId, "report_export", "progress", {});
   return new NextResponse(csv, {

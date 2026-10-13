@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { buildReport } from "@/lib/server/reports/service";
 
 export const metadata: Metadata = { title: "Reports" };
@@ -8,7 +8,7 @@ const MAX_Q = 60;
 const day = (t: number | null) => (t ? new Date(t).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Never");
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; unit?: string | string[] }> }) {
-  await requireRole("admin");
+  await requireArea("reports");
   const sp = await searchParams;
   // Search and filter values are user input: take one value, trim, cap the length; they only filter what is shown
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { getConcern } from "@/lib/server/concerns/service";
 import { ConcernReview } from "@/components/ConcernReview";
 import { updateConcernAction } from "@/app/admin/actions";
@@ -8,7 +8,7 @@ import { updateConcernAction } from "@/app/admin/actions";
 const fmt = (ms: number) => new Date(ms).toLocaleString("en-GB", { dateStyle: "full", timeStyle: "medium", timeZone: "Africa/Lagos" });
 
 export default async function ConcernPage({ params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireRole("admin");
+  const admin = await requireArea("concerns");
   const { id } = await params;
   const c = await getConcern(admin, id);
   if (!c) notFound();

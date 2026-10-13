@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { listCourseMeta } from "@/lib/server/academy/content";
 import { getConfig } from "@/lib/server/config/registry";
 import { ActionForm } from "@/components/ActionForm";
@@ -10,7 +10,7 @@ import { deleteCourseAction, moveCourseAction, restoreBuiltInsAction } from "@/a
 export const metadata: Metadata = { title: "Academy courses" };
 
 export default async function AcademyAdminPage() {
-  await requireRole("admin");
+  await requireArea("academy");
   const [courses, academy] = await Promise.all([listCourseMeta(), getConfig("academy")]);
   const groups = [...academy.groups.map((g) => ({ ...g, courses: courses.filter((c) => c.group === g.id) })), { id: "", label: "No group (shown under More courses)", icon: "📚", courses: courses.filter((c) => !academy.groups.some((g) => g.id === c.group)) }];
   return (

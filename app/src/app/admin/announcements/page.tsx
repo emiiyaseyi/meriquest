@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { listAnnouncements } from "@/lib/server/notices/service";
 import { ActionForm } from "@/components/ActionForm";
 import { AnnouncementForm } from "@/components/AnnouncementForm";
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Announcements" };
 const fmt = (ms: number) => new Date(ms).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" });
 
 export default async function AnnouncementsPage() {
-  await requireRole("admin");
+  await requireArea("announcements");
   const list = await listAnnouncements(50);
   return (
     <>

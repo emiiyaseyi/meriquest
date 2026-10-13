@@ -14,6 +14,7 @@ export function RoleForm({ action, staffId, role }: { action: Action; staffId: s
       <select id={`role-${staffId}`} name="role" defaultValue={role} className="input input-sm">
         <option value="player">player</option>
         <option value="manager">manager</option>
+        <option value="ld">learning and development</option>
         <option value="reviewer">reviewer</option>
         <option value="admin">admin</option>
       </select>
@@ -77,6 +78,7 @@ export function CreateStaffForm({ action, example }: { action: Action; example: 
       <select id="c-role" name="role" defaultValue="player" className="input">
         <option value="player">player</option>
         <option value="manager">manager</option>
+        <option value="ld">learning and development</option>
         <option value="reviewer">reviewer</option>
         <option value="admin">admin</option>
       </select>

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/server/auth/dal";
+import { requireArea } from "@/lib/server/auth/dal";
 import { blankCourseJson, getCourseJson } from "@/lib/server/academy/content";
 import { CourseEditor } from "@/components/CourseAdmin";
 import { saveCourseAction } from "@/app/admin/actions";
 
 export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireRole("admin");
+  const admin = await requireArea("academy");
   const { id } = await params;
   const isNew = id === "new";
   const json = isNew ? blankCourseJson() : await getCourseJson(admin, id);

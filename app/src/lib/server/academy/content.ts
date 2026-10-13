@@ -1,3 +1,4 @@
+import { assertArea } from "../auth/permissions";
 import "server-only";
 import { getStore } from "../store";
 import { audit } from "../audit";
@@ -96,7 +97,7 @@ export async function getCourseDoc(id: unknown): Promise<CourseDoc | null> {
 }
 
 function assertAdmin(actor: Pick<UserDTO, "role">): void {
-  if (actor.role !== "admin") throw new Error("Forbidden");
+  assertArea(actor, "academy");
 }
 
 export type CourseResult = { ok: true } | { ok: false; errors: string[] };

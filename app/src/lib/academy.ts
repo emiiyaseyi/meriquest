@@ -43,6 +43,8 @@ export interface AcademyHome {
   quizSize: number;
   passCorrect: number;
   retryMinutes: number;
+  /** Courses a manager has asked this person to take. */
+  assigned: { courseId: string; title: string; due: string | null; note: string; by: string }[];
   /** A class that is running now, if any. */
   attending: { courseId: string; courseTitle: string; lessonTitle: string; endsAt: number } | null;
 }
