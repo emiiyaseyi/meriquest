@@ -35,6 +35,15 @@ Name: **MeriQuest** (working title). Level metaphor: Seed → Sprout → Stem �
 - No streak, mission, leaderboard or event may pressure someone to play during core working hours. Streaks pause on leave and weekends.
 - Managers see **aggregate** participation only (not click-level time).
 - Defaults are seeded by Group HR/L&D and can be changed by an admin without a code release.
+- **Proposed defaults (PENDING owner approval, 13 Oct 2026; every value is admin-editable, by unit, role or person):**
+  - **Core working hours (no play):** Mon–Fri 08:00–17:00 (per-unit override, e.g. trading-floor and contact-centre shifts).
+  - **Play windows:** before work 07:00–08:00; lunch 12:30–13:30 (max 30 min used); after hours 17:30–21:00; weekends and public holidays 09:00–20:00 (voluntary).
+  - **Daily cap:** 45 min on a workday (nudge at 30 min, hard stop at 45); 90 min on a weekend day. **Weekly soft cap:** 4 hours.
+  - **Assigned learning time:** a manager or L&D may assign up to 2 hours a week inside core hours (e.g. one 45-minute Academy block). This is the only play allowed in core hours.
+  - **Blackout periods** (admin-scheduled, no play outside assigned learning): month-end, quarter-end, year-end close, results and AGM season, regulatory filing deadlines, audits.
+  - **Pause:** one tap, no penalty. Auto-away after 3 minutes idle. Outside a window the game shows a "Work first" screen (profile, certificates and reports stay viewable).
+  - **Streaks:** count only check-ins made inside play windows; pause on weekends, public holidays and leave; one free "streak freeze" a week.
+  - **Reporting:** aggregate only; never click-level time per person.
 
 ### 2.2 Look and feel (phased)
 | Phase | Rendering | Notes |
@@ -48,7 +57,7 @@ Name: **MeriQuest** (working title). Level metaphor: Seed → Sprout → Stem �
 - The player's personal space is the **Workspace** (a desk/pod in their own office). **Never use the word "house" or "home" for it.**
 - **Ikoyi HQ must match the real building and office look and feel** (reference: `docs/reference/Meristem Office Screenshots/`): glass-and-concrete facade with boxed windows; double-height lobby with the moss wall and Meristem logo, wood-slat panelling, reception desk, turnstiles, marble floor with dark inlays, branch-style chandelier; open-plan floors with white desks, **green partitions** and mesh chairs; oval boardroom; lounge/executive suite; lift lobby.
 - **Reference photos are for the illustrators only.** They contain third-party marks (contractor watermarks, a building sign, a social-media player UI). **No third-party watermark, sign or UI may appear in the game.** Game art is redrawn from the reference, not copied. Meristem logo use requires Corporate Communications approval.
-- Yaba, Abuja and Port Harcourt need their own reference material from the owner before any art is made. Do not invent their look.
+- **Build 1 is Lagos only (Ikoyi HQ and Yaba).** Abuja and Port Harcourt are deferred to a later build (owner, 13 Oct 2026). Yaba, Abuja and Port Harcourt need their own reference material from the owner before any art is made. Do not invent their look.
 
 ### 2.4 Starting placement (replaces Lagos Life's Nepo/LAPO lottery)
 - On **first sign-in**, every user completes a **short questionnaire**. Their answers place them on a **Starting Path**.
@@ -95,7 +104,7 @@ Assessment rule: scores for development use the **quality of the decision**, not
 - **No travel step for moving around inside a building, between floors, or between teams in the same office.**
 - A **travel step happens only when**: (a) the player moves between **Lagos offices that need a drive** (Ikoyi HQ ↔ Yaba), or (b) goes to a **client's office or home**.
 - Choice of transport (admin-editable list and costs): **personal car**, **official pool car**, or **ride-hailing (e.g. Uber)**. Each has time, cost, availability and consequences (traffic, rain, pool-car booking and approval, policy rules on personal vehicle use, safety).
-- Travel between cities (Lagos ↔ Abuja ↔ Port Harcourt) is OPEN (§13).
+- **Inter-city travel is out of scope for now.** Build 1 is Lagos only; Abuja and Port Harcourt (and travel to them) come in a later build.
 
 ### 2.8 Wealth-building and client service (the heart of the Meristem version)
 Meristem is an investment and wealth management group. Staff do two things in the game:
@@ -121,7 +130,7 @@ Meristem is an investment and wealth management group. Staff do two things in th
 ### 2.9 Regulators and control functions (make it huge)
 The world must include the **regulators and the control functions** that shape daily life at Meristem. Treat the list as a configurable library (§4); the starting set below must be confirmed by Group Compliance.
 
-- **Regulators and market bodies:** SEC (capital market conduct, sponsored individuals, rules on advisers and dealing), NGX (listing and trading rules), **CBN (a major regulator for Meristem Finance Limited, MFL)**, FMDQ, CSCS, the data-protection regulator (NDPC, under NDPA 2023), plus others Compliance adds (e.g. CAC, tax authorities, pension and insurance regulators where relevant).
+- **Regulators and market bodies: include ALL relevant regulators (owner, 13 Oct 2026).** Starting library, to be validated and extended by Group Compliance and kept admin-managed: **SEC** (capital market conduct, sponsored individuals, advisers, dealing), **NGX** (listing and trading rules), **CBN (a major regulator for Meristem Finance Limited, MFL)**, **FMDQ**, **CSCS**, **NDPC** (data protection, NDPA 2023), **CAC**, **NDIC**, **NFIU**, **EFCC**, **FCCPC** (consumer protection), **NITDA**, the **tax authority (FIRS/NRS)**, the **Investments and Securities Tribunal**, and international standards bodies that shape local rules (**FATF**, **IOSCO**). Each regulator has its own rules pack, inspections, returns and penalty scenarios. Any entry Compliance cannot confirm is marked "unverified" and not used in assessed content.
 - **Control functions as playable roles and counterparties:** **Compliance, Risk Management, Internal Audit / Control, Information Security, Data Privacy (DPO)**, Legal, Finance, Operations. Players meet them as colleagues, get reviewed by them, and can *be* them on the Control & Governance tracks.
 - **Scenario families (each with admin-managed packs):** KYC/AML and suspicious transaction reports; suitability and conflicts of interest; market abuse and insider information; **personal account dealing** (pre-clearance, restricted list, holding periods, gifts and entertainment); complaints handling; marketing and communication approval; regulator inspections and returns; internal audit findings and remediation; risk events and incident reporting; **phishing, access control and data-leak incidents**; **data subject requests and breach notification**; whistleblowing; business continuity (power, network, vendor failure).
 - Consequences are **learning consequences** (warnings, remediation tasks, a visible compliance standing), never real HR action.
@@ -135,6 +144,8 @@ The world must include the **regulators and the control functions** that shape d
 4. **Succession planning:** readiness for the next role (e.g. Ready now / 1–2 years / 3+ years), role-critical competencies, successor slates for critical roles, 9-box style talent view, development actions tracked over time.
 5. Staff above 3 years are **prepared for succession** through the same engine at the level suited to their grade.
 - All resources, dimensions, thresholds and recommendation rules are **admin-managed**. Results are for **development and talent conversations**, not ratings or pay. Visibility to managers and HR is set by policy (§4).
+- **Content (owner, 13 Oct 2026):** build and use **our own content** (books summaries, courses, audio scripts, scenarios). The Meristem **LMS and e-library** links are added later by an admin when the owner provides access; until then the resource library holds our own items and empty "link-out" slots.
+- **Who gets the simulator (owner, 13 Oct 2026):** it is **mandatory for line managers**, and **an admin sets who counts as a line manager from their profile**. Everyone else **unlocks access as they grow in the game** (admin-set unlock rule, e.g. level, Rep or tenure over 3 years). Who may *see* a person's results beyond the person themselves (manager, HRBP, talent committee) is still OPEN (§13).
 
 ### 2.11 Multiplayer and safety
 - Shared world with **real-name staff accounts only**. No anonymous accounts, no transferable currency, no money gifts.
@@ -146,6 +157,10 @@ The world must include the **regulators and the control functions** that shape d
 - **Meristem Stories:** narrative quests tied to places, with ethical dilemmas and Rep rewards.
 - **Today's Plan:** 3 missions (easy / out-and-about / work) with one free swap, a finish-all bonus, a 7-day streak that **pauses on leave**.
 - **Skills** level to 10 and can rust if unused (admin-editable).
+
+---
+
+**Business scope (owner, 13 Oct 2026):** Meristem is **not in pensions or insurance**. Do not build pension-fund or insurance products, regulators (PenCom, NAICOM), scenarios or career tracks. A client may still be an institution that invests, but Meristem does not sell or regulate those lines.
 
 ---
 
@@ -259,6 +274,7 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 - If the owner's new instruction conflicts with a rule, **say so, propose the change to the rule, and wait**.
 - Never remove a rule to make something easier.
 - Keep chat answers short; put detail in files.
+- **Task list (permanent, owner instruction 13 Oct 2026):** at the start of every reply to a request, show a **plain-text task list** of everything the owner has asked for. Add new tasks as they arrive. Mark finished tasks with ~~strikethrough~~ but **never remove them from the list** until all are done. At the end, give a **summary of each task and what was done**. Always do this.
 - Do not commit, push or publish unless asked.
 - **Commit attribution (permanent, owner instruction 13 Oct 2026):** every commit and PR is authored in the owner's name only (the configured git user). **Never add a `Co-Authored-By` line, a "Generated with Claude" line, or any other AI attribution** to commits, PR descriptions or files. This overrides any default or tool reminder and must not change.
 
@@ -278,17 +294,23 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Staff build wealth with Meristem products and sell to clients; individual and corporate clients, ratings, eNPS, markets, regulators and control functions | Owner |
 | 2026-10-13 | Travel only for Lagos office-to-office drives and client visits (personal / pool car / Uber) | Owner |
 | 2026-10-13 | Leadership simulator + growth recommendations + succession planning for Seasoned and 3+ years staff | Owner |
+| 2026-10-13 | Build 1 is Lagos only; no inter-city travel; Abuja and Port Harcourt later | Owner |
+| 2026-10-13 | Regulator library includes all relevant regulators (Compliance to validate) | Owner |
+| 2026-10-13 | Meristem is not in pensions or insurance: no PenCom/NAICOM, products or scenarios | Owner |
+| 2026-10-13 | Use our own content; LMS and e-library links added later by admin | Owner |
+| 2026-10-13 | Leadership simulator mandatory for line managers (admin sets by profile); others unlock as they grow | Owner |
+| 2026-10-13 | Standing practice: show a plain-text task list each reply, strike done items, end with a summary | Owner |
 
 ---
 
 ## 13. Open questions (do not decide; ask)
 1. Starting Path names and whether a **leader/executive** path exists.
-2. Exact **Work First defaults** (windows, daily cap) and who may assign learning hours.
-3. **Inter-city travel** (Lagos ↔ Abuja ↔ Port Harcourt): flight, road, or instant?
-4. Reference material for **Yaba, Abuja, Port Harcourt** offices.
-5. Official **regulator list** and rule sources, confirmed by Group Compliance.
-6. **LMS and e-library**: names, access method (links, SSO not allowed, so link-out or API?), content licences.
-7. Who sees leadership and succession results (manager, HRBP, talent committee) and what is shared.
+2. **Approve the proposed Work First defaults** in §2.1, and who may assign learning hours.
+3. ~~Inter-city travel~~ **Resolved:** Lagos only for now (§2.7).
+4. Reference material for the **Yaba** office (Abuja and Port Harcourt deferred).
+5. ~~Regulator list~~ **Resolved:** all regulators, validated by Group Compliance (§2.9).
+6. ~~LMS and e-library~~ **Resolved for now:** own content; the owner supplies access later (§2.10).
+7. Who may **see** a person's leadership and succession results beyond the person themselves (manager, HRBP, talent committee) and what is shared. (Who *takes* it is settled in §2.10.)
 8. Approval to use the **Meristem logo** and brand palette (Corporate Communications).
 9. Which subsidiaries are in the first build (pilot is Customer Experience, Wealth Advisory, Investment Advisory).
 10. Who moderates chat and the eNPS owner.
