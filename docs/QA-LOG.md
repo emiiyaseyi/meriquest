@@ -4,6 +4,34 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M3a: The game world (13 Oct 2026)
+Scope: isometric Ikoyi HQ (lobby, open-plan floor, boardroom, lounge) drawn from scene data; flat 2D Lite renderer; click and keyboard walking with pathfinding; doors and spots; game HUD (clock, mood, points, status bars, venue card, bottom menu); Map with all 8 levels; Work Phone apps (admin-editable); server-checked travel; Work First enforced on the world with an admin-preview setting.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean (production build, 15 routes) |
+| 2 | Automated tests | **Pass** | 281 tests in 10 files. New `world.test.ts` (73 tests): geometry, pathfinding, **every scene validated** (inside bounds, no overlapping solids, nobody on furniture, every door and spot reachable from the start, every door has a valid arrival tile and a way back), renderer draws every scene in both modes, click-to-tile mapping, fit on 3 screen sizes, player helpers, travel rules, admin preview |
+| 3 | Input validation | **Pass** | Door and room ids are validated as short strings and looked up with an own-property check (`__proto__`, `constructor`, long strings, numbers, null all refused, tested); stored player records are healed (scene, look colours, bars, points) rather than trusted |
+| 4 | Authz / server-authoritative | **Pass** | Both travel actions call `requireUser`; the server decides movement: a door must exist in the player's *current* room, and map travel only within the same building (RULEBOOK §2.7); the browser never sends a position or score. Work First is checked on every move |
+| 6 | Web security | **Pass** | No raw HTML: all text is rendered by React; canvas text is drawn, not injected; CSP unchanged (script nonces); no new external hosts |
+| 8 | Work First | **Pass** | `/play` sends **no world data** when play is closed; travel and heartbeat refuse in working hours (tested); admin preview credits no time (tested); `adminsExempt` can be switched off and then applies to admins (tested) |
+| 10 | Dependencies | **Pass** | `npm audit --omit=dev`: 0. New dev-only tools: `@napi-rs/canvas`, `esbuild`, `puppeteer-core` (render and browser checks; not shipped) |
+| 12 | Review | **Pass** | Self-review of the new attack surface (two Server Actions, one page, scene data). No findings. Real-browser test (Edge, headless) below |
+
+**Real-browser test (Edge, throwaway admin account, removed afterwards):** sign-in and forced password change; world loads with 517 distinct colours on the canvas; HUD, Map (8 levels), Work Phone (12 apps); click-to-walk moves the character; Map travel to the open-plan floor; walking onto the lift door returns to the lobby; Map travel to the boardroom; 2D Lite toggle; phone-size screen. **No console errors or page errors.**
+
+Findings
+| Finding | Severity | Status |
+|---|---|---|
+| Travel checked Work First against the current clock instead of the time passed in (made tests run "in working hours") | Low | **Fixed**, covered by tests |
+| First white logo and invented floor departments (earlier in the day) | n/a | Logo fixed and ruled; **no departments are assigned to any floor** until the owner explains them (RULEBOOK §2.3) |
+| On a phone-sized screen the bottom menu wrapped and overlapped the status bars | Low | **Fixed** (labels on one line, spacing) |
+| Dev server shows a "Rendering…" badge and compiles an action on first use, so the first Map trip takes a few seconds | Info | Development only |
+
+Known limits: the world is single-player for now (colleagues are scripted characters; real multiplayer is a later milestone); needs bars show saved values and do not decay yet; "Go to work", desk items and the phone apps are marked coming soon; the isometric art is procedural, so an illustrator can replace it with commissioned art later without changing the game logic.
+
+---
+
 ## M2.1: Postgres storage adapter (13 Oct 2026)
 Scope: `STORE=postgres` adapter over a single `kv` table (any standard Postgres); migration runner and connection check; production env guards; dev database on Prisma Postgres (`meriquestdbase`).
 

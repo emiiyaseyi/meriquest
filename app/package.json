@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "qa": "npm run typecheck && npm run lint && npm test && npm run build",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
-    "db:check": "node --env-file=.env.local scripts/db-check.mjs"
+    "db:check": "node --env-file=.env.local scripts/db-check.mjs",
+    "render:scenes": "node scripts/render-scenes.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -24,12 +25,15 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.9",
+    "@napi-rs/canvas": "^1.0.11",
     "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "puppeteer-core": "^25.13.0",
     "typescript": "^5",
     "vitest": "^5.0.4"
   }

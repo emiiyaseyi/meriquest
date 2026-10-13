@@ -77,8 +77,17 @@ async function load(user: Pick<UserDTO, "staffId" | "unit">, now: number) {
 }
 
 /** Read-only view: may this person play right now? */
-export async function playStatus(user: Pick<UserDTO, "staffId" | "unit">, activity: Activity, now: number = Date.now()): Promise<Decision> {
+type PlayUser = Pick<UserDTO, "staffId" | "unit"> & { role?: UserDTO["role"] };
+
+function adminPreview(policy: WorkFirstPolicy, user: PlayUser): Decision | null {
+  if (!policy.adminsExempt || user.role !== "admin") return null;
+  return { allowed: true, code: "admin_preview", message: "Admin preview: Work First is not applied to admins.", remainingSeconds: null, nudge: false, weeklySoftCapReached: false, windowId: null, isWorkday: true };
+}
+
+export async function playStatus(user: PlayUser, activity: Activity, now: number = Date.now()): Promise<Decision> {
   const { policy, today, week, assigned } = await load(user, now);
+  const preview = adminPreview(policy, user);
+  if (preview) return preview;
   return evaluate(policy, { unit: user.unit, now, usage: usageFrom(today, week), assignedLearningSeconds: assigned }, activity);
 }
 
@@ -87,8 +96,10 @@ export async function playStatus(user: Pick<UserDTO, "staffId" | "unit">, activi
  * play is allowed, and returns the new decision so the client can show a countdown or the
  * "Work first" screen.
  */
-export async function playBeat(user: Pick<UserDTO, "staffId" | "unit">, activity: Activity, now: number = Date.now()): Promise<Decision> {
+export async function playBeat(user: PlayUser, activity: Activity, now: number = Date.now()): Promise<Decision> {
   const { policy, lt, week, assigned } = await load(user, now);
+  const preview = adminPreview(policy, user);
+  if (preview) return preview; // nothing is credited for an admin preview
   const prior = week.filter((d) => d.date !== lt.date);
   let decision: Decision | null = null;
 

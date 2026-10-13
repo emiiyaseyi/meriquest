@@ -12,6 +12,7 @@ export type Activity = "world" | "learning";
 export type Code =
   | "ok"
   | "disabled" // policy switched off: no restriction
+  | "admin_preview" // an admin previewing the game (policy exempts admins)
   | "core_hours"
   | "blackout"
   | "outside_window"

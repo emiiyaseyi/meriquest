@@ -63,6 +63,8 @@ const unitOverrideSchema = z
 export const workFirstSchema = z
   .object({
     enabled: z.boolean(),
+    /** Admins can preview the game at any time (so they can test and demo it). Turn off to apply Work First to admins too. */
+    adminsExempt: z.boolean().default(true),
     timezone: z.string().min(1).max(60),
     coreHours: z.object({ days: z.array(dayNum).max(7), start: hhmm, end: hhmm }).strict(),
     windows: z
@@ -93,7 +95,7 @@ export const workFirstSchema = z
       .array(z.object({ id: slug, label: z.string().min(1).max(80), from: isoDate, to: isoDate }).strict())
       .max(60),
     /** Dates treated like weekends (weekend windows and caps apply, no core hours). */
-    publicHolidays: z.array(isoDate).max(60),
+    publicHolidays: z.array(isoDate).max(60).default([]),
     unitOverrides: z.record(z.string().min(1).max(20), unitOverrideSchema),
   })
   .strict();
@@ -328,6 +330,22 @@ export const workStylesSchema = z
   .min(1)
   .max(12);
 
+/** The apps on the Work Phone. Admins can switch each on or off, rename it, or mark it "coming soon". */
+export const phoneAppsSchema = z
+  .array(
+    z
+      .object({
+        id: slug,
+        label: z.string().min(1).max(30),
+        icon: z.string().min(1).max(8),
+        enabled: z.boolean(),
+        soon: z.boolean(),
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(40);
+
 export const levelsSchema = z
   .array(z.object({ name: z.string().min(1).max(30), xp: z.number().int().min(0).max(1_000_000) }).strict())
   .min(2)
@@ -385,6 +403,7 @@ export const CONFIG = {
     schema: workFirstSchema,
     default: {
       enabled: true,
+      adminsExempt: true,
       timezone: "Africa/Lagos",
       coreHours: { days: [1, 2, 3, 4, 5], start: "08:00", end: "17:00" },
       windows: [
@@ -472,6 +491,26 @@ export const CONFIG = {
       { id: "collaborate", label: "Collaborate", blurb: "Work with colleagues; output is slower but relationships grow.", performanceMultiplier: 0.85, energyCost: 8, socialDelta: 15, enabled: true },
       { id: "visible", label: "Stay visible", blurb: "Update your manager and stakeholders often. It helps if you deliver, and costs you if you don't.", performanceMultiplier: 0.95, energyCost: 12, socialDelta: 5, enabled: true },
       { id: "pace-yourself", label: "Pace yourself", blurb: "Protect your energy. Output drops.", performanceMultiplier: 0.7, energyCost: 3, socialDelta: 0, enabled: true },
+    ],
+  },
+  phoneApps: {
+    label: "Work Phone apps",
+    group: "Gameplay",
+    description: "The apps on the Work Phone: show or hide each one, rename it, or mark it as coming soon.",
+    schema: phoneAppsSchema,
+    default: [
+      { id: "my-role", label: "My Role", icon: "💼", enabled: true, soon: true },
+      { id: "messages", label: "Messages", icon: "💬", enabled: true, soon: true },
+      { id: "academy", label: "Academy", icon: "🎓", enabled: true, soon: true },
+      { id: "todays-plan", label: "Today's Plan", icon: "🎯", enabled: true, soon: true },
+      { id: "directory", label: "Directory", icon: "📇", enabled: true, soon: true },
+      { id: "kudos", label: "Kudos", icon: "🌟", enabled: true, soon: true },
+      { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: true },
+      { id: "clients", label: "Clients", icon: "🤝", enabled: true, soon: true },
+      { id: "market", label: "Market", icon: "🏦", enabled: true, soon: true },
+      { id: "compliance", label: "Compliance Desk", icon: "🛡️", enabled: true, soon: true },
+      { id: "reports", label: "Reports", icon: "📊", enabled: true, soon: true },
+      { id: "settings", label: "Settings", icon: "⚙️", enabled: true, soon: false },
     ],
   },
   levels: {

@@ -57,6 +57,7 @@ Name: **MeriQuest** (working title). Level metaphor: Seed → Sprout → Stem �
 - Offices (the "worlds"): **Lagos Ikoyi HQ**, **Lagos Yaba**, **Abuja**, **Port Harcourt**.
 - The player's personal space is the **Workspace** (a desk/pod in their own office). **Never use the word "house" or "home" for it.**
 - **Ikoyi HQ must match the real building and office look and feel** (reference: `docs/reference/Meristem Office Screenshots/`): glass-and-concrete facade with boxed windows; double-height lobby with the moss wall and Meristem logo, wood-slat panelling, reception desk, turnstiles, marble floor with dark inlays, branch-style chandelier; open-plan floors with white desks, **green partitions** and mesh chairs; oval boardroom; lounge/executive suite; lift lobby.
+- **Ikoyi HQ levels (owner, 13 Oct 2026):** the building has **Ground floor, Mezzanine floor and Floors 1 to 6** (8 levels). The owner will explain what each level is for. **Until then, do not assign departments, teams or functions to any floor.** Rooms already built (lobby on the ground floor; open-plan floor, boardroom and lounge) are *sample layouts* labelled as such. The lift panel and the Map show all 8 levels, and only built rooms are open. The same applies to the Yaba office once its photos are supplied.
 - **Reference photos are for the illustrators only.** They contain third-party marks (contractor watermarks, a building sign, a social-media player UI). **No third-party watermark, sign or UI may appear in the game.** Game art is redrawn from the reference, not copied. Meristem logo use requires Corporate Communications approval.
 - **Build 1 is Lagos only (Ikoyi HQ and Yaba).** Abuja and Port Harcourt are deferred to a later build (owner, 13 Oct 2026). Yaba, Abuja and Port Harcourt need their own reference material from the owner before any art is made. Do not invent their look.
 
@@ -324,6 +325,9 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Always commit and push after each piece of work | Owner |
 | 2026-10-13 | Database: any standard Postgres via `DATABASE_URL`; dev on Prisma Postgres (`meriquestdbase`, Frankfurt, free plan, fictional data only); production provider, plan and region decided with IT, Risk and the DPO before the pilot | Owner |
 | 2026-10-13 | QA and security gate (§5.1) on everything built: no loopholes, no errors | Owner |
+| 2026-10-13 | Ikoyi HQ has Ground floor, Mezzanine floor and Floors 1 to 6; owner will explain each; no floor use invented meanwhile | Owner |
+| 2026-10-13 | Admins may preview the game at any time (`adminsExempt` Work First setting, on by default, admin-editable) | Owner / Claude |
+| 2026-10-13 | The game looks and plays like the Lagos Life reference: isometric world, floating HUD, Map, Work Phone; light-only | Owner |
 | 2026-10-13 | Account activation: keep the shared default password and accept the risk (option c) | Owner |
 | 2026-10-13 | Apply the Meristem brand (logo, palette) from the staff-portal reference | Owner |
 | 2026-10-13 | Owner asked for recommendations on §13 items 2, 4, 7, 8, 9, 10; working defaults recorded | Owner / Claude |
@@ -353,7 +357,7 @@ Reference: `docs/reference/meristem look and feel/` (the staff portal at meristu
 1. Starting Path names and whether a **leader/executive** path exists.
 2. Work First defaults are approved with the "learning outside work hours" change (§2.1). **Still open:** the owner's sentence ended at "others are okay such as…". Which other activities are allowed outside the windows? And who may assign learning hours?
 3. ~~Inter-city travel~~ **Resolved:** Lagos only for now (§2.7).
-4. Reference material for the **Yaba** office (Abuja and Port Harcourt deferred).
+4. Reference material for the **Yaba** office (Abuja and Port Harcourt deferred). **What each Ikoyi HQ level (Ground, Mezzanine, Floors 1 to 6) is used for**, with photos if possible.
 5. ~~Regulator list~~ **Resolved:** all regulators, validated by Group Compliance (§2.9).
 6. ~~LMS and e-library~~ **Resolved for now:** own content; the owner supplies access later (§2.10).
 7. Who may **see** a person's leadership and succession results beyond the person themselves (manager, HRBP, talent committee) and what is shared. (Who *takes* it is settled in §2.10.)

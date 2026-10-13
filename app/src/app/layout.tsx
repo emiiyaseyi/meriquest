@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./game.css";
 
 // Pages are rendered per request: the CSP nonce (set in proxy.ts) can only be applied to dynamic renders.
 export const dynamic = "force-dynamic";
