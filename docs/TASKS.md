@@ -57,3 +57,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Commits and pushes in the owner's name only, never any AI attribution
 - [ ] Move concern evidence files to proper file storage with virus scanning before wide rollout
 - [ ] Optional: database connection retry for DNS blips; Supabase MFA (low priority)
+
+- [x] Workspace decoration: Buy mode with Catalogue, place yourself or auto-place, items that help needs (admin-editable)
+- [ ] Show bought items inside the 3D Workspace room
+- [x] Break screen: countdown and a button to the Academy

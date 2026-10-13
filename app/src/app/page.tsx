@@ -12,6 +12,7 @@ import { floorStatuses } from "@/lib/world/access";
 import { BUILDINGS } from "@/lib/world/scenes";
 import { playStatus } from "@/lib/server/workfirst/service";
 import { closedTitle } from "@/lib/workfirst";
+import { BreakCountdown } from "@/components/BreakCountdown";
 
 export const metadata: Metadata = { title: "MeriQuest" };
 
@@ -35,7 +36,9 @@ export default async function HomePage() {
         <div className="auth-card stack">
           <h1>{closedTitle(status.code)}</h1>
           <p className="muted" style={{ margin: 0 }}>{status.message}</p>
-          <Link href="/academy" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Open Meristem Academy</Link>
+          {status.resumeAt ? <BreakCountdown resumeAt={status.resumeAt} /> : null}
+          <p className="muted" style={{ margin: 0 }}>Learning is open at any time. Carry on in the Academy while you wait.</p>
+          <Link href="/academy" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Go to the Academy to keep learning</Link>
           <Link href="/dashboard" className="btn btn-ghost" style={{ textAlign: "center", textDecoration: "none" }}>Open my dashboard</Link>
         </div>
       </main>

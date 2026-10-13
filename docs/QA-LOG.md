@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M7a: Workspace decoration (Buy mode) and the break countdown (13 Oct 2026)
+Scope: Buy mode built from the reference: Workspace from above, Catalogue with tabs (Desk, Comfort, Plants, Tech, Wall art, Light), item cards with size, stars and price in Merit points; people choose to place things themselves on a tile grid or have them placed; some items slow how fast a need falls (capped, set by the admin); catalogue editable under Settings. The break screen now shows a live countdown and a button to go to the Academy.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 426 tests; decoration: price check, refusals, overlap and bounds, ownership, auto-place, need help cap, tampered record |
+| 3 | Authorisation and validation | **Pass** | Every action calls `requireUser`; the server decides price, ownership, bounds and overlap; stored data is healed on read; catalogue checked by a strict schema |
+| 4 | Real browser | **Pass** | Throwaway user: open Buy mode, buy, place on tiles, balance falls, phone width has no horizontal scroll, no console errors |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: items are drawn as emoji on the grid, not yet in the 3D Workspace room; "place for me" was covered by tests but not by the browser run.
+
+---
+
 ## M6a: Illustrated city map with pills (13 Oct 2026)
 Scope: the map is now an illustrated Lagos map like the reference game's, with city tabs (Lagos, and Port Harcourt and Abuja marked as coming later) and name pills: Meristem HQ (opens the floor and room list), Yaba office (opening later), Meristem Academy (place card, then the full-screen Academy), and scenery names.
 

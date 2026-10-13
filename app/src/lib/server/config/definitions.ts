@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { DEFAULT_ACADEMY } from "./academy-content";
 import { parseVideo } from "@/lib/academy-video";
+import { DEFAULT_DECOR } from "./decor-content";
+import { NEED_KEYS } from "@/lib/world/player";
 
 /**
  * Config registry definitions (RULEBOOK §4: nothing an admin may want to change is hardcoded).
@@ -598,6 +600,42 @@ export const levelsSchema = z
 
 /* -------------------------------- the registry -------------------------------- */
 
+export const decorSchema = z
+  .object({
+    settings: z
+      .object({
+        gridW: z.number().int().min(3).max(16),
+        gridD: z.number().int().min(3).max(16),
+        maxPlaced: z.number().int().min(1).max(100),
+        /** The most any one need's fall can be slowed by the room, as a share. */
+        maxHelpPerNeed: z.number().min(0).max(0.9),
+      })
+      .strict(),
+    categories: z.array(z.object({ id: slug, label: z.string().min(1).max(20), icon: z.string().min(1).max(8) }).strict()).min(1).max(12),
+    items: z
+      .array(
+        z
+          .object({
+            id: slug,
+            category: slug,
+            name: z.string().min(1).max(40),
+            icon: z.string().min(1).max(8),
+            w: z.number().int().min(1).max(4),
+            d: z.number().int().min(1).max(4),
+            stars: z.number().int().min(0).max(3),
+            price: z.number().int().min(0).max(100000),
+            effect: z.object({ need: z.enum(NEED_KEYS), cut: z.number().min(0.01).max(0.5) }).strict().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(200),
+  })
+  .strict()
+  .refine((d) => new Set(d.items.map((i) => i.id)).size === d.items.length, "Each item needs its own id")
+  .refine((d) => d.items.every((i) => d.categories.some((c) => c.id === i.category)), "Every item must belong to a category in the list")
+  .refine((d) => d.items.every((i) => i.w <= d.settings.gridW && i.d <= d.settings.gridD), "An item is bigger than the room");
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -812,6 +850,13 @@ export const CONFIG = {
     description: "How Meristem Academy runs (class time, quiz size, pass mark, retry delay, classes a day, points) and the groups courses sit in. The courses themselves are edited under Admin → Academy.",
     schema: academySchema,
     default: DEFAULT_ACADEMY,
+  },
+  decor: {
+    label: "Workspace catalogue",
+    group: "Content",
+    description: "What people can buy with Merit points to decorate their Workspace: the room size, the tabs, and each item (size, stars, price, and an optional help to a need, as a share by which that need falls more slowly). People choose whether to place things themselves or have them placed.",
+    schema: decorSchema,
+    default: DEFAULT_DECOR,
   },
   floors: {
     label: "Floor access",

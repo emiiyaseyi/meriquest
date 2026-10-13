@@ -393,3 +393,48 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .map-pill.academy:hover:not(:disabled) { background: #2d5d41; }
 .map-pill.scenery { opacity: .85; cursor: default; font-weight: 500; }
 @media (max-width: 640px) { .map-pill { font-size: .74rem; padding: 5px 9px; } }
+
+/* Buy mode: your Workspace from above and the Catalogue, like the reference game */
+.buy-screen { position: absolute; inset: 0; z-index: 6; background: linear-gradient(#cfe6f5, #eaf4fa); display: flex; flex-direction: column; }
+.buy-loading { margin: auto; }
+.buy-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+.buy-chip { background: #fff; border-radius: 999px; padding: 8px 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.buy-chip.points { margin-left: auto; margin-right: auto; }
+.buy-room { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 12px; }
+.buy-svg { max-width: 760px; width: 100%; max-height: 100%; }
+.buy-tile { fill: #e9c08a; stroke: #c99a5e; stroke-width: 1; cursor: default; }
+.buy-tile.can { fill: #b7e3a6; cursor: pointer; }
+.buy-tile.cannot { fill: #e7b3a8; }
+.buy-thing { cursor: pointer; }
+.buy-thing.on text { filter: drop-shadow(0 0 6px #1d452b); }
+.buy-shadow { fill: rgba(0,0,0,.14); }
+.buy-hint { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); background: #1d452b; color: #fff; padding: 8px 14px; border-radius: 999px; display: flex; gap: 12px; align-items: center; font-size: .9rem; white-space: nowrap; }
+.buy-link { appearance: none; border: 0; background: transparent; color: #cfe9b0; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
+.buy-msg { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); margin: 0; background: #fff; padding: 6px 14px; border-radius: 999px; font-size: .85rem; box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+.buy-msg.bad { background: #fde4e4; color: #8a2020; }
+.buy-sheet { background: #fff; border-radius: 28px 28px 0 0; width: min(1000px, 100%); margin: 0 auto; padding: 14px 16px 18px; box-shadow: 0 -10px 40px rgba(0,0,0,.2); max-height: 46%; display: flex; flex-direction: column; gap: 10px; }
+.buy-sheet.hidden { max-height: none; }
+.buy-sheet-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.buy-sheet-head h2 { margin: 0; flex: 1; }
+.buy-mode { display: flex; background: #eef2ee; border-radius: 999px; padding: 3px; }
+.buy-mode button { appearance: none; border: 0; background: transparent; font: inherit; font-size: .82rem; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; color: #26402f; }
+.buy-mode button.on { background: #1d452b; color: #fff; }
+.buy-hide { appearance: none; border: 0; background: #eef2ee; font: inherit; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; color: #26402f; }
+.buy-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.buy-tab { appearance: none; border: 0; background: #eef2ee; font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; color: #26402f; }
+.buy-tab.on { background: #1b2a21; color: #fff; }
+.buy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; overflow-y: auto; min-height: 0; }
+.buy-card { appearance: none; border: 1px solid #e3e9e3; background: #fff; border-radius: 20px; padding: 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font: inherit; color: #1b2a21; cursor: pointer; text-align: left; position: relative; }
+.buy-card:hover:not(:disabled) { background: #f1f7f2; }
+.buy-size { font-size: .7rem; color: #5b6b61; }
+.buy-stars { position: absolute; top: 10px; right: 12px; color: #d19a1a; font-size: .8rem; }
+.buy-art { align-self: center; font-size: 2.6rem; line-height: 1.3; }
+.buy-name { font-weight: 600; font-size: .92rem; }
+.buy-effect { font-size: .72rem; color: #2d5d41; text-transform: capitalize; }
+.buy-price { color: #1d7a45; font-weight: 700; font-size: .92rem; }
+.buy-price.short { color: #a33; }
+.buy-price.own { color: #5b6b61; }
+@media (max-width: 640px) { .buy-sheet { max-height: 56%; } .buy-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.break-clock { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff; border-radius: 18px; padding: 12px; }
+.break-time { font-size: 2.4rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #1d452b; letter-spacing: .02em; }

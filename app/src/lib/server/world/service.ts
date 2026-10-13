@@ -6,6 +6,7 @@ import { playStatus } from "../workfirst/service";
 import { FIRST_SCENE, getScene } from "@/lib/world/scenes";
 import { cleanLook, cleanNeeds, defaultLook, DEFAULT_NEEDS, type Needs } from "@/lib/world/player";
 import { cleanProgress, type StoredFeeling } from "@/lib/game";
+import type { DecorState } from "@/lib/decor";
 import { floorBlock } from "@/lib/world/access";
 import { getConfig } from "../config/registry";
 import { recordEvent } from "../game/missions";
@@ -31,6 +32,8 @@ export interface PlayerRecord {
   skillXp?: Record<string, number>;
   /** When each interaction can be used again. */
   cooldowns?: Record<string, number>;
+  /** What they have bought for their Workspace, and where it stands. */
+  decor?: DecorState;
   /** True once the person has finished or skipped the welcome tour. */
   toured?: boolean;
   updatedAt: number;

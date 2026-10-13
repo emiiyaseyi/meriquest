@@ -12,6 +12,7 @@ import { PhoneUI } from "./PhoneUI";
 import { AcademyApp } from "@/components/AcademyApp";
 import { PlaceCard } from "./PlaceCard";
 import { CityMap, type MapPick } from "./CityMap";
+import { BuyMode } from "./BuyMode";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -56,7 +57,7 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | null;
+type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | "buy" | null;
 
 const BEAT_MS = 30_000;
 
@@ -352,7 +353,7 @@ export function GameShell(props: GameShellProps) {
               <span aria-hidden="true">🏢</span>
               {terms.workspace}
             </button>
-            <button type="button" className="nav-btn" disabled title="Desk items arrive in a later update">
+            <button type="button" className="nav-btn" onClick={() => setOverlay(overlay === "buy" ? null : "buy")} title="Buy things for your Workspace">
               <span aria-hidden="true">🪑</span>
               Desk items
             </button>
@@ -460,7 +461,7 @@ export function GameShell(props: GameShellProps) {
             {spot.kind === "workspace" ? (
               <>
                 <div className="activity locked"><strong>Start my day</strong><span className="muted">Coming next</span></div>
-                <div className="activity locked"><strong>Customise my desk</strong><span className="muted">Coming soon</span></div>
+                <button type="button" className="activity" onClick={() => { setSpot(null); setOverlay("buy"); }}><strong>Customise my desk</strong><span className="muted">Buy and place things</span></button>
               </>
             ) : game.spots[spot.kind] ? (
               <button type="button" className="activity" onClick={() => void runGame(() => spotAction(spot.kind))} disabled={(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt}>
@@ -558,6 +559,8 @@ export function GameShell(props: GameShellProps) {
           </div>
         </div>
       ) : null}
+
+      {overlay === "buy" ? <BuyMode pointsLabel={terms.points} onPoints={(n) => setGame((g) => ({ ...g, points: n }))} onClose={() => setOverlay(null)} /> : null}
 
       {overlay === "academy" ? (
         <div className="academy-screen" role="dialog" aria-label={terms.academy}>

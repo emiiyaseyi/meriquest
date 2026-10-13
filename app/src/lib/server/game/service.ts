@@ -5,6 +5,7 @@ import { getConfig } from "../config/registry";
 import type { UserDTO } from "../types";
 import { playStatus } from "../workfirst/service";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
+import { ratesFor } from "../decor/service";
 import { ensureMissionDay, recordEvent, type MissionDay } from "./missions";
 import { notify, unreadCount } from "../notices/service";
 import { getScene } from "@/lib/world/scenes";
@@ -83,12 +84,12 @@ function rechargeHints(gameplay: Gameplay): Record<NeedKey, string[]> {
 }
 
 async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
-  const gameplay = await getConfig("gameplay");
+  const [gameplay, decorCfg] = await Promise.all([getConfig("gameplay"), getConfig("decor")]);
   await getOrCreatePlayer({ staffId }, now);
   const saved = await getStore().update<PlayerRecord>("players", staffId, (cur) => {
     if (!cur) return cur;
     const last = typeof cur.needsAt === "number" ? cur.needsAt : now;
-    return { ...cur, needs: decayNeeds(cur.needs, now - last, gameplay.decayPerHour), needsAt: now };
+    return { ...cur, needs: decayNeeds(cur.needs, now - last, ratesFor(gameplay.decayPerHour, cur.decor, decorCfg)), needsAt: now };
   });
   return saved as PlayerRecord;
 }
@@ -140,7 +141,7 @@ interface Action {
 
 /** Apply one action to the person's record in a single atomic step. Returns an error text if it is not allowed. */
 async function perform(user: Pick<UserDTO, "staffId">, a: Action, now: number): Promise<string | null> {
-  const gameplay = await getConfig("gameplay");
+  const [gameplay, decorCfg] = await Promise.all([getConfig("gameplay"), getConfig("decor")]);
   let refusal: string | null = null;
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => {
     if (!cur) return cur;
@@ -154,7 +155,7 @@ async function perform(user: Pick<UserDTO, "staffId">, a: Action, now: number): 
       return cur;
     }
     const last = typeof cur.needsAt === "number" ? cur.needsAt : now;
-    const needs = applyEffects(decayNeeds(cur.needs, now - last, gameplay.decayPerHour), a.effects);
+    const needs = applyEffects(decayNeeds(cur.needs, now - last, ratesFor(gameplay.decayPerHour, cur.decor, decorCfg)), a.effects);
     const change = effectTags(a.effects).join(" ") || "A good moment";
     const feeling: Feeling = { id: randomBytes(5).toString("hex"), label: a.feeling.label, text: a.feeling.text, change, at: now };
     const cooldowns = Object.fromEntries(Object.entries(cur.cooldowns ?? {}).filter(([, t]) => t > now));
