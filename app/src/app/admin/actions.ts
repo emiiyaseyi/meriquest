@@ -12,6 +12,7 @@ import {
   type AdminResult,
 } from "@/lib/server/auth/admin";
 import { resetConfigToDefault, setConfig } from "@/lib/server/config/registry";
+import { updateConcern } from "@/lib/server/concerns/service";
 import { adminResetPlacement, adminSetPath, adminSetRetakeLock } from "@/lib/server/placement/service";
 
 export interface AdminFormState {
@@ -115,4 +116,12 @@ export async function resetConfigAction(_p: AdminFormState, fd: FormData): Promi
   revalidatePath("/admin/config");
   if (!r.ok) return { error: r.errors.join("\n") };
   return { ok: `Default restored (version ${r.version}). Reload to see it.` };
+}
+
+export async function updateConcernAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await updateConcern(admin, str(fd.get("id")), fd.get("status"), fd.get("note"));
+  revalidatePath("/admin/concerns");
+  revalidatePath(`/admin/concerns/${str(fd.get("id"))}`);
+  return toState(r, "Saved.");
 }

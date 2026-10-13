@@ -13,6 +13,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Concern reports can carry up to three 2 MB evidence files
+  experimental: { serverActions: { bodySizeLimit: "8mb" } },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

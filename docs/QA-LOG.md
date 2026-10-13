@@ -19,6 +19,27 @@ Note: the palettes and style lists live in `lib/world/looks.ts`, not in admin se
 
 ---
 
+## M3c.2: Conduct concerns, needs and feelings, skills, Today's Plan, person interactions (13 Oct 2026)
+Scope: (1) **Report a concern**: staff report conduct concerns to the admin team (kind, who, when it happened, what happened, up to 3 evidence files); the server adds its own timestamps, the reporter's identity, and where in the game they were; admins review at `/admin/concerns` (status, notes, evidence download, audit trail). (2) **Needs engine**: bars fall with time on the server; interactions and coffee raise them; **Feelings** list. (3) **Skills** with levels. (4) **Today's Plan**: three daily missions, rewards and a daily bonus. (5) Person card actions: Say hello, Share a tip, Call for support, Buy a drink (costs Merit points). Everything tunable sits in two new settings: "Needs, interactions, skills and missions" and "Conduct concerns".
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 373 passing (34 new for concerns, 18 for the needs/skills/missions rules and service): file type by contents (scripts, executables, wrong extensions refused), size and count limits, safe file names, hostile text, rate limit, only admins can list/open/download/update, a reporter sees only their own and only the status, tampered stored files refused (hash re-checked), ids that are not real, double claims pay once, cooldowns, costs, rooms and people checked on the server |
+| 3 | Real browser | **Pass** | Throwaway player and admin: greeted a colleague (toast, cooldown shown), call for support, feelings and skill bars, missions with progress, reported a concern with a PNG, received CR-0001, a player sent to `/` from `/admin/concerns`, admin saw "1 new report", downloaded the evidence (`200`, `image/png`, `attachment`, `nosniff`, magic bytes intact), saved a review; no console errors; test rows deleted |
+| 4 | Authorisation | **Pass** | Concern pages, actions and the download route all require the admin role; `assertAdmin` is repeated inside the service. Interaction/claim actions need a signed-in user, re-check Work First, and take the person and room from the server record, never the browser |
+| 5 | Input validation | **Pass** | Strict zod schemas for both settings; ids matched against `^c_[0-9a-f]{18}$`; control characters stripped; lengths capped; dates must be past and within a year |
+| 6 | Output / headers | **Pass** | Evidence is served only to admins, as a download, with the real type, `nosniff`, `no-store` and a sandbox CSP; no `dangerouslySetInnerHTML` anywhere |
+| 7 | Dependencies and secrets | **Pass** | 0 vulnerabilities; nothing sensitive staged |
+
+Accepted and open:
+- Server Actions now accept bodies up to 8 MB (needed for evidence). Only signed-in users reach them, but it is wider than before.
+- Evidence is stored in the database (at most 6 MB a report, 5 reports a day per person). Move to object storage with virus scanning before wide rollout.
+- Reports are not anonymous: the reporter's name is stored. Say if a confidential option is wanted.
+- "Call for support" is built as a colleague interaction that builds Client care and counts for a mission; confirm this is what was meant.
+
+---
+
 ## M3a.4: Me panel, person card and shortcuts match the reference (13 Oct 2026)
 Scope: the menu button opens a "Me" card like the reference game's (picture and mood on top; Profile, Needs, Goals, Skills, People, Career, Settings tabs); clicking a person opens a player-style card; a keyboard shortcuts card; letter shortcuts M, P, S, E, H and ?; the view turns with [ and ] (E is now "people here"). Built from the reference screenshots in `docs/reference`.
 

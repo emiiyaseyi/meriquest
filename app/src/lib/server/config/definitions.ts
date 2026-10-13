@@ -363,6 +363,78 @@ export const phoneAppsSchema = z
   .min(1)
   .max(40);
 
+const effectsSchema = z
+  .object({
+    energy: z.number().int().min(-50).max(50).optional(),
+    focus: z.number().int().min(-50).max(50).optional(),
+    mood: z.number().int().min(-50).max(50).optional(),
+    social: z.number().int().min(-50).max(50).optional(),
+  })
+  .strict();
+const feelingSchema = z.object({ label: z.string().min(1).max(30), text: z.string().min(1).max(120) }).strict();
+const skillGain = z.object({ id: slug, xp: z.number().int().min(1).max(100) }).strict();
+
+/**
+ * The needs, interactions, skills and daily missions of the game. Everything a designer may want to tune
+ * is here: how fast the bars fall, what each interaction does and costs, the skills and their levels, and
+ * the missions in Today's Plan.
+ */
+export const gameplaySchema = z
+  .object({
+    /** How much each bar falls for every hour of play. */
+    decayPerHour: z.object({ energy: z.number().min(0).max(60), focus: z.number().min(0).max(60), mood: z.number().min(0).max(60), social: z.number().min(0).max(60) }).strict(),
+    interactions: z
+      .array(
+        z
+          .object({
+            id: slug,
+            label: z.string().min(1).max(30),
+            icon: z.string().min(1).max(8),
+            effects: effectsSchema,
+            /** Merit points it costs. */
+            cost: z.number().int().min(0).max(1000),
+            cooldownMinutes: z.number().int().min(0).max(1440),
+            feeling: feelingSchema,
+            skill: skillGain.optional(),
+          })
+          .strict(),
+      )
+      .max(20),
+    coffee: z.object({ effects: effectsSchema, cooldownMinutes: z.number().int().min(0).max(1440), feeling: feelingSchema, skill: skillGain.optional() }).strict(),
+    skills: z
+      .array(z.object({ id: slug, label: z.string().min(1).max(30), icon: z.string().min(1).max(8), xpPerLevel: z.number().int().min(1).max(10_000), maxLevel: z.number().int().min(1).max(20) }).strict())
+      .max(30),
+    missions: z
+      .array(
+        z
+          .object({
+            id: slug,
+            title: z.string().min(1).max(60),
+            description: z.string().min(1).max(160),
+            /** What counts: an interaction id, "coffee" or "visit" (entering another room). */
+            event: slug,
+            target: z.number().int().min(1).max(50),
+            rewardPoints: z.number().int().min(0).max(1000),
+          })
+          .strict(),
+      )
+      .max(40),
+    missionsPerDay: z.number().int().min(0).max(10),
+    dailyBonusPoints: z.number().int().min(0).max(1000),
+  })
+  .strict();
+
+/** Conduct concerns: the kinds people can pick, and how much they can send and attach. */
+export const concernsSchema = z
+  .object({
+    categories: z.array(z.object({ id: slug, label: z.string().min(1).max(60) }).strict()).min(1).max(20),
+    maxPerDay: z.number().int().min(1).max(50),
+    maxFiles: z.number().int().min(0).max(3),
+    maxFileMb: z.number().int().min(1).max(2),
+  })
+  .strict()
+  .refine((c) => new Set(c.categories.map((x) => x.id)).size === c.categories.length, "Each kind needs its own id");
+
 export const levelsSchema = z
   .array(z.object({ name: z.string().min(1).max(30), xp: z.number().int().min(0).max(1_000_000) }).strict())
   .min(2)
@@ -532,6 +604,60 @@ export const CONFIG = {
       { id: "reports", label: "Reports", icon: "📊", enabled: true, soon: true },
       { id: "settings", label: "Settings", icon: "⚙️", enabled: true, soon: false },
     ],
+  },
+  gameplay: {
+    label: "Needs, interactions, skills and missions",
+    group: "Gameplay",
+    description: "How fast needs fall, what each interaction does and costs, the skills and their levels, and the daily missions in Today's Plan.",
+    schema: gameplaySchema,
+    default: {
+      decayPerHour: { energy: 8, focus: 10, mood: 4, social: 6 },
+      interactions: [
+        { id: "hello", label: "Say hello", icon: "👋", effects: { social: 5 }, cost: 0, cooldownMinutes: 30, feeling: { label: "Friendly hello", text: "A warm greeting goes a long way." }, skill: { id: "communication", xp: 2 } },
+        { id: "tip", label: "Share a tip", icon: "💡", effects: { social: 6, mood: 2 }, cost: 0, cooldownMinutes: 60, feeling: { label: "Glad to help", text: "You shared something useful with a colleague." }, skill: { id: "communication", xp: 4 } },
+        { id: "support", label: "Call for support", icon: "📞", effects: { focus: 6, social: 3 }, cost: 0, cooldownMinutes: 60, feeling: { label: "Backed up", text: "You asked a colleague to help with a client conversation, and they did." }, skill: { id: "client-care", xp: 6 } },
+        { id: "drink", label: "Buy a drink", icon: "🥤", effects: { mood: 8, social: 8, energy: 4 }, cost: 5, cooldownMinutes: 45, feeling: { label: "Good company", text: "A cold drink and a good chat." }, skill: { id: "communication", xp: 3 } },
+      ],
+      coffee: { effects: { energy: 15, focus: 4 }, cooldownMinutes: 20, feeling: { label: "Fresh coffee", text: "Just what you needed to carry on." } },
+      skills: [
+        { id: "communication", label: "Communication", icon: "💬", xpPerLevel: 10, maxLevel: 10 },
+        { id: "client-care", label: "Client care", icon: "🤝", xpPerLevel: 12, maxLevel: 10 },
+        { id: "market-knowledge", label: "Market knowledge", icon: "📈", xpPerLevel: 12, maxLevel: 10 },
+        { id: "compliance", label: "Compliance", icon: "🛡️", xpPerLevel: 12, maxLevel: 10 },
+        { id: "risk-awareness", label: "Risk awareness", icon: "⚖️", xpPerLevel: 12, maxLevel: 10 },
+        { id: "digital-tools", label: "Digital tools", icon: "💻", xpPerLevel: 12, maxLevel: 10 },
+      ],
+      missions: [
+        { id: "greet-three", title: "Greet three colleagues", description: "Say hello to people around the office.", event: "hello", target: 3, rewardPoints: 5 },
+        { id: "share-tip", title: "Share a tip", description: "Pass on something useful to a colleague.", event: "tip", target: 1, rewardPoints: 5 },
+        { id: "coffee-break", title: "Take a coffee break", description: "Recharge at the coffee point.", event: "coffee", target: 1, rewardPoints: 3 },
+        { id: "ask-support", title: "Call for support", description: "Ask a colleague to help on a client conversation.", event: "support", target: 1, rewardPoints: 6 },
+        { id: "explore", title: "Explore the office", description: "Visit two other rooms.", event: "visit", target: 2, rewardPoints: 4 },
+        { id: "buy-drink", title: "Buy a colleague a drink", description: "Treat someone in the lounge.", event: "drink", target: 1, rewardPoints: 4 },
+      ],
+      missionsPerDay: 3,
+      dailyBonusPoints: 10,
+    },
+  },
+  concerns: {
+    label: "Conduct concerns",
+    group: "Safety",
+    description: "The kinds of concern people can report to the admin team, how many they can send a day, and how much evidence they can attach (at most 3 files of 2 MB).",
+    schema: concernsSchema,
+    default: {
+      categories: [
+        { id: "harassment", label: "Harassment or unwelcome behaviour" },
+        { id: "bullying", label: "Bullying or intimidation" },
+        { id: "discrimination", label: "Discrimination" },
+        { id: "language", label: "Offensive language or messages" },
+        { id: "safety", label: "Safety or wellbeing" },
+        { id: "misconduct", label: "Fraud, bribery or other misconduct" },
+        { id: "other", label: "Something else" },
+      ],
+      maxPerDay: 5,
+      maxFiles: 3,
+      maxFileMb: 2,
+    },
   },
   levels: {
     label: "Growth levels",

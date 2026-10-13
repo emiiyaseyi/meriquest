@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/server/auth/dal";
 import { getConfig } from "@/lib/server/config/registry";
 import { getPlacement } from "@/lib/server/placement/service";
 import { getOrCreatePlayer } from "@/lib/server/world/service";
+import { getGameState } from "@/lib/server/game/service";
 import { playStatus } from "@/lib/server/workfirst/service";
 import { closedTitle } from "@/lib/workfirst";
 
@@ -38,13 +39,15 @@ export default async function HomePage() {
     );
   }
 
-  const [player, terms, workFirst, apps, levels] = await Promise.all([
+  const [player, terms, workFirst, apps, levels, concerns] = await Promise.all([
     getOrCreatePlayer(user),
     getConfig("terminology"),
     getConfig("workFirst"),
     getConfig("phoneApps"),
     getConfig("levels"),
+    getConfig("concerns"),
   ]);
+  const game = await getGameState(user);
   const path = placement ? placementCfg.paths.find((p) => p.id === placement.pathId) : undefined;
 
   return (
@@ -53,11 +56,11 @@ export default async function HomePage() {
       staffId={user.staffId}
       title={user.title}
       levels={levels}
+      concernRules={{ categories: concerns.categories, maxFiles: concerns.maxFiles, maxFileMb: concerns.maxFileMb }}
       role={user.role}
       initialScene={player.scene}
       look={player.look}
-      needs={player.needs}
-      points={player.points}
+      game={game}
       timezone={workFirst.timezone}
       terms={{ workspace: terms.workspace, workPhone: terms.workPhone, points: terms.points, todaysPlan: terms.todaysPlan, academy: terms.academy }}
       apps={apps}

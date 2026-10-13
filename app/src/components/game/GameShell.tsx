@@ -7,11 +7,13 @@ import { Tour } from "./Tour";
 import { MePanel, type MeTab } from "./MePanel";
 import { PersonCard } from "./PersonCard";
 import { Shortcuts } from "./Shortcuts";
+import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
 import { playBeatAction, type BeatResult } from "@/app/actions/placement";
-import { completeTourAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
+import { claimBonusAction, claimMissionAction, coffeeAction, completeTourAction, gameStateAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
+import type { GameState } from "@/lib/server/game/service";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
-import { moodLabel, type Needs } from "@/lib/world/player";
+import { moodLabel } from "@/lib/world/player";
 import { nextQuarter, type Quarter } from "@/lib/iso/rotate";
 import { countdown } from "@/lib/format";
 import type { Hotspot, Npc, Portal, Skin } from "@/lib/world/types";
@@ -29,11 +31,11 @@ export interface GameShellProps {
   staffId: string;
   title: string;
   levels: { name: string; xp: number }[];
+  concernRules: ConcernRules;
   role: string;
   initialScene: string;
   look: Skin;
-  needs: Needs;
-  points: number;
+  game: GameState;
   timezone: string;
   terms: { workspace: string; workPhone: string; points: string; todaysPlan: string; academy: string };
   apps: PhoneApp[];
@@ -44,7 +46,7 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type Overlay = "map" | "phone" | "me" | "keys" | null;
+type Overlay = "map" | "phone" | "me" | "keys" | "report" | null;
 
 const BEAT_MS = 30_000;
 
@@ -120,7 +122,9 @@ function initials(name: string): string {
 }
 
 export function GameShell(props: GameShellProps) {
-  const { name, needs, points, terms, apps, adminPreview } = props;
+  const { name, terms, apps, adminPreview } = props;
+  const [game, setGame] = useState<GameState>(props.game);
+  const { needs, points } = game;
   const [look, setLook] = useState<Skin>(props.look);
   const [sceneId, setSceneId] = useState(props.initialScene);
   const scene = getScene(sceneId) ?? SCENES[props.initialScene];
@@ -140,11 +144,47 @@ export function GameShell(props: GameShellProps) {
   const [rotation, setRotation] = useState<Quarter>(0);
   const [person, setPerson] = useState<Npc | null>(null);
   const [meTab, setMeTab] = useState<MeTab>("profile");
+  const [reportAbout, setReportAbout] = useState("");
+  const [gameAt, setGameAt] = useState(() => Date.now());
 
   const flash = useCallback((m: string) => {
     setToast(m);
     window.setTimeout(() => setToast((t) => (t === m ? null : t)), 3500);
   }, []);
+
+  const onGame = useCallback(
+    (g: GameState, message: string) => {
+      setGame(g);
+      setGameAt(Date.now());
+      flash(message);
+    },
+    [flash],
+  );
+
+  // Needs fall with time on the server, so look again once a minute while the tab is open
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      void gameStateAction().then((g) => {
+        setGame(g);
+        setGameAt(Date.now());
+      }).catch(() => undefined);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const runGame = useCallback(
+    async (call: () => Promise<{ ok: true; state: GameState; message: string } | { ok: false; error: string }>) => {
+      try {
+        const r = await call();
+        if (r.ok) onGame(r.state, r.message);
+        else flash(r.error);
+      } catch {
+        flash("Could not do that just now. Please try again.");
+      }
+    },
+    [onGame, flash],
+  );
 
   const goTo = useCallback(
     async (call: () => Promise<{ ok: true; scene: string; arrive: { x: number; y: number } } | { ok: false; error: string }>) => {
@@ -232,7 +272,7 @@ export function GameShell(props: GameShellProps) {
     <div className="game">
       <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} />
 
-      {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
+      {anyOpen && !touring ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
@@ -379,7 +419,10 @@ export function GameShell(props: GameShellProps) {
                 <div className="activity locked"><strong>Customise my desk</strong><span className="muted">Coming soon</span></div>
               </>
             ) : spot.kind === "coffee" ? (
-              <div className="activity locked"><strong>Coffee break</strong><span className="muted">Coming soon · restores energy</span></div>
+              <button type="button" className="activity" onClick={() => void runGame(() => coffeeAction())} disabled={(game.cooldowns.coffee ?? 0) > gameAt}>
+                <strong>Coffee break</strong>
+                <span className="muted">{(game.cooldowns.coffee ?? 0) > gameAt ? `Again in ${Math.max(1, Math.ceil(((game.cooldowns.coffee ?? 0) - gameAt) / 60_000))} min` : game.coffee.tags.join(" · ")}</span>
+              </button>
             ) : spot.kind === "meeting" ? (
               <div className="activity locked"><strong>Join a meeting</strong><span className="muted">Coming soon</span></div>
             ) : (
@@ -389,7 +432,21 @@ export function GameShell(props: GameShellProps) {
         </div>
       ) : null}
 
-      {person ? <PersonCard person={person} here={scene.name} onClose={() => setPerson(null)} /> : null}
+      {person ? (
+        <PersonCard
+          person={person}
+          here={scene.name}
+          game={game}
+          onGame={onGame}
+          onClose={() => setPerson(null)}
+          onReport={() => {
+            setReportAbout(person.name);
+            setPerson(null);
+            setOverlay("report");
+          }}
+        />
+      ) : null}
+      {overlay === "report" ? <ReportForm rules={props.concernRules} about={reportAbout} onClose={() => setOverlay(null)} /> : null}
 
       {overlay === "me" ? (
         <MePanel
@@ -404,7 +461,11 @@ export function GameShell(props: GameShellProps) {
           needs={needs}
           points={points}
           moodText={mood}
-          here={scene.name}
+          here={game.feelings[0]?.label ?? scene.name}
+          game={game}
+          sceneName={scene.name}
+          onClaim={(id) => void runGame(() => claimMissionAction(id))}
+          onClaimBonus={() => void runGame(() => claimBonusAction())}
           people={scene.npcs}
           onPerson={onNpc}
           path={props.path}
@@ -417,6 +478,10 @@ export function GameShell(props: GameShellProps) {
             setTouring(true);
           }}
           onShortcuts={() => setOverlay("keys")}
+          onReport={() => {
+            setReportAbout("");
+            setOverlay("report");
+          }}
           onLookSaved={(l) => {
             setLook(l);
             flash("Looking good! Your new look is saved.");

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { LookEditor } from "./LookEditor";
 import { PersonPortrait } from "./PersonPortrait";
 import { levelFor, type Needs } from "@/lib/world/player";
+import type { GameState } from "@/lib/server/game/service";
 import type { Npc, Skin } from "@/lib/world/types";
 
 export type MeTab = "profile" | "needs" | "goals" | "skills" | "people" | "career" | "settings";
@@ -50,10 +51,11 @@ export interface MePanelProps {
   onTour: () => void;
   onShortcuts: () => void;
   onLookSaved: (l: Skin) => void;
-}
-
-function Soon({ children = "Soon" }: { children?: string }) {
-  return <span className="soon-chip">{children}</span>;
+  onReport: () => void;
+  game: GameState;
+  sceneName: string;
+  onClaim: (missionId: string) => void;
+  onClaimBonus: () => void;
 }
 
 /**
@@ -110,7 +112,13 @@ export function MePanel(p: MePanelProps) {
               </div>
             ))}
             <p className="me-label">FEELINGS</p>
-            <p className="muted small">Feelings appear here as your day goes: a good coffee, a win in a meeting, a long stretch at your desk.</p>
+            {p.game.feelings.length === 0 ? <p className="muted small">Feelings appear here as your day goes: a good coffee, a chat with a colleague, a drink in the lounge.</p> : null}
+            {p.game.feelings.map((f) => (
+              <div key={f.id} className="feeling">
+                <span><strong>{f.label}</strong><span className="muted">{f.text}</span></span>
+                <span className="feeling-delta">{f.change}</span>
+              </div>
+            ))}
           </div>
         ) : null}
 
@@ -118,9 +126,22 @@ export function MePanel(p: MePanelProps) {
           <div className="stack">
             <div className="goal-plan">
               <span className="goal-icon" aria-hidden="true">🎁</span>
-              <div><strong>{p.terms.todaysPlan}</strong><span className="muted">Your daily missions arrive in a later update</span></div>
-              <Soon>Soon</Soon>
+              <div>
+                <strong>{p.terms.todaysPlan}</strong>
+                <span className="muted">{p.game.plan.missions.filter((m) => m.done).length}/{p.game.plan.missions.length} missions done{p.game.plan.bonusClaimed ? " · bonus taken" : ""}</span>
+              </div>
+              {p.game.plan.allDone && !p.game.plan.bonusClaimed ? <button type="button" className="btn btn-sm" onClick={p.onClaimBonus}>Take +{p.game.plan.bonusPoints} pts</button> : null}
             </div>
+            {p.game.plan.missions.map((m) => (
+              <div key={m.id} className="mission">
+                <div className="mission-main">
+                  <strong>{m.title}</strong>
+                  <span className="muted small">{m.description}</span>
+                  <div className="bar"><span style={{ width: `${(m.progress / m.target) * 100}%`, background: m.done ? "#2d5d41" : "#8db74e" }} /></div>
+                </div>
+                {m.claimed ? <span className="soon-chip">Claimed</span> : m.done ? <button type="button" className="btn btn-sm" onClick={() => p.onClaim(m.id)}>+{m.rewardPoints} pts</button> : <span className="muted small">{m.progress}/{m.target}</span>}
+              </div>
+            ))}
             {p.path ? (
               <div className="goal-path">
                 <p className="eyebrow">YOUR STARTING PATH</p>
@@ -136,14 +157,23 @@ export function MePanel(p: MePanelProps) {
 
         {p.tab === "skills" ? (
           <div className="stack">
-            <p className="muted">Your skills grow as you finish {p.terms.academy} modules and practise real Meristem situations. Each skill has levels, and you will see them here.</p>
-            <Soon>Coming soon</Soon>
+            {p.game.skills.map((s) => (
+              <div key={s.id} className="skill">
+                <div className="skill-line"><span>{s.icon} {s.label}</span><strong>Level {s.level}</strong></div>
+                <div className="levels" aria-label={`${s.label}, level ${s.level} of ${s.maxLevel}`}>
+                  {Array.from({ length: s.maxLevel }, (_, i) => (
+                    <span key={i} className={i < s.level ? "lv on" : i === s.level ? "lv part" : "lv"} style={i === s.level ? { ["--p" as string]: `${s.progress * 100}%` } : undefined} />
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p className="muted small">Skills grow when you talk to colleagues, finish {p.terms.academy} modules and practise real Meristem situations.</p>
           </div>
         ) : null}
 
         {p.tab === "people" ? (
           <div className="stack">
-            <p className="me-label">PEOPLE HERE · {p.here.toUpperCase()}</p>
+            <p className="me-label">PEOPLE HERE · {p.sceneName.toUpperCase()}</p>
             {p.people.length === 0 ? <p className="muted">Nobody else is here right now.</p> : null}
             {p.people.map((n) => (
               <button key={n.id} type="button" className="person-row" onClick={() => p.onPerson(n)}>
@@ -184,6 +214,7 @@ export function MePanel(p: MePanelProps) {
             <p className="me-label">HELP</p>
             <button type="button" className="me-wide" onClick={p.onShortcuts}>⌨️ Keyboard shortcuts</button>
             <button type="button" className="me-wide" onClick={p.onTour}>👋 Replay the welcome tour</button>
+            <button type="button" className="me-wide" onClick={p.onReport}>🛡️ Report a concern</button>
             <p className="me-label">ACCOUNT</p>
             {p.role === "admin" ? <Link href="/admin" className="me-wide">🛠️ Admin</Link> : null}
             <Link href="/change-password" className="me-wide">🔑 Change password</Link>

@@ -5,6 +5,8 @@ import type { UserDTO } from "../types";
 import { playStatus } from "../workfirst/service";
 import { FIRST_SCENE, getScene } from "@/lib/world/scenes";
 import { cleanLook, cleanNeeds, defaultLook, DEFAULT_NEEDS, type Needs } from "@/lib/world/player";
+import { cleanProgress, type StoredFeeling } from "@/lib/game";
+import { recordEvent } from "../game/missions";
 import { parseChosenLook } from "@/lib/world/looks";
 import type { Skin } from "@/lib/world/types";
 
@@ -19,6 +21,14 @@ export interface PlayerRecord {
   look: Skin;
   needs: Needs;
   points: number; // Merit points (never transferable, no cash value)
+  /** When the needs were last brought up to date (they fall with time). */
+  needsAt?: number;
+  /** Recent feelings, newest first. */
+  feelings?: StoredFeeling[];
+  /** Experience in each skill. */
+  skillXp?: Record<string, number>;
+  /** When each interaction can be used again. */
+  cooldowns?: Record<string, number>;
   /** True once the person has finished or skipped the welcome tour. */
   toured?: boolean;
   updatedAt: number;
@@ -31,7 +41,7 @@ export async function getOrCreatePlayer(user: Pick<UserDTO, "staffId">, now: num
     if (!cur) return { staffId: user.staffId, scene: FIRST_SCENE, look: fallbackLook, needs: { ...DEFAULT_NEEDS }, points: 0, updatedAt: now };
     // Heal an old or tampered record rather than trusting it
     const scene = getScene(cur.scene) ? cur.scene : FIRST_SCENE;
-    return { ...cur, toured: cur.toured === true, scene, look: cleanLook(cur.look, fallbackLook), needs: cleanNeeds(cur.needs), points: Number.isFinite(cur.points) && cur.points >= 0 ? Math.floor(cur.points) : 0 };
+    return { ...cur, ...cleanProgress(cur), toured: cur.toured === true, scene, look: cleanLook(cur.look, fallbackLook), needs: cleanNeeds(cur.needs), points: Number.isFinite(cur.points) && cur.points >= 0 ? Math.floor(cur.points) : 0 };
   });
   return saved as PlayerRecord;
 }
@@ -69,6 +79,7 @@ export async function travelByPortal(user: Pick<UserDTO, "staffId" | "unit" | "r
   if (!here || !portal || !target) return { ok: false, error: "That door does not exist." };
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, scene: target.id, updatedAt: now } : cur));
   await audit(user.staffId, "world_travel", target.id, { via: "door", from: here.id }, now);
+  await recordEvent(user.staffId, "visit", now);
   return { ok: true, scene: target.id, arrive: portal.arrive };
 }
 
@@ -84,5 +95,6 @@ export async function travelByMap(user: Pick<UserDTO, "staffId" | "unit" | "role
   if (target.building !== here.building) return { ok: false, error: "That is in another building. Travel between buildings is not open yet." };
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, scene: target.id, updatedAt: now } : cur));
   await audit(user.staffId, "world_travel", target.id, { via: "map", from: here.id }, now);
+  await recordEvent(user.staffId, "visit", now);
   return { ok: true, scene: target.id, arrive: target.spawn };
 }
