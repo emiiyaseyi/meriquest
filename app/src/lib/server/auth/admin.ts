@@ -21,7 +21,7 @@ export class ForbiddenError extends Error {
  * Never trusts the object it is given: the actor's role and status are re-read from the store, so a
  * stale or forged DTO cannot grant admin power. Admins still on the default password have none.
  */
-async function assertAdmin(actor: UserDTO | null | undefined): Promise<void> {
+export async function assertAdmin(actor: UserDTO | null | undefined): Promise<void> {
   if (!actor || typeof actor.staffId !== "string") throw new ForbiddenError();
   const rec = await getUser(actor.staffId);
   if (!rec || rec.role !== "admin" || rec.status !== "active" || rec.mustChangePassword) throw new ForbiddenError();

@@ -75,6 +75,8 @@ export const workFirstSchema = z
             start: hhmm,
             end: hhmm,
             maxMinutes: z.number().int().min(1).max(600).optional(),
+            /** Only a window flagged true may open inside core working hours (e.g. lunch). Default: it may not. */
+            duringCoreHours: z.boolean().optional(),
           })
           .strict(),
       )
@@ -90,9 +92,171 @@ export const workFirstSchema = z
     blackoutPeriods: z
       .array(z.object({ id: slug, label: z.string().min(1).max(80), from: isoDate, to: isoDate }).strict())
       .max(60),
+    /** Dates treated like weekends (weekend windows and caps apply, no core hours). */
+    publicHolidays: z.array(isoDate).max(60),
     unitOverrides: z.record(z.string().min(1).max(20), unitOverrideSchema),
   })
   .strict();
+
+/* --------------------------------- placement --------------------------------- */
+
+export const placementSchema = z
+  .object({
+    enabled: z.boolean(),
+    /** Global switch: can people dispute their placement and retake? Admins can also lock per unit or per person. */
+    retakeEnabled: z.boolean(),
+    maxRetakes: z.number().int().min(0).max(10),
+    retakeDisabledUnits: z.array(z.string().min(1).max(20)).max(50),
+    paths: z
+      .array(
+        z
+          .object({
+            id: slug,
+            name: z.string().min(1).max(40),
+            emoji: z.string().min(1).max(8),
+            blurb: z.string().min(1).max(300),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(8),
+    questions: z
+      .array(
+        z
+          .object({
+            id: slug,
+            text: z.string().min(3).max(300),
+            options: z
+              .array(
+                z
+                  .object({
+                    id: slug,
+                    label: z.string().min(1).max(200),
+                    scores: z.record(z.string().min(1).max(41), z.number().int().min(-10).max(10)),
+                  })
+                  .strict(),
+              )
+              .min(2)
+              .max(8),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(30),
+    /** Cross-check with the staff directory: add points to a path when years at Meristem fall in a range. */
+    hints: z
+      .array(z.object({ pathId: slug, minYears: z.number().min(0).max(60), maxYears: z.number().min(0).max(60), bonus: z.number().int().min(-10).max(10) }).strict())
+      .max(20),
+  })
+  .strict()
+  .superRefine((cfg, ctx) => {
+    const pathIds = new Set(cfg.paths.map((p) => p.id));
+    if (pathIds.size !== cfg.paths.length) ctx.addIssue({ code: "custom", path: ["paths"], message: "Path ids must be unique" });
+    const qIds = new Set<string>();
+    cfg.questions.forEach((q, qi) => {
+      if (qIds.has(q.id)) ctx.addIssue({ code: "custom", path: ["questions", qi, "id"], message: "Question ids must be unique" });
+      qIds.add(q.id);
+      const oIds = new Set<string>();
+      q.options.forEach((o, oi) => {
+        if (oIds.has(o.id)) ctx.addIssue({ code: "custom", path: ["questions", qi, "options", oi, "id"], message: "Option ids must be unique within a question" });
+        oIds.add(o.id);
+        for (const pid of Object.keys(o.scores)) {
+          if (!pathIds.has(pid)) ctx.addIssue({ code: "custom", path: ["questions", qi, "options", oi, "scores", pid], message: `Unknown path "${pid}"` });
+        }
+      });
+    });
+    cfg.hints.forEach((h, hi) => {
+      if (!pathIds.has(h.pathId)) ctx.addIssue({ code: "custom", path: ["hints", hi, "pathId"], message: `Unknown path "${h.pathId}"` });
+      if (h.maxYears < h.minYears) ctx.addIssue({ code: "custom", path: ["hints", hi, "maxYears"], message: "maxYears must be at least minYears" });
+    });
+  });
+
+const opt = (id: string, label: string, scores: Record<string, number>) => ({ id, label, scores });
+
+export const DEFAULT_PLACEMENT: z.infer<typeof placementSchema> = {
+  enabled: true,
+  retakeEnabled: true,
+  maxRetakes: 2,
+  retakeDisabledUnits: [],
+  paths: [
+    { id: "fresh-start", name: "Fresh Start", emoji: "🌱", blurb: "Interns, entry-level and graduate staff learning the products, procedures and client basics." },
+    { id: "new-chapter", name: "New Chapter", emoji: "🔄", blurb: "Experienced people who are new to Meristem: learn how the Group, its policies and systems work." },
+    { id: "seasoned", name: "Seasoned", emoji: "🌳", blurb: "Long-serving staff and team leads: leadership, coaching and succession readiness." },
+  ],
+  questions: [
+    {
+      id: "experience",
+      text: "How many years have you worked in total, in any organisation?",
+      options: [
+        opt("none", "This is my first job or internship", { "fresh-start": 4 }),
+        opt("y1-3", "1 to 3 years", { "fresh-start": 2, "new-chapter": 2 }),
+        opt("y3-8", "3 to 8 years", { "new-chapter": 3, seasoned: 1 }),
+        opt("y8-plus", "More than 8 years", { "new-chapter": 1, seasoned: 3 }),
+      ],
+    },
+    {
+      id: "meristem-time",
+      text: "How long have you worked at Meristem?",
+      options: [
+        opt("new", "Less than 6 months", { "fresh-start": 1, "new-chapter": 3 }),
+        opt("y1", "6 months to 3 years", { "fresh-start": 1, "new-chapter": 1, seasoned: 1 }),
+        opt("y3-8", "3 to 8 years", { seasoned: 2 }),
+        opt("y8-plus", "More than 8 years", { seasoned: 4 }),
+      ],
+    },
+    {
+      id: "people",
+      text: "Do you lead or manage other people?",
+      options: [
+        opt("no", "No", { "fresh-start": 2, "new-chapter": 1 }),
+        opt("informal", "Informally: I guide teammates or interns", { "new-chapter": 1, seasoned: 1 }),
+        opt("direct", "Yes, I have direct reports", { seasoned: 4 }),
+        opt("leaders", "Yes, I lead other managers", { seasoned: 5 }),
+      ],
+    },
+    {
+      id: "regulated",
+      text: "How much regulated work have you done (KYC/AML, suitability, market conduct)?",
+      options: [
+        opt("never", "None yet", { "fresh-start": 3 }),
+        opt("some", "Some, with supervision", { "fresh-start": 1, "new-chapter": 2 }),
+        opt("regular", "Regularly, on my own", { "new-chapter": 2, seasoned: 2 }),
+        opt("supervise", "I supervise or review it", { seasoned: 3 }),
+      ],
+    },
+    {
+      id: "markets",
+      text: "How comfortable are you with T-bills, bonds, equities and funds?",
+      options: [
+        opt("learning", "I am still learning the basics", { "fresh-start": 3 }),
+        opt("working", "I understand them and use them at work", { "new-chapter": 2, seasoned: 1 }),
+        opt("expert", "I could teach them to others", { seasoned: 3 }),
+      ],
+    },
+    {
+      id: "mentoring",
+      text: "Have you coached or mentored colleagues?",
+      options: [
+        opt("no", "Not yet", { "fresh-start": 2, "new-chapter": 1 }),
+        opt("sometimes", "Occasionally", { "new-chapter": 1, seasoned: 1 }),
+        opt("regularly", "Regularly, it is part of my role", { seasoned: 3 }),
+      ],
+    },
+    {
+      id: "learn-first",
+      text: "What would help you most right now?",
+      options: [
+        opt("basics", "Learning the products, procedures and client basics", { "fresh-start": 4 }),
+        opt("meristem", "Understanding how Meristem, its policies and systems work", { "new-chapter": 4 }),
+        opt("leading", "Developing my leadership and preparing for the next role", { seasoned: 4 }),
+      ],
+    },
+  ],
+  hints: [
+    { pathId: "seasoned", minYears: 8, maxYears: 60, bonus: 2 },
+    { pathId: "fresh-start", minYears: 0, maxYears: 0.5, bonus: 1 },
+  ],
+};
 
 /* ----------------------------------- places ----------------------------------- */
 
@@ -225,7 +389,7 @@ export const CONFIG = {
       coreHours: { days: [1, 2, 3, 4, 5], start: "08:00", end: "17:00" },
       windows: [
         { id: "before-work", label: "Before work", days: [1, 2, 3, 4, 5], start: "07:00", end: "08:00" },
-        { id: "lunch", label: "Lunch break", days: [1, 2, 3, 4, 5], start: "12:30", end: "13:30", maxMinutes: 30 },
+        { id: "lunch", label: "Lunch break", days: [1, 2, 3, 4, 5], start: "12:30", end: "13:30", maxMinutes: 30, duringCoreHours: true },
         { id: "after-hours", label: "After hours", days: [1, 2, 3, 4, 5], start: "17:30", end: "21:00" },
         { id: "weekend", label: "Weekend", days: [0, 6], start: "09:00", end: "20:00" },
       ],
@@ -238,8 +402,17 @@ export const CONFIG = {
       idleAwayMinutes: 3,
       streakFreezesPerWeek: 1,
       blackoutPeriods: [],
+      publicHolidays: [],
       unitOverrides: {},
     },
+  },
+  placement: {
+    label: "Starting placement questionnaire",
+    group: "Onboarding",
+    description:
+      "The short questionnaire new users answer at first sign-in. Edit the questions, scores, paths, directory hints, and whether people may dispute and retake.",
+    schema: placementSchema,
+    default: DEFAULT_PLACEMENT,
   },
   offices: {
     label: "Offices",

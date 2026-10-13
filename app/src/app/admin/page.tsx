@@ -17,6 +17,10 @@ export default async function AdminHome() {
           <h2>Staff &amp; access</h2>
           <p className="muted">{users.length} accounts · {active} active · {locked} locked</p>
         </Link>
+        <Link href="/admin/placements" className="card">
+          <h2>Placements</h2>
+          <p className="muted">See each person&apos;s starting path, override it, or switch retakes on and off.</p>
+        </Link>
         <Link href="/admin/config" className="card">
           <h2>Settings</h2>
           <p className="muted">{CONFIG_KEYS.length} admin-editable settings (Work First, sign-in rules, offices, regulators…)</p>

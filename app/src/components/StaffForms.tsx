@@ -24,6 +24,35 @@ export function RoleForm({ action, staffId, role }: { action: Action; staffId: s
   );
 }
 
+export function PathForm({
+  action,
+  staffId,
+  paths,
+  current,
+}: {
+  action: Action;
+  staffId: string;
+  paths: { id: string; name: string }[];
+  current: string;
+}) {
+  const [state, formAction, pending] = useActionState(action, {});
+  return (
+    <form action={formAction} className="inline-form">
+      <input type="hidden" name="staffId" value={staffId} />
+      <label className="sr-only" htmlFor={`path-${staffId}`}>Path for {staffId}</label>
+      <select id={`path-${staffId}`} name="pathId" defaultValue={current} className="input input-sm" required>
+        <option value="" disabled>Choose…</option>
+        {paths.map((p) => (
+          <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </select>
+      <button type="submit" disabled={pending} className="btn btn-ghost btn-sm">Set path</button>
+      {state.error ? <span role="alert" className="msg msg-error">{state.error}</span> : null}
+      {state.ok ? <span role="status" className="msg msg-ok">{state.ok}</span> : null}
+    </form>
+  );
+}
+
 export function CreateStaffForm({ action, example }: { action: Action; example: string }) {
   const [state, formAction, pending] = useActionState(action, {});
   return (

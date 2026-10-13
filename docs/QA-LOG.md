@@ -4,6 +4,34 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M2: Placement questionnaire and Work First engine (13 Oct 2026)
+Scope: first-sign-in placement questionnaire (dispute and retake; admin can disable globally, per unit or per person; admin override and reset); Work First policy engine with server-side play-time tracking; assigned learning time; `/placement`, `/play` and `/admin/placements`; admin-editable `placement` setting and Work First `publicHolidays` / `duringCoreHours`.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean; 13 routes |
+| 2 | Automated tests | **Pass** | 190 tests in 8 files (new: 33 Work First, 30 placement) |
+| 3 | Input validation | **Pass** | Answers validated strictly against the configured questions (no extra keys, no prototype keys, no client-supplied path or score); placement settings cross-validated (unknown path ids, duplicate ids, score ranges, hint ranges); dispute note capped at 300 chars |
+| 4 | Authn / authz | **Pass** | Every new Server Action starts with `requireUser`/`requireRole`; admin placement and learning-assignment operations re-read the actor from the store; managers may assign only within their own unit and never to themselves |
+| 6 | Web security | **Pass** | Questionnaire sends only question text and option labels to the browser (scores and path ids stay on the server) |
+| 8 | Server-authoritative | **Pass** | Path, scores and retake permission are computed on the server; play time is credited from real elapsed time between server-received heartbeats (gap capped at 90 s, backwards clocks credit nothing, credit stops at the cap); retake limits are checked atomically against the stored record, so parallel tabs cannot exceed them |
+| 10 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+| 12 | Review | **Pass** | `/security-review`: no high-confidence findings. Live checks on a production build: 7-question flow, dispute and retake, a form with forged `pathId`/`scores` fields ignored, a player's forged admin set-path refused, admin override sticks and locks retakes |
+
+Findings
+| Finding | Severity | Status |
+|---|---|---|
+| Default placement option ids (`1-3`, `8-plus`) broke the slug rule, so the default failed its own schema | Medium (blocked every placement) | **Fixed** (caught by tests) |
+| The lunch window sat inside core hours, so the engine closed it as "core hours" and lunch play could never open | Medium (policy) | **Fixed**; then found that letting any window beat core hours would open a 07:00 window inside a trading floor's 06:00 start, so only windows flagged `duringCoreHours` (lunch) may open inside core hours |
+| Live smoke test failed to sign anyone in | Info | Cause: the production guard correctly refused `SEED_SAMPLE_STAFF=true`. The test now creates its player through the admin console |
+| Smoke-test folder `.data-smoke/` was not git-ignored | Low | **Fixed**: ignore `.data*/`; folder deleted before commit |
+
+Observations (not vulnerabilities)
+1. **Work First is not yet enforced on game content**, because there is no game content yet (`/play` is a placeholder). When the isometric world and shifts arrive, every server action that starts a shift or loads world data must call `playStatus` and refuse when play is closed. Tracked for M3/M4.
+2. **Placement is self-reported**, so someone could pick answers that put them on the Seasoned path. Directory hints cross-check tenure and admins can override. Anything gated by path (the leadership simulator) must also check the person's profile (line manager flag, tenure), not only the path.
+
+---
+
 ## M1.1: Brand, prototype retirement and Supabase guide (13 Oct 2026)
 Scope: Meristem palette and logo applied (login, top bar, error pages); `/game` prototype retired; Netlify now publishes a static "retired" page; Supabase setup guide; rulebook decisions recorded.
 

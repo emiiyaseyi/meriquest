@@ -12,6 +12,7 @@ import {
   type AdminResult,
 } from "@/lib/server/auth/admin";
 import { resetConfigToDefault, setConfig } from "@/lib/server/config/registry";
+import { adminResetPlacement, adminSetPath, adminSetRetakeLock } from "@/lib/server/placement/service";
 
 export interface AdminFormState {
   error?: string;
@@ -77,6 +78,27 @@ export async function createStaffAction(_p: AdminFormState, fd: FormData): Promi
   });
   revalidatePath("/admin/staff");
   return toState(r, "Staff member added. They sign in with the default password and must change it.");
+}
+
+export async function setPathAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await adminSetPath(admin, str(fd.get("staffId")), str(fd.get("pathId")));
+  revalidatePath("/admin/placements");
+  return toState(r, "Path set. Retaking is now locked for this person.");
+}
+
+export async function setRetakeLockAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await adminSetRetakeLock(admin, str(fd.get("staffId")), str(fd.get("locked")) === "true");
+  revalidatePath("/admin/placements");
+  return toState(r, "Retake rule updated.");
+}
+
+export async function resetPlacementAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await adminResetPlacement(admin, str(fd.get("staffId")));
+  revalidatePath("/admin/placements");
+  return toState(r, "Placement removed.");
 }
 
 export async function saveConfigAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
