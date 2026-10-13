@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M6a: Illustrated city map with pills (13 Oct 2026)
+Scope: the map is now an illustrated Lagos map like the reference game's, with city tabs (Lagos, and Port Harcourt and Abuja marked as coming later) and name pills: Meristem HQ (opens the floor and room list), Yaba office (opening later), Meristem Academy (place card, then the full-screen Academy), and scenery names.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `tsc` and `eslint` clean |
+| 2 | Real browser | **Pass** | Throwaway user: map pills, Abuja note, HQ sheet, Academy card, Academy at 1366 and 390 wide, no horizontal scroll, no console errors; user removed afterwards |
+
+Open: the map art is a first pass; Yaba photos still needed; new built-in courses reach an existing database through Admin > Academy > Restore missing built-in courses.
+
+---
+
 ## M5c: Academy moved to the map as its own page, with lesson videos (13 Oct 2026)
 Scope: Academy removed from the Work Phone; a Meristem Academy entry on the map opens a place card and then a full-screen Academy page (wide on desktop, one column on phones); optional lesson video (YouTube, Vimeo, Microsoft Stream or SharePoint link, or a direct https mp4/webm), shown in the notes.
 

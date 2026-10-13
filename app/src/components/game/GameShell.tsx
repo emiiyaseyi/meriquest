@@ -11,6 +11,7 @@ import { LiftPanel } from "./LiftPanel";
 import { PhoneUI } from "./PhoneUI";
 import { AcademyApp } from "@/components/AcademyApp";
 import { PlaceCard } from "./PlaceCard";
+import { CityMap, type MapPick } from "./CityMap";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -141,6 +142,7 @@ export function GameShell(props: GameShellProps) {
   const [mode, setMode] = useViewMode();
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [academyCard, setAcademyCard] = useState(false);
+  const [mapPick, setMapPick] = useState<MapPick | null>(null);
   const [spot, setSpot] = useState<Hotspot | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -245,6 +247,7 @@ export function GameShell(props: GameShellProps) {
   const closeAll = useCallback(() => {
     setPlace(null);
     setAcademyCard(false);
+    setMapPick(null);
     setOverlay(null);
     setSpot(null);
     setPerson(null);
@@ -370,19 +373,35 @@ export function GameShell(props: GameShellProps) {
         <button type="button" className="round-btn clean-back" onClick={() => setClean(false)} aria-label="Show the screen furniture">☰</button>
       )}
 
-      {overlay === "map" ? (
-        <div className="sheet" role="dialog" aria-label="Map">
+      {overlay === "map" && mapPick === null ? (
+        <CityMap
+          onClose={() => setOverlay(null)}
+          onPick={(p) => {
+            if (p === "academy") setAcademyCard(true);
+            else setMapPick(p);
+          }}
+        />
+      ) : null}
+
+      {overlay === "map" && mapPick === "yaba" ? (
+        <div className="me-panel person-card" role="dialog" aria-label="Yaba office">
+          <div className="grab" aria-hidden="true" />
+          <header className="me-head">
+            <span className="kbd-badge" aria-hidden="true">📍</span>
+            <div className="me-id"><h2>Yaba office</h2><p>213 Herbert Macaulay Way, Yaba</p></div>
+            <button type="button" className="round-btn sm" onClick={() => setMapPick(null)} aria-label="Close">✕</button>
+          </header>
+          <div className="me-body"><p className="muted" style={{ margin: 0 }}>The Yaba office opens in a later update.</p></div>
+        </div>
+      ) : null}
+
+      {overlay === "map" && mapPick === "hq" ? (
+        <div className="sheet" role="dialog" aria-label="Meristem HQ">
           <div className="sheet-head">
-            <h2>Map</h2>
+            <button type="button" className="round-btn sm" onClick={() => setMapPick(null)} aria-label="Back to the map">‹</button>
+            <h2>Meristem HQ, Ikoyi</h2>
             <button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close map">✕</button>
           </div>
-          <section className="stack">
-            <p className="eyebrow">Learning</p>
-            <button type="button" className="venue-card academy-venue" onClick={() => setAcademyCard(true)}>
-              <strong>🎓 {terms.academy}</strong>
-              <span className="muted">Classes, quizzes, scenarios, case studies and certificates</span>
-            </button>
-          </section>
           {BUILDINGS.map((b) => (
             <section key={b.id} className="stack">
               <p className="eyebrow">{b.name} · {b.city}</p>
@@ -543,7 +562,7 @@ export function GameShell(props: GameShellProps) {
       {overlay === "academy" ? (
         <div className="academy-screen" role="dialog" aria-label={terms.academy}>
           <header className="academy-bar">
-            <button type="button" className="round-btn sm" onClick={() => setOverlay("map")} aria-label="Back to the map">‹</button>
+            <button type="button" className="round-btn sm" onClick={() => { setMapPick(null); setOverlay("map"); }} aria-label="Back to the map">‹</button>
             <h2>{terms.academy}</h2>
             <button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close the Academy">✕</button>
           </header>

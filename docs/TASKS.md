@@ -43,7 +43,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Work Phone redesigned like the reference, Messages with Updates (notifications) and announcements from the admin team
 - [~] Meristem Academy: groups, courses, lessons with a timed class, notes, quizzes at three levels that unlock as you pass (Easy, Medium, Hard), certificates, scenarios and case studies; open to every role, with role courses recommended (Customer Experience, Wealth Advisory, Investment Advisory) and general learning for everyone else
 - [x] Import the NEO Slides 2024 folder into Academy content (admin can review and edit): 16 courses in Culture, Compliance, Products and Services, Customer Experience and More to learn, with Easy/Medium/Hard questions, extra scenarios and written case studies
-- [~] Academy off the phone: a pill on the map opens a full-screen Academy page (desktop and phone layouts) with lesson videos (YouTube/Vimeo/Microsoft links; uploads later). Needs a browser check
+- [~] Academy off the phone: a pill on the map opens a full-screen Academy page (desktop and phone layouts) with lesson videos (YouTube/Vimeo/Microsoft links; uploads later). Checked in a browser (desktop and phone)
 - [ ] Keep adding scenarios, case studies and questions as the owner reviews (ongoing)
   - [x] Culture group (3 courses, 320 questions)
   - [ ] Compliance group
