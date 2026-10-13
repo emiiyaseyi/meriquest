@@ -105,6 +105,14 @@ h2 { font-size: 1.15rem; font-weight: 650; }
 .msg-error { background: var(--danger-soft); color: var(--danger); }
 .msg-ok { background: var(--ok-soft); color: var(--ok); }
 
+/* Placement questions: question inside the card, easy-to-tap options */
+.question { gap: 6px; padding: 18px 20px; }
+.question-text { margin: 0 0 6px; font-size: 1rem; line-height: 1.35; color: #17261c; }
+.option { padding: 8px 10px; border-radius: 10px; cursor: pointer; align-items: flex-start; }
+.option:hover { background: var(--brand-soft); }
+.option input { margin-top: 4px; accent-color: var(--brand); }
+.option:has(input:checked) { background: var(--brand-soft); font-weight: 600; }
+
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }

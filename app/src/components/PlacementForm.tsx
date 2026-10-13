@@ -17,15 +17,16 @@ export function PlacementForm({ questions, isRetake }: { questions: QuestionDTO[
   return (
     <form action={action} className="stack">
       {questions.map((q, i) => (
-        <fieldset key={q.id} className="card stack" style={{ margin: 0 }}>
-          <legend className="label">{i + 1}. {q.text}</legend>
+        // A card with the question inside it. (A <fieldset> would draw the question on top of the border.)
+        <div key={q.id} role="radiogroup" aria-labelledby={`q-${q.id}`} className="card stack question">
+          <p id={`q-${q.id}`} className="label question-text">{i + 1}. {q.text}</p>
           {q.options.map((o) => (
-            <label key={o.id} className="check">
+            <label key={o.id} className="check option">
               <input type="radio" name={q.id} value={o.id} required />
               <span>{o.label}</span>
             </label>
           ))}
-        </fieldset>
+        </div>
       ))}
       {isRetake ? (
         <div className="stack">
