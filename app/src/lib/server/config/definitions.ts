@@ -3,6 +3,7 @@ import { DEFAULT_ACADEMY } from "./academy-content";
 import { parseVideo } from "@/lib/academy-video";
 import { DEFAULT_DECOR } from "./decor-content";
 import { DEFAULT_SHIFTS } from "./shift-content";
+import { DEFAULT_LOCATIONS } from "./location-content";
 import { NEED_KEYS } from "@/lib/world/player";
 
 /**
@@ -82,9 +83,11 @@ export const workFirstSchema = z
         enabled: z.boolean(),
         maxMinutes: z.number().int().min(1).max(480),
         pauseMinutes: z.number().int().min(0).max(1440),
+        /** Owner decision (13 Oct 2026): the limit only applies during working hours. Outside them (evenings, weekends, holidays) there is no session limit. */
+        onlyInCoreHours: z.boolean().default(true),
       })
       .strict()
-      .default({ enabled: true, maxMinutes: 30, pauseMinutes: 120 }),
+      .default({ enabled: true, maxMinutes: 30, pauseMinutes: 120, onlyInCoreHours: true }),
     /** Apply the daily cap below even when windows are not enforced. Off by default so the session limit governs. */
     dailyCapEnabled: z.boolean().default(false),
     timezone: z.string().min(1).max(60),
@@ -675,6 +678,58 @@ export const shiftsSchema = z
   })
   .strict();
 
+export const locationsSchema = z
+  .object({
+    rooms: z
+      .array(
+        z
+          .object({
+            /** The id of a room in the world. */
+            scene: slug,
+            status: z.string().max(100),
+            zones: z
+              .array(
+                z
+                  .object({
+                    id: slug,
+                    label: z.string().min(1).max(30),
+                    icon: z.string().min(1).max(8),
+                    activities: z
+                      .array(
+                        z
+                          .object({
+                            id: slug,
+                            label: z.string().min(1).max(40),
+                            icon: z.string().min(1).max(8),
+                            /** How long it takes. */
+                            seconds: z.number().int().min(1).max(600),
+                            effects: effectsSchema,
+                            /** Merit points earned. */
+                            points: z.number().int().min(0).max(100),
+                            cooldownMinutes: z.number().int().min(0).max(1440),
+                            feeling: feelingSchema,
+                            skill: skillGain.optional(),
+                            /** The mission event it counts towards, such as coffee or read. */
+                            event: slug.optional(),
+                          })
+                          .strict(),
+                      )
+                      .min(1)
+                      .max(12),
+                  })
+                  .strict(),
+              )
+              .min(1)
+              .max(10),
+          })
+          .strict(),
+      )
+      .max(60)
+      .refine((r) => new Set(r.map((x) => x.scene)).size === r.length, "Each room can be listed once")
+      .refine((r) => r.every((x) => new Set(x.zones.flatMap((z) => z.activities.map((a) => a.id))).size === x.zones.flatMap((z) => z.activities).length), "Each activity in a room needs its own id"),
+  })
+  .strict();
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -726,10 +781,10 @@ export const CONFIG = {
       enabled: true,
       adminsExempt: true,
       restrictToWindows: false,
-      sessionLimit: { enabled: true, maxMinutes: 30, pauseMinutes: 120 },
+      sessionLimit: { enabled: true, maxMinutes: 30, pauseMinutes: 120, onlyInCoreHours: true },
       dailyCapEnabled: false,
       timezone: "Africa/Lagos",
-      coreHours: { days: [1, 2, 3, 4, 5], start: "08:00", end: "17:00" },
+      coreHours: { days: [1, 2, 3, 4, 5], start: "08:30", end: "16:30" },
       windows: [
         { id: "before-work", label: "Before work", days: [1, 2, 3, 4, 5], start: "07:00", end: "08:00" },
         { id: "lunch", label: "Lunch break", days: [1, 2, 3, 4, 5], start: "12:30", end: "13:30", maxMinutes: 30, duringCoreHours: true },
@@ -903,6 +958,13 @@ export const CONFIG = {
     description: "Go to work: how long a shift lasts (minutes), how many situations come up, how many shifts a day, the points, and the situations themselves for each unit (use * for everyone). A shift is only paid when the person stays to the end.",
     schema: shiftsSchema,
     default: DEFAULT_SHIFTS,
+  },
+  locations: {
+    label: "Room activities",
+    group: "World",
+    description: "The location bar in each room: its zones as tabs, and the timed activities in each zone (how long, which needs it lifts, Merit points, how soon it can be repeated). The room is named by its id, such as ikoyi-floor.",
+    schema: locationsSchema,
+    default: DEFAULT_LOCATIONS,
   },
   floors: {
     label: "Floor access",

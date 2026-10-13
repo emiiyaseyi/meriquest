@@ -38,6 +38,8 @@ export interface PlayerRecord {
   /** The work shift in progress, and how many have been started today. */
   shift?: ShiftRecord;
   shiftDay?: { day: string; count: number };
+  /** A timed activity in the location bar that is running. */
+  activity?: { key: string; endsAt: number };
   /** True once the person has finished or skipped the welcome tour. */
   toured?: boolean;
   updatedAt: number;

@@ -137,10 +137,12 @@ interface Action {
   feeling: { label: string; text: string };
   skill?: { id: string; xp: number };
   event: string;
+  /** Merit points earned by it. */
+  gain?: number;
 }
 
 /** Apply one action to the person's record in a single atomic step. Returns an error text if it is not allowed. */
-async function perform(user: Pick<UserDTO, "staffId">, a: Action, now: number): Promise<string | null> {
+export async function perform(user: Pick<UserDTO, "staffId">, a: Action, now: number): Promise<string | null> {
   const [gameplay, decorCfg] = await Promise.all([getConfig("gameplay"), getConfig("decor")]);
   let refusal: string | null = null;
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => {
@@ -162,7 +164,7 @@ async function perform(user: Pick<UserDTO, "staffId">, a: Action, now: number): 
     if (a.cooldownMinutes > 0) cooldowns[a.key] = now + a.cooldownMinutes * 60_000;
     const skillXp = { ...(cur.skillXp ?? {}) };
     if (a.skill) skillXp[a.skill.id] = (skillXp[a.skill.id] ?? 0) + a.skill.xp;
-    return { ...cur, needs, needsAt: now, points: cur.points - a.cost, feelings: [feeling, ...(cur.feelings ?? [])].slice(0, MAX_FEELINGS), skillXp, cooldowns, updatedAt: now };
+    return { ...cur, needs, needsAt: now, points: cur.points - a.cost + (a.gain ?? 0), feelings: [feeling, ...(cur.feelings ?? [])].slice(0, MAX_FEELINGS), skillXp, cooldowns, updatedAt: now };
   });
   if (!refusal) await recordEvent(user.staffId, a.event, now);
   return refusal;

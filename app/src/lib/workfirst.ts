@@ -206,7 +206,8 @@ export function evaluate(
     remaining = remaining === null ? dayLeft : Math.min(remaining, dayLeft);
   }
 
-  if (p.sessionLimit.enabled) {
+  // The session limit is for working hours only (owner decision, 13 Oct 2026): after 4:30 pm and before 8:30 am there is none
+  if (p.sessionLimit.enabled && (p.sessionLimit.onlyInCoreHours === false || inCore)) {
     const s = currentSession(p, ctx.session, ctx.now);
     const left = p.sessionLimit.maxMinutes * 60 - s.usedSeconds;
     if (left <= 0) {

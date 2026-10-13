@@ -14,6 +14,7 @@ import { PlaceCard } from "./PlaceCard";
 import { CityMap, type MapPick } from "./CityMap";
 import { BuyMode } from "./BuyMode";
 import { ShiftHud } from "./ShiftHud";
+import { LocationBar } from "./LocationBar";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -559,6 +560,8 @@ export function GameShell(props: GameShellProps) {
           </div>
         </div>
       ) : null}
+
+      {!touring ? <LocationBar sceneId={sceneId} hidden={clean || overlay !== null || spot !== null || person !== null || walking} onGame={setGame} onToast={flash} /> : null}
 
       {!touring ? <ShiftHud hidden={clean || (overlay !== null && overlay !== "map")} onPoints={() => void gameStateAction().then((g) => setGame(g))} onUpdate={() => void gameStateAction().then((g) => setGame(g))} /> : null}
 

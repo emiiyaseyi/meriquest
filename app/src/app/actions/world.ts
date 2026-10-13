@@ -2,6 +2,7 @@
 
 import { requireUser } from "@/lib/server/auth/dal";
 import { markToured, saveLook, travelByMap, travelByPortal, type TravelResult } from "@/lib/server/world/service";
+import { cancelActivity, completeActivity, getLocation, startActivity, type ActivityResult, type LocationView } from "@/lib/server/game/activities";
 import { claimDailyBonus, claimMission, getGameState, interact, visitSpot, type ActionResult, type GameState } from "@/lib/server/game/service";
 import type { Skin } from "@/lib/world/types";
 
@@ -50,4 +51,24 @@ export async function claimBonusAction(): Promise<ActionResult> {
 export async function gameStateAction(): Promise<GameState> {
   const user = await requireUser();
   return getGameState(user);
+}
+
+export async function locationAction(): Promise<LocationView | null> {
+  const user = await requireUser();
+  return getLocation(user);
+}
+
+export async function startActivityAction(activityId: string): Promise<ActivityResult> {
+  const user = await requireUser();
+  return startActivity(user, activityId);
+}
+
+export async function completeActivityAction(): Promise<ActivityResult> {
+  const user = await requireUser();
+  return completeActivity(user);
+}
+
+export async function cancelActivityAction(): Promise<ActivityResult> {
+  const user = await requireUser();
+  return cancelActivity(user);
 }

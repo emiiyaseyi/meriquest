@@ -29,7 +29,7 @@ describe("config definitions", () => {
 
   it("work-first defaults match the approved policy", () => {
     const w = CONFIG.workFirst.default;
-    expect(w.coreHours).toEqual({ days: [1, 2, 3, 4, 5], start: "08:00", end: "17:00" });
+    expect(w.coreHours).toEqual({ days: [1, 2, 3, 4, 5], start: "08:30", end: "16:30" });
     expect(w.dailyCapWorkdayMinutes).toBe(45);
     expect(w.dailyCapWeekendMinutes).toBe(90);
     expect(w.weeklySoftCapMinutes).toBe(240);

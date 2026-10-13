@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M4b: Location bar with zones and timed activities, and the session limit only in working hours (13 Oct 2026)
+Scope: (1) a location bar in each room, like the reference: the room's name and a line about it, its zones as tabs, activity cards with a timer, what they lift and the points they earn; the time is kept on the server and the reward is collected once. Rooms, zones and activities are admin settings. (2) Owner decision: the 30-minute play limit now applies only in working hours, 8:30 am to 4:30 pm on working days; after 4:30 pm, before 8:30 am, at weekends and on holidays there is no session limit. Core hours default changed to 08:30 to 16:30, and the limit has an admin switch (`onlyInCoreHours`).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 445 tests: activities (valid content, zones, server timer, pay once, cooldown, one at a time, wrong room, cancel); session rules (limit inside working hours, none outside them, boundaries at 08:30 and 16:30) |
+| 3 | Authorisation and validation | **Pass** | Every action calls `requireUser`; start, finish and cooldown are decided on the server; settings checked by strict schemas |
+| 4 | Real browser | **Pass** | Throwaway user: open the bar, zone tabs, start an activity, countdown, cooldown after finishing, no horizontal scroll on a phone, no console errors; user removed |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Notes: `pg.test.ts` timed out once while another test run was using the machine and passed on its own and on the next full run. Open: room chat is deliberately not built (needs moderation first); older saved Work First settings keep their own core hours until an admin changes them.
+
+---
+
 ## M4a: Go to work shifts (13 Oct 2026)
 Scope: a Go to work button starts a shift; a shift card shows the time left and progress; workplace situations appear through the shift, each with choices scored on the server; the shift pays Merit points and skill XP when the time is up, and leaving early pays nothing. Length (8 minutes by default, raisable up to a full day), situations per shift, shifts a day, points and the 21 starting situations (Customer Experience, Wealth Advisory, Investment Advisory and everyone) are admin settings.
 

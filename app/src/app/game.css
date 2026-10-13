@@ -469,3 +469,26 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .shift-choice { appearance: none; border: 0; background: #fff; font: inherit; text-align: left; padding: 12px 14px; border-radius: 18px; cursor: pointer; color: #1b2a21; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
 .shift-choice:hover:not(:disabled) { background: #eef7ef; }
 @media (max-width: 640px) { .shift-card { right: 70px; top: 76px; width: min(250px, calc(100% - 90px)); } .shift-go { bottom: 110px; } }
+
+/* The location bar: the room's zones and timed activities, like the reference game's */
+.locbar { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 3; width: min(640px, calc(100% - 24px)); background: rgba(255,255,255,.96); border-radius: 24px; box-shadow: 0 12px 34px rgba(0,0,0,.25); padding: 8px 12px; display: flex; flex-direction: column; gap: 10px; }
+.locbar-head { appearance: none; border: 0; background: transparent; font: inherit; color: #1b2a21; display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px; text-align: left; }
+.locbar-title { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.locbar-title .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.locbar-chev { font-size: 1.2rem; color: #5b6b61; }
+.locbar-tabs { display: flex; gap: 8px; overflow-x: auto; }
+.locbar-tab { appearance: none; border: 0; background: #eef2ee; font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; color: #26402f; }
+.locbar-tab.on { background: #1b2a21; color: #fff; }
+.locbar-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 40vh; overflow-y: auto; }
+.locbar-card { appearance: none; border: 1px solid #e3e9e3; background: #fff; border-radius: 20px; padding: 10px; display: flex; flex-direction: column; gap: 6px; font: inherit; color: #1b2a21; cursor: pointer; text-align: left; }
+.locbar-card:hover:not(:disabled) { background: #f1f7f2; }
+.locbar-card:disabled { opacity: .55; cursor: default; }
+.locbar-card.running { border-color: #1e9a5a; background: #eaf7ee; }
+.locbar-card-top { display: flex; justify-content: space-between; align-items: center; }
+.locbar-icon { width: 38px; height: 38px; border-radius: 50%; background: #f3f6f3; display: grid; place-items: center; font-size: 1.2rem; }
+.locbar-secs { background: #f3f6f3; border-radius: 999px; padding: 2px 8px; font-size: .75rem; font-weight: 600; }
+.locbar-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.locbar-tags em { font-style: normal; font-size: .72rem; font-weight: 600; background: #fff1d6; color: #7a5400; padding: 2px 8px; border-radius: 999px; }
+.locbar-prog { display: block; height: 5px; background: #d6e8da; border-radius: 999px; overflow: hidden; }
+.locbar-prog i { display: block; height: 100%; background: #1e9a5a; }
+@media (max-width: 640px) { .locbar { bottom: 84px; } }

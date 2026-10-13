@@ -32,8 +32,8 @@ describe("world access (older rule: restrictToWindows on)", () => {
   it("is closed during core working hours", () => {
     const d = world(POLICY, lagos(TUE, "10:00"));
     expect(d).toMatchObject({ allowed: false, code: "core_hours", isWorkday: true });
-    expect(world(POLICY, lagos(TUE, "08:00")).code).toBe("core_hours"); // boundary: core starts at 08:00
-    expect(world(POLICY, lagos(TUE, "16:59")).code).toBe("core_hours");
+    expect(world(POLICY, lagos(TUE, "08:30")).code).toBe("core_hours"); // boundary: core starts at 08:30
+    expect(world(POLICY, lagos(TUE, "16:29")).code).toBe("core_hours");
   });
 
   it("opens before work, limited to the window end", () => {

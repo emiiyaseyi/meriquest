@@ -21,12 +21,18 @@ const learn = (p: WorkFirstPolicy, now: number, s = session(0, null)) => evaluat
 
 describe("default rule: play during working hours with a session limit (owner, 13 Oct 2026)", () => {
   it("ships as: working hours not enforced, 30 minutes per session, 2 hour pause, no daily cap", () => {
-    expect(DEFAULTS).toMatchObject({ restrictToWindows: false, dailyCapEnabled: false, sessionLimit: { enabled: true, maxMinutes: 30, pauseMinutes: 120 }, adminsExempt: true });
+    expect(DEFAULTS).toMatchObject({ restrictToWindows: false, dailyCapEnabled: false, sessionLimit: { enabled: true, maxMinutes: 30, pauseMinutes: 120, onlyInCoreHours: true }, adminsExempt: true });
   });
 
-  it("lets people play in working hours, at night and at weekends, up to the session length", () => {
-    for (const when of [lagos(TUE, "10:00"), lagos(TUE, "13:45"), lagos(TUE, "22:30"), lagos(SAT, "11:00")]) {
+  it("limits a session to 30 minutes in working hours (8:30 am to 4:30 pm) only", () => {
+    for (const when of [lagos(TUE, "08:30"), lagos(TUE, "10:00"), lagos(TUE, "13:45"), lagos(TUE, "16:29")]) {
       expect(play(DEFAULTS, when)).toMatchObject({ allowed: true, code: "ok", remainingSeconds: 1800 });
+    }
+  });
+
+  it("has no session limit after close of business at 4:30 pm, before 8:30 am, or at weekends", () => {
+    for (const when of [lagos(TUE, "16:30"), lagos(TUE, "22:30"), lagos(TUE, "08:29"), lagos(TUE, "06:00"), lagos(SAT, "11:00")]) {
+      expect(play(DEFAULTS, when, session(99999, when - 5000))).toMatchObject({ allowed: true, code: "ok", remainingSeconds: null });
     }
   });
 
@@ -45,7 +51,7 @@ describe("default rule: play during working hours with a session limit (owner, 1
     const end = lagos(TUE, "10:00");
     expect(play(DEFAULTS, end + 119 * 60_000, session(1800, end)).allowed).toBe(false);
     expect(play(DEFAULTS, end + 120 * 60_000, session(1800, end))).toMatchObject({ allowed: true, remainingSeconds: 1800 });
-    expect(play(DEFAULTS, end + 9 * 3_600_000, session(1800, end)).remainingSeconds).toBe(1800);
+    expect(play(DEFAULTS, end + 4 * 3_600_000, session(1800, end)).remainingSeconds).toBe(1800); // 14:00, still working hours
   });
 
   it("keeps unused time when someone stops early and comes back within the pause length", () => {
@@ -55,7 +61,7 @@ describe("default rule: play during working hours with a session limit (owner, 1
   });
 
   it("uses whatever length and pause the admin sets", () => {
-    const p = { ...DEFAULTS, sessionLimit: { enabled: true, maxMinutes: 10, pauseMinutes: 60 } };
+    const p = { ...DEFAULTS, sessionLimit: { enabled: true, maxMinutes: 10, pauseMinutes: 60, onlyInCoreHours: true } };
     const t = lagos(TUE, "10:00");
     expect(play(p, t).remainingSeconds).toBe(600);
     expect(play(p, t + 59 * 60_000, session(600, t)).allowed).toBe(false);
@@ -63,7 +69,7 @@ describe("default rule: play during working hours with a session limit (owner, 1
   });
 
   it("has no session limit at all when the admin turns it off", () => {
-    const p = { ...DEFAULTS, sessionLimit: { enabled: false, maxMinutes: 30, pauseMinutes: 120 } };
+    const p = { ...DEFAULTS, sessionLimit: { enabled: false, maxMinutes: 30, pauseMinutes: 120, onlyInCoreHours: true } };
     expect(play(p, lagos(TUE, "10:00"), session(99999, lagos(TUE, "09:59")))).toMatchObject({ allowed: true, remainingSeconds: null });
   });
 
@@ -161,7 +167,7 @@ describe("default rule: the server counts and enforces sessions", () => {
 
   it("follows a changed setting straight away", async () => {
     await changePassword("MS0001", { current: DEFAULT_PW, next: NEW_PW, confirm: NEW_PW }, 5);
-    await setConfig("workFirst", JSON.stringify({ ...DEFAULTS, sessionLimit: { enabled: true, maxMinutes: 5, pauseMinutes: 30 } }), "MS0001");
+    await setConfig("workFirst", JSON.stringify({ ...DEFAULTS, sessionLimit: { enabled: true, maxMinutes: 5, pauseMinutes: 30, onlyInCoreHours: true } }), "MS0001");
     let last = await playBeat(staff, "world", T0);
     for (let i = 1; i <= 20 && last.allowed; i++) last = await playBeat(staff, "world", T0 + i * 30_000);
     expect(await used()).toBe(300);

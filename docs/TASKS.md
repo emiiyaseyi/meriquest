@@ -65,3 +65,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Go to work shift: shift card with timer, situations with scored choices, pay at the end, admin-editable length and situations
 - [ ] Commute ride (car, pool car, Uber) before a shift
 - [ ] Review the shift situations with the business owners
+
+- [x] Location bar: zones as tabs, timed activity cards with effects and points, per room, admin-editable
+- [x] Play limit (30 min) only in working hours 8:30 am to 4:30 pm; no limit outside them
+- [ ] Room chat with moderation (later)
