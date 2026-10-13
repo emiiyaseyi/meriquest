@@ -260,3 +260,105 @@ button.activity:disabled { opacity: .7; cursor: default; }
 
 .bar { display: block; }
 .need-main .bar { margin-top: 4px; }
+
+/* The Work Phone: a phone frame in the Meristem greens, like the reference game's */
+.phone-close { position: absolute; top: 6%; left: 50%; transform: translateX(-50%) translateX(120px); appearance: none; border: 0; background: #fff; font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 999px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.25); z-index: 1; }
+.phone2 { position: relative; width: min(340px, calc(100% - 24px)); height: min(640px, calc(100% - 70px)); background: linear-gradient(170deg, #1d452b 0%, #2d5d41 52%, #6c9a3e 100%); border: 9px solid #15171a; border-radius: 44px; box-shadow: 0 24px 60px rgba(0,0,0,.45); color: #fff; display: flex; flex-direction: column; overflow: hidden; }
+.notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 110px; height: 26px; background: #15171a; border-radius: 999px; z-index: 2; }
+.phone-status { display: flex; justify-content: space-between; padding: 12px 22px 0; font-weight: 700; font-size: .85rem; flex: none; }
+.phone-home { padding: 16px 16px 24px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; }
+.lock-time { margin: 8px 0 0; font-size: 3.4rem; font-weight: 700; line-height: 1; color: #fff; }
+.lock-date { margin: 0; color: #dfeadd; }
+.banner { appearance: none; border: 0; text-align: left; font: inherit; background: #fff; color: var(--ink); border-radius: 22px; padding: 12px 14px; display: flex; gap: 10px; align-items: center; cursor: pointer; }
+.banner > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.banner em { font-style: normal; font-size: .8rem; color: #5b6b61; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.banner .go { background: #8db74e; color: #12301c; font-weight: 700; padding: 8px 14px; border-radius: 999px; font-size: .85rem; }
+.icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 4px; }
+.icon-app { appearance: none; border: 0; background: transparent; font: inherit; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; position: relative; padding: 0; }
+.icon-app .tile { width: 56px; height: 56px; border-radius: 17px; display: grid; place-items: center; font-size: 1.7rem; box-shadow: 0 6px 14px rgba(0,0,0,.25); }
+.icon-app.is-soon .tile { opacity: .75; }
+.tile-label { font-size: .7rem; font-weight: 600; text-align: center; line-height: 1.1; color: #fff; }
+.tile-soon { position: absolute; top: -4px; right: 2px; background: #fff3d6; color: #8a5a00; font-size: .58rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
+.badge-dot { position: absolute; top: -4px; right: 2px; min-width: 20px; height: 20px; padding: 0 5px; background: #e0485a; color: #fff; border-radius: 999px; font-size: .7rem; font-weight: 700; display: grid; place-items: center; }
+.nav-wrap { position: relative; display: inline-flex; }
+.nav-badge { top: -10px; right: -16px; }
+.screen { background: #fff; color: var(--ink); margin: 6px 8px 0; border-radius: 28px 28px 0 0; padding: 14px 14px 22px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.screen-head { display: flex; align-items: center; gap: 8px; }
+.screen-head h2 { flex: 1; margin: 0; font-size: 1.4rem; }
+.screen-head .back { appearance: none; border: 0; background: transparent; font-size: 2rem; line-height: 1; color: #2f6fe0; cursor: pointer; padding: 0 6px; }
+.screen-head .bell { appearance: none; border: 0; background: #eef2ef; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; position: relative; font-size: 1.1rem; }
+.screen-head .done { appearance: none; border: 0; background: #eef2ef; font: inherit; font-weight: 700; padding: 9px 16px; border-radius: 999px; cursor: pointer; }
+.announce { display: flex; gap: 10px; background: #fff5e8; border: 1px solid #f6d8ae; border-radius: 20px; padding: 12px 14px; }
+.announce:not(.pinned) { background: #f3f6f3; border-color: #e3e8e4; }
+.announce > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.announce em { font-style: normal; color: #3b4a41; }
+.announce small, .notice small { color: #5b6b61; }
+.notice { display: flex; align-items: flex-start; gap: 10px; border-radius: 20px; padding: 12px 14px; background: #e7f4ec; }
+.notice.bad { background: #fdecea; }
+.notice.info { background: #eef2ef; }
+.notice .n-icon { width: 36px; height: 36px; background: #fff; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.notice .n-main { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.notice .dot { width: 10px; height: 10px; border-radius: 50%; background: #2f6fe0; flex: none; margin-top: 6px; }
+.phone-note { margin: 0; color: #5b6b61; font-size: .9rem; text-align: center; }
+.home-bar { width: 120px; height: 5px; background: rgba(255,255,255,.6); border-radius: 999px; margin: 8px auto; flex: none; }
+
+.nav-btn .nav-wrap { font: inherit; color: inherit; }
+
+/* Meristem Academy */
+.academy { display: flex; flex-direction: column; gap: 12px; color: var(--ink); }
+.academy.embedded { max-width: 100%; }
+.ac-hero { background: linear-gradient(155deg, #2f6244, #1d452b); color: #fff; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.ac-hero h3, .ac-hero p { margin: 0; color: #fff; }
+.ac-hero p { color: #dfeadd; font-size: .9rem; }
+.ac-kicker { margin: 0; font-size: .74rem; font-weight: 700; letter-spacing: .06em; color: #2d5d41; }
+.ac-hero .ac-kicker { color: #b9d98c; }
+.ac-pill { align-self: flex-start; background: rgba(255,255,255,.18); padding: 5px 12px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.ac-class { background: #fff5e8; border: 1px solid #f6d8ae; border-radius: 16px; padding: 10px 14px; font-size: .9rem; }
+.ac-group h4 { margin: 4px 0 8px; font-size: 1rem; }
+.ac-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ac-card { appearance: none; border: 0; background: #f3f6f3; border-radius: 20px; padding: 12px; display: flex; flex-direction: column; gap: 3px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.ac-card:hover { background: var(--brand-soft); }
+.ac-top { display: flex; justify-content: space-between; align-items: center; }
+.ac-icon { width: 40px; height: 40px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 1.3rem; }
+.ac-icon.big { width: 52px; height: 52px; font-size: 1.6rem; background: #f3f6f3; }
+.ac-kick { font-size: .72rem; color: #5b6b61; margin-top: 4px; }
+.ac-card strong { font-size: .98rem; line-height: 1.2; }
+.ac-meta { font-size: .76rem; color: #5b6b61; }
+.ac-level { align-self: flex-start; margin-top: 4px; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #e7f4ec; color: #1d452b; }
+.ac-level.medium { background: #fff1d6; color: #7a5400; }
+.ac-level.hard { background: #fde4e4; color: #8a2020; }
+.ac-level.done { background: #2d5d41; color: #fff; }
+.ring { position: relative; width: 40px; height: 40px; display: grid; place-items: center; }
+.ring svg { position: absolute; inset: 0; }
+.ring b { font-size: .62rem; }
+.ac-back { appearance: none; border: 0; background: transparent; color: #2f6fe0; font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-align: left; }
+.ac-title { display: flex; gap: 12px; align-items: center; }
+.ac-title h2 { margin: 0; }
+.ac-title p { margin: 0; }
+.ac-banner { border-radius: 18px; padding: 12px 14px; background: #e7f4ec; font-size: .92rem; }
+.ac-banner.medium { background: #fff1d6; }
+.ac-banner.hard { background: #fde4e4; }
+.ac-banner.done { background: #2d5d41; color: #fff; }
+.ac-lesson { display: flex; align-items: center; gap: 10px; border-radius: 18px; padding: 10px 12px; background: #f3f6f3; }
+.ac-lesson.locked { opacity: .6; }
+.ac-lesson.passed { background: #e7f4ec; }
+.ac-lesson .num { width: 34px; height: 34px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-weight: 700; flex: none; color: #1d452b; }
+.ac-lesson.passed .num { background: #2d5d41; color: #fff; }
+.ac-lesson .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mini.go { background: var(--brand); color: #fff; }
+.ac-row { appearance: none; border: 0; background: #f3f6f3; border-radius: 18px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font: inherit; color: var(--ink); cursor: pointer; text-align: left; }
+.ac-row > span:first-child { display: flex; flex-direction: column; }
+.ac-notes { margin: 0; line-height: 1.55; font-size: 1rem; }
+.ac-steps { display: flex; gap: 5px; }
+.ac-steps span { flex: 1; height: 6px; border-radius: 999px; background: #e1e7e2; }
+.ac-steps .done { background: #2d5d41; }
+.ac-steps .now { background: #8db74e; }
+.ac-q { margin: 0; font-size: 1.15rem; line-height: 1.35; }
+.ac-opt { appearance: none; border: 2px solid #e3e8e4; background: #fff; border-radius: 16px; padding: 12px 14px; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.ac-opt:hover:not(:disabled) { background: var(--brand-soft); }
+.ac-opt.on { border-color: var(--brand); background: var(--brand-soft); }
+.ac-result { border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ac-result h2, .ac-result h3, .ac-result p { margin: 0; }
+.ac-result.pass { background: #e7f4ec; }
+.ac-result.part { background: #fff1d6; }
+.ac-result.fail { background: #fde4e4; }

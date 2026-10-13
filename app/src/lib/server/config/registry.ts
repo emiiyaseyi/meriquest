@@ -39,7 +39,7 @@ export async function getConfigJson(key: ConfigKey): Promise<string> {
 
 export type SetConfigResult = { ok: true; version: number } | { ok: false; errors: string[] };
 
-export const MAX_CONFIG_JSON_BYTES = 100_000;
+export const MAX_CONFIG_JSON_BYTES = 400_000; // the Academy courses are the largest setting
 
 /**
  * Validate and save a config value. Authorisation is the CALLER's job (admin check lives in the

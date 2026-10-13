@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_ACADEMY } from "./academy-content";
 
 /**
  * Config registry definitions (RULEBOOK §4: nothing an admin may want to change is hardcoded).
@@ -450,6 +451,119 @@ export const gameplaySchema = z
   .strict();
 
 /**
+ * Meristem Academy: courses of lessons, each lesson a timed class, then notes, then quizzes at three levels. Everything about
+ * how it runs (class time, pass mark, retry delay, classes a day) and every word of every lesson is here, so
+ * Compliance and L&D can write and change courses without a developer.
+ */
+const quizQuestion = z
+  .object({
+    /** Stays the same when the question is edited, so records of what was asked still make sense. */
+    id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/),
+    /** 1 Easy, 2 Medium, 3 Hard. People meet Medium after passing Easy, and Hard after passing Medium. */
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    question: z.string().min(5).max(400),
+    options: z.array(z.string().min(1).max(200)).min(2).max(6),
+    /** The position of the right option, counting from 0. Never sent to the browser. */
+    answer: z.number().int().min(0).max(5),
+  })
+  .strict()
+  .refine((q) => q.answer < q.options.length, "The answer must be one of the options");
+
+const scenarioSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/),
+    title: z.string().min(1).max(80),
+    story: z.string().min(10).max(1500),
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    choices: z
+      .array(z.object({ text: z.string().min(1).max(300), verdict: z.enum(["best", "partly", "wrong"]), feedback: z.string().min(1).max(500) }).strict())
+      .min(2)
+      .max(5),
+  })
+  .strict()
+  .refine((s) => s.choices.some((c) => c.verdict === "best"), "A scenario needs a best choice");
+
+const caseSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/),
+    title: z.string().min(1).max(80),
+    story: z.string().min(10).max(2000),
+    /** What a good answer covers: a model answer to compare against. */
+    keyPoints: z.array(z.string().min(1).max(300)).max(15),
+  })
+  .strict();
+
+export const academySchema = z
+  .object({
+    settings: z
+      .object({
+        /** How long a class lasts in real seconds before the notes open. */
+        classSeconds: z.number().int().min(0).max(3600),
+        /** How long a class is said to last, for display ("45 min"). */
+        classMinutes: z.number().int().min(1).max(480),
+        /** Questions in a quiz, drawn from the lesson's pool for the person's level. */
+        quizSize: z.number().int().min(3).max(15),
+        /** Right answers needed to pass a quiz of the full size (5 of 7 in the design). */
+        passCorrect: z.number().int().min(1).max(15),
+        /** How long to wait before retrying a failed quiz. */
+        retryMinutes: z.number().int().min(0).max(1440),
+        classesPerDay: z.number().int().min(1).max(20),
+        /** Merit points for passing a lesson at Easy, Medium and Hard. */
+        lessonPoints: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]),
+        /** Merit points for finishing a scenario with its best choice. */
+        scenarioPoints: z.number().int().min(0).max(100),
+      })
+      .strict(),
+    /** The shelves courses sit on in the Academy. Admins can add groups and move courses between them. */
+    groups: z
+      .array(z.object({ id: slug, label: z.string().min(1).max(40), icon: z.string().min(1).max(8) }).strict())
+      .min(1)
+      .max(20)
+      .refine((g) => new Set(g.map((x) => x.id)).size === g.length, "Each group needs its own id"),
+    courses: z
+      .array(
+        z
+          .object({
+            id: slug,
+            /** The group it sits in. Leave empty to show it under "More courses". */
+            group: z.string().max(41),
+            title: z.string().min(1).max(60),
+            kicker: z.string().min(1).max(40),
+            icon: z.string().min(1).max(8),
+            intro: z.string().min(1).max(400),
+            /** Units this course is recommended for. "*" means everyone. Every course is open to everyone. */
+            units: z.array(z.string().min(1).max(40)).min(1).max(30),
+            /** Merit points for the certificate (earned by passing every lesson at Hard). */
+            rewardPoints: z.number().int().min(0).max(1000),
+            certificate: z.string().min(1).max(80),
+            skill: skillGain,
+            lessons: z
+              .array(
+                z
+                  .object({
+                    id: slug,
+                    title: z.string().min(1).max(80),
+                    paragraphs: z.array(z.string().min(1).max(2500)).min(1).max(20),
+                    questions: z.array(quizQuestion).min(3).max(120),
+                  })
+                  .strict()
+                  .refine((l) => new Set(l.questions.map((x) => x.id)).size === l.questions.length, "Each question needs its own id"),
+              )
+              .min(1)
+              .max(12)
+              .refine((l) => new Set(l.map((x) => x.id)).size === l.length, "Each lesson needs its own id"),
+            scenarios: z.array(scenarioSchema).max(20),
+            cases: z.array(caseSchema).max(20),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(60)
+      .refine((c) => new Set(c.map((x) => x.id)).size === c.length, "Each course needs its own id"),
+  })
+  .strict();
+
+/**
  * Who may use each floor of a building. A floor not listed is open to everyone. "closed" keeps everyone out
  * (admins can still preview it); "units" lets in only the listed units.
  */
@@ -635,9 +749,9 @@ export const CONFIG = {
     schema: phoneAppsSchema,
     default: [
       { id: "my-role", label: "My Role", icon: "💼", enabled: true, soon: true },
-      { id: "messages", label: "Messages", icon: "💬", enabled: true, soon: true },
-      { id: "academy", label: "Academy", icon: "🎓", enabled: true, soon: true },
-      { id: "todays-plan", label: "Today's Plan", icon: "🎯", enabled: true, soon: true },
+      { id: "messages", label: "Messages", icon: "💬", enabled: true, soon: false },
+      { id: "academy", label: "Academy", icon: "🎓", enabled: true, soon: false },
+      { id: "todays-plan", label: "Today's Plan", icon: "🎯", enabled: true, soon: false },
       { id: "directory", label: "Directory", icon: "📇", enabled: true, soon: true },
       { id: "kudos", label: "Kudos", icon: "🌟", enabled: true, soon: true },
       { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: true },
@@ -684,6 +798,7 @@ export const CONFIG = {
         { id: "ask-support", title: "Call for support", description: "Ask a colleague to help on a client conversation.", event: "support", target: 1, rewardPoints: 6 },
         { id: "explore", title: "Explore the office", description: "Visit two other rooms.", event: "visit", target: 2, rewardPoints: 4 },
         { id: "buy-drink", title: "Buy a colleague a drink", description: "Treat someone in the lounge.", event: "drink", target: 1, rewardPoints: 4 },
+        { id: "pass-lesson", title: "Pass a lesson", description: "Attend a class in Meristem Academy and pass the quiz.", event: "lesson", target: 1, rewardPoints: 8 },
         { id: "proper-lunch", title: "Have a proper lunch", description: "Step away from your desk and eat in the pantry.", event: "lunch", target: 1, rewardPoints: 4 },
         { id: "stay-hydrated", title: "Stay hydrated", description: "Drink water at the cooler.", event: "water", target: 1, rewardPoints: 3 },
         { id: "read-up", title: "Read up", description: "Pick something to read from the shelf.", event: "read", target: 1, rewardPoints: 4 },
@@ -692,6 +807,13 @@ export const CONFIG = {
       missionsPerDay: 3,
       dailyBonusPoints: 10,
     },
+  },
+  academy: {
+    label: "Meristem Academy",
+    group: "Content",
+    description: "The courses, lessons and quizzes of Meristem Academy, and how classes run (class time, pass mark, retry delay, classes a day). The built-in courses are draft content for Compliance and L&D to review.",
+    schema: academySchema,
+    default: DEFAULT_ACADEMY,
   },
   floors: {
     label: "Floor access",

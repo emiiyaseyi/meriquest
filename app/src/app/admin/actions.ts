@@ -13,6 +13,7 @@ import {
 } from "@/lib/server/auth/admin";
 import { resetConfigToDefault, setConfig } from "@/lib/server/config/registry";
 import { updateConcern } from "@/lib/server/concerns/service";
+import { deleteAnnouncement, postAnnouncement } from "@/lib/server/notices/service";
 import { adminResetPlacement, adminSetPath, adminSetRetakeLock } from "@/lib/server/placement/service";
 
 export interface AdminFormState {
@@ -124,4 +125,18 @@ export async function updateConcernAction(_p: AdminFormState, fd: FormData): Pro
   revalidatePath("/admin/concerns");
   revalidatePath(`/admin/concerns/${str(fd.get("id"))}`);
   return toState(r, "Saved.");
+}
+
+export async function postAnnouncementAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await postAnnouncement(admin, fd.get("title"), fd.get("text"));
+  revalidatePath("/admin/announcements");
+  return toState(r, "Posted.");
+}
+
+export async function deleteAnnouncementAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireRole("admin");
+  const r = await deleteAnnouncement(admin, str(fd.get("id")));
+  revalidatePath("/admin/announcements");
+  return toState(r, "Removed.");
 }

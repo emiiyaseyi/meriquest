@@ -55,6 +55,22 @@ Notes: the new needs start at sensible values for people saved before this chang
 
 ---
 
+## M5a: Work Phone, updates, announcements and Meristem Academy with the Culture courses (13 Oct 2026)
+Scope: (1) **Work Phone** redesigned like the reference (frame, lock-screen header, announcement banner, coloured app tiles, screens inside the phone). (2) **Messages** with a bell for **Updates** (class over, lesson passed, mission paid, report changed status) and **announcements** from the admin team (new admin page). (3) **Meristem Academy**: groups, courses, lessons with a timed class, then notes, then a quiz drawn from a question bank; **three levels that unlock as you pass** (Easy, Medium, Hard) with the certificate at Hard; pass mark 5 of 7; 2 new classes a day; retry wait; **scenarios** and **case studies**; open to every role, with role courses recommended; also a full page at `/academy`, offered when play is closed (learning is allowed outside hours). (4) **First imported content**: the Culture group (3 courses, 16 lessons, 320 questions across three levels) from the NEO decks; see `docs/ACADEMY-IMPORT.md`.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 409 passing. Academy: the built-in content validates and every lesson has at least 6 questions at each level with no repeated question or option; classes take time and open notes once; one class at a time; classes a day; quiz served without answers, drawn from the level pool with shuffled options; marked on the server; fail waits to retry; bad answers, replays and other lessons refused; Easy then Medium then Hard unlock, points, skill experience and certificate; scenarios and cases; thin levels borrow questions; settings that would break a quiz are rejected. Updates and announcements: private per person, capped, cleaned; only admins post or remove; reporters are told when a concern changes status |
+| 3 | Real browser | **Pass** | Throwaway player: phone opens with the 12 apps and the right label sizes; Messages shows the announcement; Academy lists the Culture group with 3 courses; a course shows 5 lessons and the Easy banner; Attend runs a real 30-second class, the lesson changes to "notes ready", notes open, the quiz shows one question at a time and a full quiz was submitted and marked; no console errors; test rows deleted |
+| 4 | Authorisation | **Pass** | Every Academy, Messages and Updates action calls `requireUser`; announcements are posted and removed only by admins (checked in the service and in the admin actions); notes and quizzes open only after the class on the server; right answers never leave the server |
+| 5 | Input validation | **Pass** | Strict schema for the whole Academy (ids, lengths, answers within the options, a best choice in every scenario); answers must be whole numbers within range and one per question; ids are checked as strings |
+| 6 | Dependencies and secrets | **Pass** | 0 vulnerabilities; nothing sensitive staged |
+
+Notes: the quiz marking trusts only what the server stored when it served the quiz (the questions and how their options were shuffled), so a changed question list or a replayed submission cannot change the result. The imported content is draft: HR and Compliance should review it. Concern evidence storage and the other open items are unchanged.
+
+---
+
 ## M3a.4: Me panel, person card and shortcuts match the reference (13 Oct 2026)
 Scope: the menu button opens a "Me" card like the reference game's (picture and mood on top; Profile, Needs, Goals, Skills, People, Career, Settings tabs); clicking a person opens a player-style card; a keyboard shortcuts card; letter shortcuts M, P, S, E, H and ?; the view turns with [ and ] (E is now "people here"). Built from the reference screenshots in `docs/reference`.
 

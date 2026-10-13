@@ -8,6 +8,8 @@ import { MePanel, type MeTab } from "./MePanel";
 import { PersonCard } from "./PersonCard";
 import { Shortcuts } from "./Shortcuts";
 import { LiftPanel } from "./LiftPanel";
+import { PhoneUI } from "./PhoneUI";
+import { AcademyApp } from "@/components/AcademyApp";
 import { PlaceCard } from "./PlaceCard";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
@@ -355,7 +357,7 @@ export function GameShell(props: GameShellProps) {
             </button>
             <button type="button" className="nav-btn" onClick={() => setOverlay(overlay === "phone" ? null : "phone")}>
               <span aria-hidden="true">📱</span>
-              {terms.workPhone}
+              <span className="nav-wrap">{terms.workPhone}{game.unread > 0 ? <span className="badge-dot nav-badge">{game.unread > 9 ? "9+" : game.unread}</span> : null}</span>
             </button>
           </nav>
 
@@ -404,20 +406,17 @@ export function GameShell(props: GameShellProps) {
       ) : null}
 
       {overlay === "phone" ? (
-        <div className="phone-wrap" role="dialog" aria-label={terms.workPhone} onClick={(e) => { if (e.target === e.currentTarget) closeAll(); }}>
-          <div className="phone">
-            <div className="phone-top"><span>{clock}</span><button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close phone">✕</button></div>
-            <div className="app-grid">
-              {apps.filter((a) => a.enabled).map((a) => (
-                <button key={a.id} type="button" className="app" disabled={a.soon} title={a.soon ? "Coming soon" : a.label} onClick={() => flash(`${a.label} is coming soon.`)}>
-                  <span className="app-icon" aria-hidden="true">{a.icon}</span>
-                  <span className="app-label">{a.label}</span>
-                  {a.soon ? <span className="soon">soon</span> : null}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <PhoneUI
+          apps={apps}
+          clock={clock}
+          timezone={props.timezone}
+          unread={game.unread}
+          onUnread={(n) => setGame((g) => ({ ...g, unread: n }))}
+          onClose={() => setOverlay(null)}
+          onGoals={() => openMe("goals")}
+          onSettings={() => openMe("settings")}
+          academy={(back) => <AcademyApp onBack={back} />}
+        />
       ) : null}
 
       {spot ? (

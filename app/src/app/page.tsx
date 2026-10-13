@@ -35,7 +35,8 @@ export default async function HomePage() {
         <div className="auth-card stack">
           <h1>{closedTitle(status.code)}</h1>
           <p className="muted" style={{ margin: 0 }}>{status.message}</p>
-          <Link href="/dashboard" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Open my dashboard</Link>
+          <Link href="/academy" className="btn" style={{ textAlign: "center", textDecoration: "none" }}>Open Meristem Academy</Link>
+          <Link href="/dashboard" className="btn btn-ghost" style={{ textAlign: "center", textDecoration: "none" }}>Open my dashboard</Link>
         </div>
       </main>
     );

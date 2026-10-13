@@ -6,6 +6,7 @@ import type { UserDTO } from "../types";
 import { playStatus } from "../workfirst/service";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { ensureMissionDay, recordEvent, type MissionDay } from "./missions";
+import { notify, unreadCount } from "../notices/service";
 import { getScene } from "@/lib/world/scenes";
 import { applyEffects, decayNeeds, effectTags, skillStanding, type Effects, type SkillStanding } from "@/lib/game";
 import { NEED_KEYS, type NeedKey } from "@/lib/world/player";
@@ -56,6 +57,8 @@ export interface GameState {
   spots: Record<string, { label: string; icon: string; tags: string[]; cooldownMinutes: number }>;
   /** For each need, where and how it can be recharged ("Coffee point · Open-plan floor", "Say hello"). */
   recharge: Record<NeedKey, string[]>;
+  /** Updates on the Work Phone that have not been read. */
+  unread: number;
   /** Cooldowns still running, as the time they end (key: interaction id and person, or "spot:kind"). */
   cooldowns: Record<string, number>;
 }
@@ -91,6 +94,7 @@ async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
 }
 
 async function view(player: PlayerRecord, mission: MissionDay, now: number): Promise<GameState> {
+  const unread = await unreadCount(player);
   const gameplay = await getConfig("gameplay");
   const skills = gameplay.skills.map((s) => skillStanding(s, player.skillXp?.[s.id] ?? 0));
   const missions: MissionView[] = mission.picks.flatMap((id) => {
@@ -109,6 +113,7 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
     interactions: gameplay.interactions.map((i) => ({ id: i.id, label: i.label, icon: i.icon, tags: effectTags(i.effects), cost: i.cost, cooldownMinutes: i.cooldownMinutes })),
     spots: Object.fromEntries(gameplay.spots.map((s) => [s.kind, { label: s.label, icon: s.icon, tags: effectTags(s.effects), cooldownMinutes: s.cooldownMinutes }])),
     recharge: rechargeHints(gameplay),
+    unread,
     cooldowns,
   };
 }
@@ -205,6 +210,7 @@ export async function claimMission(user: Pick<UserDTO, "staffId">, missionId: un
   });
   if (!won) return { ok: false, error: "That reward is not ready." };
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, points: cur.points + def.rewardPoints, needs: applyEffects(cur.needs, gameplay.claimEffects), updatedAt: now } : cur));
+  await notify(user.staffId, { icon: "🎯", text: `Mission complete: ${def.title}. +${def.rewardPoints} Merit points.`, tone: "good" }, now);
   return { ok: true, state: await getGameState(user, now), message: `+${def.rewardPoints} Merit points for "${def.title}".` };
 }
 
@@ -221,5 +227,6 @@ export async function claimDailyBonus(user: Pick<UserDTO, "staffId">, now: numbe
   });
   if (!won) return { ok: false, error: "You already took today's bonus." };
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, points: cur.points + gameplay.dailyBonusPoints, needs: applyEffects(cur.needs, gameplay.claimEffects), updatedAt: now } : cur));
+  await notify(user.staffId, { icon: "🎁", text: `Daily bonus taken: +${gameplay.dailyBonusPoints} Merit points. Well done on finishing the day’s plan`, tone: "good" }, now);
   return { ok: true, state: await getGameState(user, now), message: `Daily bonus: +${gameplay.dailyBonusPoints} Merit points.` };
 }

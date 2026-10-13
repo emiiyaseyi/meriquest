@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { getStore } from "../store";
 import { audit } from "../audit";
+import { notify } from "../notices/service";
 import { getConfig } from "../config/registry";
 import { rateLimit } from "../auth/ratelimit";
 import type { UserDTO } from "../types";
@@ -9,6 +10,7 @@ import { getOrCreatePlayer } from "../world/service";
 import { getScene } from "@/lib/world/scenes";
 import {
   CONCERN_STATUSES,
+  STATUS_LABEL,
   HARD_MAX_FILES,
   HARD_MAX_FILE_BYTES,
   MAX_ABOUT,
@@ -166,15 +168,20 @@ export async function updateConcern(actor: Pick<UserDTO, "staffId" | "role" | "n
   const text = cleanText(note, MAX_NOTE);
   let found = false;
   let changed = false;
+  let reporter = "";
+  let number = "";
   await getStore().update<ConcernRecord>("concerns", id, (cur) => {
     if (!cur) return cur;
     found = true;
     changed = cur.status !== newStatus;
+    reporter = cur.reporterId;
+    number = cur.number;
     const notes = text ? [...cur.notes, { at: now, by: actor.staffId, text }] : cur.notes;
     return { ...cur, status: newStatus, notes, updatedAt: now };
   });
   if (!found) return { ok: false, error: "That concern does not exist." };
   await audit(actor.staffId, "concern.updated", id, { status: newStatus, statusChanged: changed, noted: text.length > 0 }, now);
+  if (changed) await notify(reporter, { icon: "🛡️", text: `Your report ${number} is now ${STATUS_LABEL[newStatus].toLowerCase()}.`, tone: "info" }, now);
   return { ok: true };
 }
 
