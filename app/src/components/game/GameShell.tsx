@@ -10,7 +10,9 @@ import { logoutAction } from "@/app/actions/auth";
 import { completeTourAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
 import { moodLabel, type Needs } from "@/lib/world/player";
-import type { Hotspot, Portal, Skin } from "@/lib/world/types";
+import { nextQuarter, type Quarter } from "@/lib/iso/rotate";
+import { countdown } from "@/lib/format";
+import type { Hotspot, Npc, Portal, Skin } from "@/lib/world/types";
 
 export interface PhoneApp {
   id: string;
@@ -54,8 +56,8 @@ function useLagosClock(timezone: string): string {
 }
 
 /** Heartbeat to the server every 30 seconds while the tab is visible. The server decides if play continues. */
-function usePlayBeat(): BeatResult | null {
-  const [beat, setBeat] = useState<BeatResult | null>(null);
+function usePlayBeat(): { beat: BeatResult; at: number } | null {
+  const [beat, setBeat] = useState<{ beat: BeatResult; at: number } | null>(null);
   useEffect(() => {
     let alive = true;
     let expiry: ReturnType<typeof setTimeout> | null = null;
@@ -64,7 +66,7 @@ function usePlayBeat(): BeatResult | null {
       try {
         const r = await playBeatAction("world");
         if (!alive) return;
-        setBeat(r);
+        setBeat({ beat: r, at: Date.now() });
         // Ask again exactly when this session's time runs out, so the break screen appears promptly
         if (expiry) clearTimeout(expiry);
         if (r.allowed && r.remainingSeconds !== null) expiry = setTimeout(() => void send(), Math.max(1000, r.remainingSeconds * 1000 + 800));
@@ -81,6 +83,19 @@ function usePlayBeat(): BeatResult | null {
     };
   }, []);
   return beat;
+}
+
+/** Seconds left in this play session, counting down every second between server answers. */
+function useSecondsLeft(b: { beat: BeatResult; at: number } | null): number | null {
+  const [now, setNow] = useState(0);
+  const remaining = b?.beat.allowed ? b.beat.remainingSeconds : null;
+  useEffect(() => {
+    if (remaining === null) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [remaining]);
+  if (!b || remaining === null) return null;
+  return Math.max(0, remaining - Math.max(0, now - b.at) / 1000);
 }
 
 function Bar({ label, icon, value }: { label: string; icon: string; value: number }) {
@@ -113,7 +128,11 @@ export function GameShell(props: GameShellProps) {
   const [clean, setClean] = useState(false);
   const [touring, setTouring] = useState(props.showTour);
   const clock = useLagosClock(props.timezone);
-  const beat = usePlayBeat();
+  const beatState = usePlayBeat();
+  const beat = beatState?.beat ?? null;
+  const secondsLeft = useSecondsLeft(beatState);
+  const [rotation, setRotation] = useState<Quarter>(0);
+  const [person, setPerson] = useState<Npc | null>(null);
 
   const flash = useCallback((m: string) => {
     setToast(m);
@@ -143,6 +162,24 @@ export function GameShell(props: GameShellProps) {
 
   const onPortal = useCallback((p: Portal) => void goTo(() => travelPortalAction(p.id)), [goTo]);
   const onHotspot = useCallback((h: Hotspot) => setSpot(h), []);
+  const onNpc = useCallback((n: Npc) => setPerson(n), []);
+  const onRotate = useCallback((by: 1 | -1) => setRotation((r) => nextQuarter(r, by)), []);
+  const closeAll = useCallback(() => {
+    setOverlay(null);
+    setSpot(null);
+    setPerson(null);
+  }, []);
+  const anyOpen = overlay !== null || spot !== null || person !== null;
+
+  // Escape closes whatever is open
+  useEffect(() => {
+    if (!anyOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeAll();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [anyOpen, closeAll]);
 
   const closed = beat !== null && !beat.allowed;
   const mood = moodLabel(needs);
@@ -157,7 +194,9 @@ export function GameShell(props: GameShellProps) {
 
   return (
     <div className="game">
-      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} paused={busy || closed || touring || overlay !== null} onPortal={onPortal} onHotspot={onHotspot} onHover={setHover} />
+      <WorldCanvas scene={scene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} />
+
+      {anyOpen && !touring ? <div className="scrim" onClick={closeAll} aria-hidden="true" /> : null}
 
       {closed ? (
         <div className="overlay-screen" role="alertdialog" aria-labelledby="wf-title">
@@ -174,7 +213,7 @@ export function GameShell(props: GameShellProps) {
           <header className="hud-top" aria-label="Status">
             <span className="chip">🕒 {clock || "…"}</span>
             <span className="chip chip-mood">😊 {mood}</span>
-            {adminPreview ? <span className="chip chip-preview" title="Work First is not applied to admins">Admin preview</span> : beat?.remainingSeconds != null ? <span className="chip">⏳ {Math.max(1, Math.ceil(beat.remainingSeconds / 60))} min left</span> : null}
+            {adminPreview ? <span className="chip chip-preview" title="Work First is not applied to admins">Admin preview</span> : beat?.remainingSeconds != null ? <span className="chip chip-timer">⏳ {countdown(secondsLeft ?? beat.remainingSeconds)} left</span> : null}
             <span className="chip chip-points" title={terms.points}>✨ {points.toLocaleString("en-GB")} {terms.points.toLowerCase().includes("point") ? "pts" : ""}</span>
           </header>
 
@@ -199,6 +238,12 @@ export function GameShell(props: GameShellProps) {
           <aside className="hud-right">
             <button type="button" className="round-btn" onClick={() => setOverlay(overlay === "menu" ? null : "menu")} title="Menu" aria-label="Menu">☰</button>
             <button type="button" className="round-btn" onClick={toggleMode} title={mode === "iso" ? "Switch to the lighter 2D view" : "Switch to the full isometric view"} aria-label="Switch view">{mode === "iso" ? "2D" : "3D"}</button>
+            {mode === "iso" ? (
+              <div className="turn-pair" role="group" aria-label="Turn the view">
+                <button type="button" className="round-btn" onClick={() => onRotate(-1)} title="Turn the view left (Q)" aria-label="Turn the view left">↶</button>
+                <button type="button" className="round-btn" onClick={() => onRotate(1)} title="Turn the view right (E)" aria-label="Turn the view right">↷</button>
+              </div>
+            ) : null}
             <button type="button" className="round-btn" onClick={() => setClean(true)} title="Hide the screen furniture" aria-label="Clean screen">🖼️</button>
           </aside>
 
@@ -265,7 +310,7 @@ export function GameShell(props: GameShellProps) {
       ) : null}
 
       {overlay === "phone" ? (
-        <div className="phone-wrap" role="dialog" aria-label={terms.workPhone}>
+        <div className="phone-wrap" role="dialog" aria-label={terms.workPhone} onClick={(e) => { if (e.target === e.currentTarget) closeAll(); }}>
           <div className="phone">
             <div className="phone-top"><span>{clock}</span><button type="button" className="round-btn sm" onClick={() => setOverlay(null)} aria-label="Close phone">✕</button></div>
             <div className="app-grid">
@@ -305,6 +350,20 @@ export function GameShell(props: GameShellProps) {
               <div className="activity locked"><strong>Ask a question</strong><span className="muted">Coming soon</span></div>
             )}
           </div>
+        </div>
+      ) : null}
+
+      {person ? (
+        <div className="sheet sheet-small" role="dialog" aria-label={`${person.name}'s profile`}>
+          <div className="sheet-head">
+            <div>
+              <p className="eyebrow">{scene.name}</p>
+              <h2>{person.name}</h2>
+              <p className="muted">{person.role}</p>
+            </div>
+            <button type="button" className="round-btn sm" onClick={() => setPerson(null)} aria-label="Close profile">✕</button>
+          </div>
+          <p className="muted small">Full profiles arrive in a later update.</p>
         </div>
       ) : null}
 

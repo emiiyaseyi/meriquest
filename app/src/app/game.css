@@ -42,7 +42,7 @@
 
 .hover-tip { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); background: var(--brand); color: #fff; padding: 6px 14px; border-radius: 999px; font-weight: 600; font-size: .85rem; box-shadow: 0 4px 14px rgba(0, 0, 0, .2); pointer-events: none; }
 
-.sheet { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(640px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow: auto; background: #fff; border-radius: 22px; padding: 18px; box-shadow: 0 20px 50px rgba(0, 0, 0, .32); display: flex; flex-direction: column; gap: 14px; }
+.sheet { z-index: 4; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(640px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow: auto; background: #fff; border-radius: 22px; padding: 18px; box-shadow: 0 20px 50px rgba(0, 0, 0, .32); display: flex; flex-direction: column; gap: 14px; }
 .sheet-low { top: auto; bottom: 92px; transform: translateX(-50%); }
 .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .sheet-head h2, .sheet-head p { margin: 0; }
@@ -57,7 +57,7 @@
 .activity { flex: 1 1 180px; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; background: var(--bg); }
 .activity.locked { opacity: .75; }
 
-.phone-wrap { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 19, .35); }
+.phone-wrap { z-index: 4; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 19, .35); }
 .phone { width: min(330px, calc(100% - 24px)); max-height: calc(100% - 40px); background: #fff; border: 9px solid #15171a; border-radius: 40px; padding: 14px 14px 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, .4); display: flex; flex-direction: column; gap: 14px; overflow: auto; }
 .phone-top { display: flex; justify-content: space-between; align-items: center; font-weight: 700; padding: 0 6px; }
 .app-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 6px; }
@@ -120,3 +120,7 @@
 .menu-item:hover { background: var(--brand-soft); }
 
 .sheet-small { width: min(380px, calc(100% - 24px)); }
+
+.scrim { position: absolute; inset: 0; z-index: 3; background: rgba(15, 26, 19, .18); }
+.turn-pair { display: flex; flex-direction: column; gap: 10px; }
+.chip-timer { font-variant-numeric: tabular-nums; min-width: 8.5ch; justify-content: center; }

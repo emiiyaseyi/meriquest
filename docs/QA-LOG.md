@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M3a.3: Full 3D by default, turning the view, clickable world (13 Oct 2026)
+Scope: isometric is the default view (2D only when chosen); camera turns in quarter-turns (buttons, Q/E, sideways drag) without moving the player; people, doors and objects such as the front desk are clickable; people open a small card; the play timer counts down in minutes and seconds; every pop-up closes on an outside click or Escape.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 328 passing, including turning (every room, every quarter-turn: walkable tiles, doors, hotspots, click mapping, directions) and the countdown format |
+| 3 | Authorisation | **Pass** | No server change. Walking and doors still re-checked on the server; turning the camera is drawing only |
+| 4 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+| 5 | Secrets | **Pass** | None staged |
+
+Known limits: windows, lifts and the logo wall are drawn only on the two back walls, so they disappear when the view turns to put them at the front. The person card and menu layout are provisional until the owner supplies reference screenshots.
+
+---
+
 ## M3a.2: The welcome flow matches the reference game (13 Oct 2026)
 Scope: after sign-in the home screen is the game itself (as in the reference); the old dashboard moves to `/dashboard`; `/play` forwards to `/`; a skippable five-step welcome tour (Starting Path card, walking, status bars, menu, Work comes first); a menu (dashboard, replay tour, admin, change password, sign out); the tour is remembered per person.
 
