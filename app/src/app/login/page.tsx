@@ -13,15 +13,19 @@ export default async function LoginPage() {
   const auth = await getConfig("auth");
   return (
     <main className="auth-shell">
-      <Logo variant="light" width={260} />
+      <Logo variant="light" width={280} />
       <div className="auth-card stack">
         <div>
           <h1>Sign in</h1>
-          <p className="muted" style={{ margin: 0 }}>Enter your staff ID or work email to open MeriQuest.</p>
+          <p className="muted" style={{ margin: 0 }}>Enter your credentials to access the system.</p>
         </div>
         <LoginForm example={auth.staffIdExample} />
       </div>
-      <p className="auth-foot">Access is restricted to authorised personnel only. Contact Learning &amp; Development if you need an account or a password reset.</p>
+      <p className="auth-foot">
+        Access is restricted to authorised personnel only.
+        <br />
+        Contact your administrator if you need an account.
+      </p>
     </main>
   );
 }
