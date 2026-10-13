@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## A4: Academy course form editor and admin pages on phones (13 Oct 2026)
+Scope: the Academy course editor now uses the same form editor as the settings (lessons, notes, questions at three levels, scenarios, case studies, lesson video), with JSON under Advanced; the admin header no longer pushes pages sideways on a phone.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 491 tests (the course rules are the same ones the form is drawn from) |
+| 3 | Authorisation | **Pass** | Course pages and save action still check the Academy area; the server validates every value on save |
+| 4 | Real browser | **Pass** | Throwaway admin: a built-in course opens as a form (34 fields, lessons collapsible) and saves; four admin pages at 390 wide have no sideways scroll; no console errors |
+
+---
+
 ## A3: Manager screen and admin roles (13 Oct 2026)
 Scope: third piece of the admin backend. (1) My team (/manager) for line managers and admins: their own unit's progress, extra learning time (existing weekly limit), and Academy courses assigned with a due date and note; the person is told in their updates and sees "Assigned to you" on their Academy home; assignments can be removed. (2) Roles: a new learning and development role (reports, Academy, announcements, placements) and the reviewer role limited to conduct concerns; admins keep everything. Every admin page and every admin action now checks its own area (the layout only builds the menu).
 

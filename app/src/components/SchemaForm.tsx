@@ -248,13 +248,13 @@ function List({ s, items, set, label }: { s: JS; items: Json[]; set: (n: Json) =
   );
 }
 
-export function SchemaForm({ configKey, schema, initial, initialJson, saveAction, resetAction }: { configKey: string; schema: JS; initial: Json; initialJson: string; saveAction: Action; resetAction: Action }) {
+export function SchemaForm({ configKey, schema, initial, initialJson, saveAction, resetAction }: { configKey: string; schema: JS; initial: Json; initialJson: string; saveAction: Action; resetAction?: Action }) {
   const [value, setValue] = useState<Json>(initial);
   const [mode, setMode] = useState<"form" | "json">("form");
   const [text, setText] = useState(initialJson);
   const [jsonErr, setJsonErr] = useState<string | null>(null);
   const [saveState, save, saving] = useActionState(saveAction, {});
-  const [resetState, reset, resetting] = useActionState(resetAction, {});
+  const [resetState, reset, resetting] = useActionState<ActionState, FormData>(resetAction ?? (async () => ({})), {});
 
   const toJson = () => {
     setText(JSON.stringify(value, null, 2));
@@ -296,6 +296,7 @@ export function SchemaForm({ configKey, schema, initial, initialJson, saveAction
         {saveState.error ? <pre role="alert" className="msg msg-error pre">{saveState.error}</pre> : null}
         {saveState.ok ? <p role="status" className="msg msg-ok">{saveState.ok}</p> : null}
       </form>
+      {resetAction ? (
       <form
         action={reset}
         onSubmit={(e) => {
@@ -307,6 +308,7 @@ export function SchemaForm({ configKey, schema, initial, initialJson, saveAction
         {resetState.error ? <pre role="alert" className="msg msg-error pre">{resetState.error}</pre> : null}
         {resetState.ok ? <p role="status" className="msg msg-ok">{resetState.ok}</p> : null}
       </form>
+      ) : null}
     </div>
   );
 }

@@ -78,7 +78,9 @@ h2 { font-size: 1.15rem; font-weight: 650; }
 .auth-foot { max-width: 440px; text-align: center; color: rgba(255, 255, 255, .78); font-size: .85rem; margin: 0; }
 
 /* Top bar: forest green with a lime active tab */
-.brandbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 20px; background: var(--brand); color: #fff; }
+.brandbar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 10px 20px; background: var(--brand); color: #fff; flex-wrap: wrap; }
+.brandbar > * { min-width: 0; }
+@media (max-width: 640px) { .brandbar { padding: 10px 16px; } .brandbar .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; } }
 .brandbar .nav { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .brandbar .nav a { color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-weight: 500; }
 .brandbar .nav a:hover, .brandbar .nav a:focus-visible { background: rgba(255, 255, 255, .14); }

@@ -79,6 +79,6 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 ## Admin backend (order: reports, friendly editors, manager and L&D roles)
 - [x] Reports and progress dashboard with CSV export
 - [x] Friendly form editors for every setting (JSON kept under Advanced)
-- [ ] Form editor for Academy courses (still JSON)
+- [x] Form editor for Academy courses
 - [x] Manager screen (assign learning time and courses to their unit) and L&D and reviewer roles with per-area access
-- [ ] Admin pages on phones
+- [x] Admin pages on phones
