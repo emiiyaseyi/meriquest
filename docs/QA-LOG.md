@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## E2: More Academy scenarios and case studies (14 Oct 2026)
+Scope: 14 new decisions and 7 new written cases across seven built-in courses (money laundering, confidentiality, law and regulation, wealth management, stockbrokers, customer experience, capital). Content only; validated by the existing course schema. A database that was seeded earlier picks the new content up after the Academy seed marker is cleared (or when the admin adds them in the course editor).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 560 of 560 |
+| 3 | Validation, authz, sessions, headers, secrets, audit | **Pass** | unchanged; content only |
+| 4 | Security review | **Pass** | no new attack surface |
+
+---
+
 ## E1: Much more content and new mission events (14 Oct 2026)
 Scope: engagement review (docs/ENGAGEMENT.md) and content. Shift situations 21 to 59, room activities (new Wellness nook, Help corner, Information desk, Workspace room), daily clues 8 to 33, leadership cases 7 to 15, client-simulation cases 12 to 24, missions 11 to 32. New mission events (shift, lead, sim, clue, decorate, chat) are counted by the server after the action succeeds; a failure to count never blocks the action. No new inputs, routes or permissions; all content is validated by the existing schemas.
 

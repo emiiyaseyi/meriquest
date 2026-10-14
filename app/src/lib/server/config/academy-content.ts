@@ -2,6 +2,7 @@ import { COMPLIANCE_COURSES } from "./academy/compliance";
 import { CULTURE_COURSES } from "./academy/culture";
 import { CX_COURSES } from "./academy/cx";
 import { EXTRA } from "./academy/extra";
+import { EXTRA2 } from "./academy/extra2";
 import { MORE_COURSES } from "./academy/more";
 import { PRODUCT_COURSES_A } from "./academy/products-a";
 import { PRODUCT_COURSES_B } from "./academy/products-b";
@@ -24,6 +25,6 @@ export const DEFAULT_ACADEMY = {
 };
 
 export const BUILTIN_COURSES = [...CULTURE_COURSES, ...COMPLIANCE_COURSES, ...PRODUCT_COURSES_A, ...PRODUCT_COURSES_B, ...CX_COURSES, ...MORE_COURSES].map((c) => {
-  const x = EXTRA[c.id];
-  return x ? { ...c, scenarios: [...c.scenarios, ...x.scenarios], cases: [...c.cases, ...x.cases] } : c;
+  const parts = [EXTRA[c.id], EXTRA2[c.id]].filter((x) => x !== undefined);
+  return parts.length ? { ...c, scenarios: [...c.scenarios, ...parts.flatMap((x) => x.scenarios)], cases: [...c.cases, ...parts.flatMap((x) => x.cases)] } : c;
 });
