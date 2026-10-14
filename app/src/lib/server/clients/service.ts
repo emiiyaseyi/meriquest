@@ -10,7 +10,7 @@ import { audit } from "../audit";
 import { dayKey } from "@/lib/game";
 import { hashString } from "@/lib/iso/geometry";
 import { withStats } from "@/lib/stats";
-import { scoreRun, type ClientCase, type Picks, type Rating } from "@/lib/clients";
+import { fill, scoreRun, type ClientCase, type Outcome, type Picks, type Rating } from "@/lib/clients";
 
 /**
  * The Clients app (Client Desk). Each day a person is offered a few fictional clients that match their unit and
@@ -51,6 +51,7 @@ export interface ClientsView {
 export interface ClientFinish {
   csat: number;
   nps: "promoter" | "passive" | "detractor";
+  outcome: Outcome;
   rating: Rating;
   breaches: string[];
   notes: string[];
@@ -71,6 +72,9 @@ async function docFor(staffId: string, day: string): Promise<RunDoc> {
   return cur && cur.day === day ? cur : freshDoc(staffId, day);
 }
 
+/** How many clients a person is offered a day: the number set for their unit, or the general number. */
+export const perDayFor = (settings: { perDay: number; perDayByUnit: Record<string, number> }, unit: string): number => settings.perDayByUnit[unit] ?? settings.perDay;
+
 /** Today's clients for a person: their own unit's first, then the others they are experienced enough for, the same each day. */
 function queueFor(clients: ClientCase[], user: User, perDay: number, day: string): ClientCase[] {
   const eligible = clients.filter((c) => (c.units.includes("*") || c.units.includes(user.unit)) && user.tenureYears >= c.minTenure);
@@ -82,7 +86,7 @@ async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> 
   const [cfg, player] = await Promise.all([getConfig("clients"), getOrCreatePlayer(user, now)]);
   const day = doc.day;
   const byArche = new Map(cfg.archetypes.map((a) => [a.id, a]));
-  const queue = queueFor(cfg.clients, user, cfg.settings.perDay, day).map((c) => ({
+  const queue = queueFor(cfg.clients, user, perDayFor(cfg.settings, user.unit), day).map((c) => ({
     id: c.id,
     name: c.name,
     type: c.type,
@@ -94,15 +98,15 @@ async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> 
   let current: StepView | null = null;
   if (doc.current) {
     const c = cfg.clients.find((x) => x.id === doc.current?.clientId);
-    const st = cfg.steps[doc.current.step];
+    const st = c ? cfg.steps.find((s) => s.id === c.flow[doc.current?.step ?? 0]) : undefined;
     if (c && st) {
       const a = byArche.get(c.archetype);
       const kinds = (await getConfig("market")).kinds;
       current = {
         client: { id: c.id, name: c.name, story: c.story, archetype: a?.label ?? c.archetype, icon: a?.icon ?? "🙂", trait: a?.trait ?? "" },
         step: doc.current.step + 1,
-        total: cfg.steps.length,
-        prompt: st.prompt,
+        total: c.flow.length,
+        prompt: fill(st.prompt, c),
         options: st.recommend ? kinds.map((k) => ({ id: k.id, text: `${k.icon} ${k.label}` })) : st.options.map((o) => ({ id: o.id, text: o.text })),
       };
     }
@@ -120,7 +124,7 @@ export async function startClient(user: User, clientId: unknown, now: number = D
   if (!decision.allowed) return { ok: false, error: decision.message };
   if (typeof clientId !== "string" || clientId.length > 41) return { ok: false, error: "That client is not available." };
   const [cfg, day] = await Promise.all([getConfig("clients"), today(now)]);
-  const todays = queueFor(cfg.clients, user, cfg.settings.perDay, day);
+  const todays = queueFor(cfg.clients, user, perDayFor(cfg.settings, user.unit), day);
   if (!todays.some((c) => c.id === clientId)) return { ok: false, error: "That client is not in today's list." };
   let refusal: string | null = null;
   const saved = await getStore().update<RunDoc>("client_runs", user.staffId, (cur) => {
@@ -148,7 +152,7 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
   const doc = await docFor(user.staffId, day);
   const cur = doc.current;
   const client = cur ? cfg.clients.find((c) => c.id === cur.clientId) : undefined;
-  const step = cur ? cfg.steps[cur.step] : undefined;
+  const step = cur && client ? cfg.steps.find((s) => s.id === client.flow[cur.step]) : undefined;
   if (!cur || !client || !step) return { ok: false, error: "You are not with a client right now." };
   let tags: string[] = [];
   let kind: string | null = cur.picks.kind;
@@ -161,7 +165,7 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
     tags = opt.tags;
   }
   const picks: Picks = { tags: [...cur.picks.tags, ...tags], kind };
-  const last = cur.step + 1 >= cfg.steps.length;
+  const last = cur.step + 1 >= client.flow.length;
 
   let stale = false;
   await getStore().update<RunDoc>("client_runs", user.staffId, (c) => {
@@ -176,8 +180,9 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
   if (!last) return { ok: true, view: await getClients(user, now) };
 
   const noise = (hashString(`${user.staffId}:${client.id}:${day}`) / 4294967295) * 2 - 1;
-  const res = scoreRun(cfg.rules, client, cfg.archetypes.find((a) => a.id === client.archetype), picks, noise);
-  const points = res.rating === "great" ? cfg.settings.pointsGreat : res.rating === "good" ? cfg.settings.pointsGood : cfg.settings.pointsLearning;
+  const hasRecommend = client.flow.some((f) => cfg.steps.find((s) => s.id === f)?.recommend);
+  const res = scoreRun(cfg.rules, client, cfg.archetypes.find((a) => a.id === client.archetype), picks, noise, hasRecommend);
+  const points = (res.rating === "great" ? cfg.settings.pointsGreat : res.rating === "good" ? cfg.settings.pointsGood : cfg.settings.pointsLearning) + (res.outcome === "invests" ? cfg.settings.pointsInvest : 0);
   await getStore().update<RunDoc>("client_runs", user.staffId, (c) => (c ? { ...c, done: { ...c.done, [client.id]: { csat: res.csat, rating: res.rating, breaches: res.breaches.length } } } : c));
   await getOrCreatePlayer(user, now);
   await getStore().update<PlayerRecord>("players", user.staffId, (p) => {
@@ -185,8 +190,8 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
     const s = withStats(p.stats);
     return { ...p, points: p.points + points, stats: { ...s, clientsServed: s.clientsServed + 1, csatTotal: s.csatTotal + res.csat, clientBreaches: s.clientBreaches + (res.breaches.length > 0 ? 1 : 0) }, updatedAt: now };
   });
-  await notify(user.staffId, { icon: res.breaches.length > 0 ? "⚠️" : "🤝", text: `${client.name}: rating ${res.csat} of 5${res.breaches.length > 0 ? ", with a compliance breach recorded" : ""}. +${points} Merit points.`, tone: res.breaches.length > 0 ? "bad" : "good" }, now);
+  await notify(user.staffId, { icon: res.breaches.length > 0 ? "⚠️" : "🤝", text: `${client.name}: rating ${res.csat} of 5${res.breaches.length > 0 ? ", with a compliance breach recorded" : ""}.${points > 0 ? ` +${points} Merit points.` : ""}`, tone: res.breaches.length > 0 ? "bad" : "good" }, now);
   await audit(user.staffId, "clients.served", client.id, { csat: res.csat, breaches: res.breaches.length }, now);
   await recordEvent(user.staffId, "client", now);
-  return { ok: true, view: await getClients(user, now), finished: { csat: res.csat, nps: res.nps, rating: res.rating, breaches: res.breaches, notes: res.notes, points } };
+  return { ok: true, view: await getClients(user, now), finished: { csat: res.csat, nps: res.nps, outcome: res.outcome, rating: res.rating, breaches: res.breaches, notes: res.notes, points } };
 }

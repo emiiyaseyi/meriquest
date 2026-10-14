@@ -6,6 +6,13 @@ import { getMine } from "@/lib/client/api";
 import type { ClientFinish, ClientsView } from "@/lib/server/clients/service";
 
 const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
+const OUTCOME: Record<string, string> = {
+  invests: "decided to invest with us",
+  thinking: "wants time to think about it",
+  declines: "decided not to go ahead",
+  stays: "is staying with us",
+  leaves: "is thinking of leaving us",
+};
 const NOTE = "Fictional clients, for learning only. Not real client data and never advice.";
 
 /** Clients: a few fictional clients each day. Go through four steps with each; the server scores your decisions. */
@@ -67,7 +74,8 @@ export function ClientsApp() {
       {done ? (
         <div className="role-card" role="status">
           <strong>{done.name}: {stars(done.csat)}</strong>
-          <span>{done.nps === "promoter" ? "Would recommend us" : done.nps === "passive" ? "Satisfied" : "Unlikely to recommend us"} · +{done.points} Merit points</span>
+          <span>{done.name} {OUTCOME[done.outcome] ?? ""}.</span>
+          <span>{done.nps === "promoter" ? "Would recommend us" : done.nps === "passive" ? "Satisfied" : "Unlikely to recommend us"}{done.points > 0 ? ` · +${done.points} Merit points` : ""}</span>
           {done.breaches.map((b) => <small key={b} className="chg down">⚠️ {b}</small>)}
           {done.notes.map((n) => <small key={n}>• {n}</small>)}
         </div>

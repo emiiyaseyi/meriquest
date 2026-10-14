@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C4: Client Desk reworked: more clients and different conversations (14 Oct 2026)
+Scope: owner feedback on C3. (1) Clients a day are set **by unit** in Settings > Client Desk: customer experience 10, wealth advisory 15, investment advisory 15, any other unit 10. The library grew to 42 clients so every unit can fill a day. (2) Each client has **their own conversation flow**, so no two kinds feel the same: a short chat (3 steps), the standard 4 steps, **onboarding** (documents, risk profile, account opening with the checker's approval), a **presentation** (prepare, then a hard question), **price and trust objections**, **comparison with a competitor**, **several rounds of convincing**, a complaint-only flow for an upset client, and clients who **ask for something improper** (backdating a form, splitting a cash deposit, a share tip before an announcement, a gift for priority). Each client has a **resistance**: some take longer to convince, and "just looking" clients never invest however well they are served, but the rating still reflects service quality. The result now shows what the client decided (invests, wants time, declines, stays, leaves). Breaches are data-driven (promising returns, doing the improper thing, off-schedule discount, opening before documents, rigged risk profile, bypassing the checker, bluffing). Merit points per client were lowered (3 / 2 / 0, plus 2 when the client invests) because a person now serves 10 to 15 a day; all are editable. Server still scores everything; one atomic update per step. 6 new tests (592 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 592 of 592 |
+| 3 | Input validation, authz, economy tampering | **Pass** | unchanged rules; step and option ids checked against the client's own flow; the schema now also checks every flow step exists and that `{ask}` steps have text |
+| 4 | Secrets, audit, security review | **Pass** | no new inputs or routes |
+
+---
+
 ## C3: Clients app, the Client Desk (14 Oct 2026)
 Scope: third "Coming soon" build. Each day a person is offered a few fictional clients that match their unit and experience (companies need more years at Meristem). They go through four steps (meet, understand, recommend, close). The **server** scores the run from the choices: tags on each choice, the client's behaviour type (many questions, invests large, price-sensitive, anxious, impatient, first-timer, upset, committee-driven), whether the product suits the client, and a small admin-set amount of chance. It records a client rating (1 to 5), an NPS bucket and any compliance breach (unsuitable product, promising returns, skipping needed document checks), pays Merit points once, updates the person's stats and sends a notice. Settings > Client Desk edits clients, types, steps and scoring. Routes: `/api/me/clients` (own data), actions `startClientAction` and `answerClientAction` (re-check the user). Mission "Serve a client". 8 new tests (586 total).
 

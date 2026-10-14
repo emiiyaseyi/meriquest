@@ -940,11 +940,25 @@ const tagWeights = z.record(slug, z.number().min(-40).max(40));
 
 export const clientsSchema = z
   .object({
-    settings: z.object({ perDay: z.number().int().min(0).max(20), pointsGreat: z.number().int().min(0).max(200), pointsGood: z.number().int().min(0).max(200), pointsLearning: z.number().int().min(0).max(200) }).strict(),
+    settings: z
+      .object({
+        /** Clients offered a day to a unit that is not listed in perDayByUnit. */
+        perDay: z.number().int().min(0).max(60),
+        /** Clients offered a day, by unit id (for example cx: 10, wealth: 15). */
+        perDayByUnit: z.record(z.string().min(1).max(30), z.number().int().min(0).max(60)),
+        pointsGreat: z.number().int().min(0).max(200),
+        pointsGood: z.number().int().min(0).max(200),
+        pointsLearning: z.number().int().min(0).max(200),
+        /** Bonus when the client goes ahead and invests. */
+        pointsInvest: z.number().int().min(0).max(200),
+      })
+      .strict(),
     rules: z
       .object({
         baseScore: z.number().min(0).max(100),
         tagWeights,
+        /** Tags that count as a compliance breach, with the message shown to the person. */
+        breachTags: z.record(slug, z.string().min(1).max(160)),
         suitableBonus: z.number().min(0).max(60),
         unsuitablePenalty: z.number().min(0).max(60),
         randomness: z.number().min(0).max(30),
@@ -968,9 +982,9 @@ export const clientsSchema = z
           .strict(),
       )
       .min(2)
-      .max(8)
+      .max(40)
       .refine((s) => s.every((x) => x.recommend || x.options.length >= 2), "A step needs at least two options (except the recommend step)")
-      .refine((s) => s.filter((x) => x.recommend).length === 1, "Exactly one step must be the recommend step"),
+      .refine((s) => s.filter((x) => x.recommend).length <= 1, "Only one step can be the recommend step"),
     clients: z
       .array(
         z
@@ -981,8 +995,14 @@ export const clientsSchema = z
             type: z.enum(["individual", "corporate"]),
             archetype: slug,
             story: z.string().min(1).max(400),
+            /** The steps of this client's conversation, in order (ids from the steps list). */
+            flow: z.array(slug).min(2).max(12),
+            /** What an improper client asks for; used where a step says {ask}. */
+            ask: z.string().max(200).default(""),
             suitable: z.array(slug).min(1).max(10),
             kycRequired: z.boolean(),
+            /** How hard they are to convince: extra points above the ok score needed before they invest. 100 or more: they will not invest. */
+            resistance: z.number().min(0).max(100).default(0),
             minTenure: z.number().min(0).max(40),
           })
           .strict(),
@@ -992,7 +1012,11 @@ export const clientsSchema = z
   })
   .strict()
   .refine((c) => new Set(c.clients.map((x) => x.id)).size === c.clients.length, "Each client needs its own id")
-  .refine((c) => c.clients.every((x) => c.archetypes.some((a) => a.id === x.archetype)), "A client has a type that is not in the list");
+  .refine((c) => c.clients.every((x) => c.archetypes.some((a) => a.id === x.archetype)), "A client has a type that is not in the list")
+  .refine((c) => new Set(c.steps.map((s) => s.id)).size === c.steps.length, "Each step needs its own id")
+  .refine((c) => c.clients.every((x) => x.flow.every((f) => c.steps.some((s) => s.id === f))), "A client's flow uses a step that is not in the steps list")
+  .refine((c) => c.clients.every((x) => x.flow.filter((f) => c.steps.find((s) => s.id === f)?.recommend).length <= 1), "A flow can have the recommend step only once")
+  .refine((c) => c.clients.every((x) => !x.flow.some((f) => c.steps.find((s) => s.id === f)?.prompt.includes("{ask}")) || x.ask.length > 0), "A client whose flow uses a step with {ask} needs something in 'ask'");
 
 export const CONFIG = {
   terminology: {
