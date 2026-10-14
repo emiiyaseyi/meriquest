@@ -682,7 +682,16 @@ export function GameShell(props: GameShellProps) {
           sceneName={scene.name}
           onClaim={(id) => void runGame(() => claimMissionAction(id), { next: (g) => { const m = g.plan.missions.find((x) => x.id === id); if (!m || !m.done || m.claimed) return "That reward is not ready."; return { ...g, points: g.points + m.rewardPoints, needs: applyEffects(g.needs, g.plan.claimEffects), plan: { ...g.plan, missions: g.plan.missions.map((x) => (x.id === id ? { ...x, claimed: true } : x)) } }; }, message: "Reward claimed." })}
           onClaimBonus={() => void runGame(() => claimBonusAction(), { next: (g) => (g.plan.allDone && !g.plan.bonusClaimed ? { ...g, points: g.points + g.plan.bonusPoints, plan: { ...g.plan, bonusClaimed: true } } : "Finish all of today's missions first."), message: "Bonus taken." })}
-          onSwap={(id) => void runGame(() => swapMissionAction(id))}
+          onSwap={(id) => void runGame(() => swapMissionAction(id), {
+            next: (g) => {
+              const m = g.plan.missions.find((x) => x.id === id);
+              if (!m || !m.canSwap || !m.swapTo) return "That mission cannot be swapped.";
+              const left = Math.max(0, g.plan.swapsLeft - 1);
+              const to = m.swapTo;
+              return { ...g, plan: { ...g.plan, swapsLeft: left, missions: g.plan.missions.map((x) => (x.id === id ? { id: to.id, title: to.title, description: to.description, progress: 0, target: to.target, rewardPoints: to.rewardPoints, level: to.level, done: false, claimed: false, canSwap: false } : { ...x, canSwap: left > 0 && x.canSwap, swapTo: left > 0 ? x.swapTo : undefined })) } };
+            },
+            message: "Swapped for a new mission.",
+          })}
           people={scene.npcs}
           onPerson={onNpc}
           path={props.path}

@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## P5: Two-step sign-in, instant mission swaps, README and status notes (14 Oct 2026)
+Scope: priority items 15, 10 (part) and 12. (15) Two-step sign-in with an authenticator app (time-based codes, RFC 6238): set up on Account > Two-step sign-in with a key and a first code, ten single-use recovery codes shown once, a code can be used once only, wrong codes count towards the account lock and are rate limited, turning it off needs the password and a current code, an admin can reset it for someone who lost their phone, and a setting (Settings > Sign-in rules) can require it for anyone who opens the admin area. The secret is encrypted with a server key (TOTP_KEY, needed in production). (10) Mission swaps now show their result at once: the server sends the mission a swap would bring and picks the same one. (12) README rewritten; PRD, workplan and the Lagos Life review carry a status note.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 560 tests: RFC 6238 vectors, window and replay, sealed secret, recovery codes once, needs the code after the right password, a code alone is never enough, lock after repeated wrong codes, turn off and admin reset; swap preview equals the real swap |
+| 3 | Security review | **Pass** | Password is checked first; codes rate limited; no secret in logs; recovery codes only stored as hashes; production refuses to set up without a key; sessions are ended when it is turned off or reset |
+| 4 | Real browser | **Pass** | Throwaway user: set up with a real code, recovery codes shown, signing out and in again asks for the code; a bug where the recovery codes vanished after setup was found and fixed |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: set `TOTP_KEY` (32 random bytes, base64) before using two-step sign-in in production; there is no QR picture (the key can be typed or opened as a link); email-code two-step is not built.
+
+---
+
 ## P4: Travel between offices (14 Oct 2026)
 Scope: priority item 9. A Yaba office room (sample layout until photos are supplied) and rides between offices: on the map, the Yaba pill opens a card with the ways to travel (personal car, official pool car, ride-hailing, with their costs from Settings > Transport options) and a Go button. The ride shows like the reference: vehicle, route, time to go, anything on the road (a go-slow, rain or clear roads, chosen by the server), Skip ride and Turn back (both switchable under Settings > Travel). The cost is paid at the start and not refunded on turning back; no walking about while on a ride; a ride in progress is resumed after a refresh. Lagos offices only.
 

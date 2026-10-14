@@ -42,6 +42,8 @@ export interface MissionView {
   claimed: boolean;
   /** True when it can still be swapped for another. */
   canSwap: boolean;
+  /** What a swap would bring, so the screen can show it at once. The server picks the same one when you swap. */
+  swapTo?: { id: string; title: string; description: string; target: number; rewardPoints: number; level: "Easy" | "Medium" | "Hard" };
 }
 
 export interface StreakView {
@@ -122,7 +124,9 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
     const m = gameplay.missions.find((x) => x.id === id);
     if (!m) return [];
     const progress = Math.min(m.target, mission.progress[id] ?? 0);
-    return [{ id, title: m.title, description: m.description, progress, target: m.target, rewardPoints: m.rewardPoints, level: missionLevel(m.rewardPoints), done: progress >= m.target, claimed: mission.claimed[id] === true, canSwap: progress === 0 && mission.claimed[id] !== true && (mission.swaps ?? 0) < gameplay.swapsPerDay }];
+    const canSwap = progress === 0 && mission.claimed[id] !== true && (mission.swaps ?? 0) < gameplay.swapsPerDay;
+    const next = canSwap ? swapPick(mission.id, mission.swaps ?? 0, id, gameplay.missions.filter((x) => !mission.picks.includes(x.id))) : undefined;
+    return [{ id, title: m.title, description: m.description, progress, target: m.target, rewardPoints: m.rewardPoints, level: missionLevel(m.rewardPoints), done: progress >= m.target, claimed: mission.claimed[id] === true, canSwap, ...(next ? { swapTo: { id: next.id, title: next.title, description: next.description, target: next.target, rewardPoints: next.rewardPoints, level: missionLevel(next.rewardPoints) } } : {}) }];
   });
   const today = dayKey(now, work.timezone);
   const streak = player.streak && (player.streak.last === today || player.streak.last === dayKey(now - 86_400_000, work.timezone)) ? player.streak : undefined;
@@ -170,6 +174,12 @@ async function checkIn(staffId: string, now: number): Promise<void> {
   if (reward > 0) await notify(staffId, { icon: "🔥", text: `Day ${count} streak. +${reward} Merit points.`, tone: "good" }, now);
 }
 
+/** The mission a swap brings: the same for the same day, swap count and mission, so the screen can show it before the server answers. */
+function swapPick<T>(dayId: string, swaps: number, missionId: string, options: T[]): T | undefined {
+  if (options.length === 0) return undefined;
+  return options[Math.floor(seeded(hashString(`${dayId}|swap|${swaps}|${missionId}`))() * options.length) % options.length];
+}
+
 export async function getGameState(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<GameState> {
   await getOrCreatePlayer(user, now);
   await checkIn(user.staffId, now);
@@ -202,7 +212,7 @@ export async function swapMission(user: Pick<UserDTO, "staffId">, missionId: unk
       refusal = "There is no other mission to swap to.";
       return cur;
     }
-    const pick = options[Math.floor(seeded(hashString(`${cur.id}|swap|${cur.swaps ?? 0}|${missionId}`))() * options.length) % options.length];
+    const pick = swapPick(cur.id, cur.swaps ?? 0, missionId, options) as (typeof options)[number];
     return { ...cur, picks: cur.picks.map((id) => (id === missionId ? pick.id : id)), swaps: (cur.swaps ?? 0) + 1 };
   });
   if (refusal) return { ok: false, error: refusal };

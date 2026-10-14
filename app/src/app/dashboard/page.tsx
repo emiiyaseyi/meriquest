@@ -33,6 +33,7 @@ export default async function DashboardPage() {
           <NavLink href="/" exact>Back to the game</NavLink>
           {user.role === "admin" || user.role === "manager" || user.isLineManager ? <NavLink href="/manager">My team</NavLink> : null}
           {AREAS_BY_ROLE[user.role].length > 0 ? <NavLink href="/admin">Admin</NavLink> : null}
+          <NavLink href="/account/security">Two-step sign-in</NavLink>
           <NavLink href="/change-password">Change password</NavLink>
         </nav>
         <form action={logoutAction} className="row">

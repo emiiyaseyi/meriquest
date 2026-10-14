@@ -1,3 +1,4 @@
+import { getConfig } from "../config/registry";
 import { can, type Area } from "./permissions";
 import "server-only";
 import { cache } from "react";
@@ -63,6 +64,8 @@ export async function requireUser(opts?: { allowMustChange?: boolean }): Promise
 export async function requireArea(area: Area): Promise<UserDTO> {
   const user = await requireUser();
   if (!can(user.role, area)) redirect("/");
+  // When the setting asks for it, people who open the admin area must have two-step sign-in
+  if (!user.totpEnabled && (await getConfig("auth")).requireTwoStepForAdminAreas) redirect("/account/security");
   return user;
 }
 

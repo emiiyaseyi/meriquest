@@ -7,6 +7,7 @@ import { isLocked, listUsers } from "@/lib/server/auth/users";
 import {
   createStaffAction,
   resetPasswordAction,
+  resetTwoStepAction,
   setLineManagerAction,
   setRoleAction,
   setStatusAction,
@@ -59,10 +60,12 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                     {u.isLineManager ? <span className="badge">line manager</span> : null}{" "}
                     {u.status === "disabled" ? <span className="badge badge-warn">disabled</span> : null}{" "}
                     {locked ? <span className="badge badge-warn">locked</span> : null}{" "}
-                    {u.mustChangePassword ? <span className="badge badge-warn">on default password</span> : null}
+                    {u.mustChangePassword ? <span className="badge badge-warn">on default password</span> : null}{" "}
+                    {u.totp?.enabled ? <span className="badge">two-step on</span> : null}
                   </td>
                   <td>
                     <ActionForm action={resetPasswordAction} fields={{ staffId: u.staffId }} label="Reset password" confirmText={`Reset ${u.name}'s password to the default?`} />
+                    {u.totp?.enabled ? <ActionForm action={resetTwoStepAction} fields={{ staffId: u.staffId }} label="Reset two-step" confirmText={`Turn off two-step sign-in for ${u.name}? Do this only after checking who is asking.`} /> : null}
                     {locked ? <ActionForm action={unlockAction} fields={{ staffId: u.staffId }} label="Unlock" /> : null}
                     <ActionForm
                       action={setStatusAction}

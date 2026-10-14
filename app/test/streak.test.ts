@@ -60,6 +60,25 @@ describe("streak and mission swaps", () => {
   });
 });
 
+describe("swap preview", () => {
+  beforeEach(async () => {
+    await freshWorld();
+  });
+
+  it("shows exactly the mission the server then swaps to", async () => {
+    const s = await getGameState(me, NOW);
+    const target = s.plan.missions[1];
+    expect(target.swapTo).toBeDefined();
+    const r = await swapMission(me, target.id, NOW);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.state.plan.missions[1].id).toBe(target.swapTo?.id);
+      expect(r.state.plan.missions[1].title).toBe(target.swapTo?.title);
+      expect(r.state.plan.missions.every((m) => m.swapTo === undefined)).toBe(true); // no swaps left
+    }
+  });
+});
+
 describe("showing a result at once", () => {
   const base = { needs: { energy: 50, focus: 50, mood: 50, social: 50, hunger: 50, hydration: 50, growth: 50, recognition: 50 }, points: 10, cooldowns: {} as Record<string, number> };
 

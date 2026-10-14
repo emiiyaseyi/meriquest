@@ -58,6 +58,8 @@ export const authSchema = z
     lockMinutes: z.number().int().min(1).max(1440),
     sessionHours: z.number().int().min(1).max(24),
     idleMinutes: z.number().int().min(5).max(480),
+    /** When on, anyone who opens the admin area (admin, learning and development, reviewer) must have two-step sign-in set up. */
+    requireTwoStepForAdminAreas: z.boolean().default(false),
   })
   .strict();
 
@@ -906,6 +908,7 @@ export const CONFIG = {
       lockMinutes: 15,
       sessionHours: 8,
       idleMinutes: 60,
+      requireTwoStepForAdminAreas: false,
     },
   },
   workFirst: {

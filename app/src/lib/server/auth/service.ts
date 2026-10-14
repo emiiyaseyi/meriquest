@@ -7,6 +7,7 @@ import { checkPasswordPolicy, defaultPasswordMatches, dummyVerify, hashPassword,
 import { rateLimit } from "./ratelimit";
 import { createSession, destroyUserSessions, validateSession } from "./session";
 import { findUser, getUser, parseIdentifier } from "./users";
+import { openSecret, consumeRecoveryCode, verifyCode } from "./totp";
 
 /** Verify a password for a user, including the "still on the default password" case. */
 async function verifyUserPassword(user: UserRecord, pw: string): Promise<boolean> {
@@ -17,6 +18,7 @@ async function verifyUserPassword(user: UserRecord, pw: string): Promise<boolean
 export type AuthResult =
   | { ok: true; user: UserDTO; token: string; expiresAt: number }
   | { ok: false; reason: "invalid" }
+  | { ok: false; reason: "needs_code" }
   | { ok: false; reason: "throttled"; retryAfterSec: number };
 
 /**
@@ -24,7 +26,7 @@ export type AuthResult =
  * "invalid" result and burns the same CPU. Throttling is keyed on the input, not on the account.
  */
 export async function authenticate(
-  input: { identifier: unknown; password: unknown },
+  input: { identifier: unknown; password: unknown; code?: unknown },
   ctx: { ip: string },
   now: number = Date.now(),
 ): Promise<AuthResult> {
@@ -67,9 +69,46 @@ export async function authenticate(
     return { ok: false, reason: "invalid" };
   }
 
+  // Two-step sign-in: the password was right, so now the code from the authenticator app (or a recovery code) is needed
+  let usedStep: number | null = null;
+  let recoveryLeft: string[] | null = null;
+  if (user.totp?.enabled) {
+    const supplied = typeof input.code === "string" ? input.code.trim() : "";
+    if (supplied === "") return { ok: false, reason: "needs_code" };
+    const gate = await rateLimit(`totp:${user.staffId}`, 8, 10 * 60_000, now);
+    const secret = openSecret(user.totp.secret);
+    const byApp = secret && gate.allowed ? verifyCode(secret, supplied, now, user.totp.lastStep) : { ok: false as const };
+    recoveryLeft = !byApp.ok && gate.allowed ? consumeRecoveryCode(user.totp.recovery, supplied) : null;
+    if (!byApp.ok && recoveryLeft === null) {
+      let locked = false;
+      await getStore().update<UserRecord>("users", user.staffId, (cur) => {
+        if (!cur) return null;
+        const failed = cur.failedAttempts + 1;
+        if (failed >= cfg.maxFailedAttempts) {
+          locked = true;
+          return { ...cur, failedAttempts: 0, lockedUntil: now + cfg.lockMinutes * 60_000, updatedAt: now };
+        }
+        return { ...cur, failedAttempts: failed, updatedAt: now };
+      });
+      await audit(user.staffId, locked ? "account_locked" : "login_code_failed", user.staffId, undefined, now);
+      return { ok: false, reason: "invalid" };
+    }
+    if (byApp.ok) usedStep = byApp.step;
+  }
+
   const updated = await getStore().update<UserRecord>("users", user.staffId, (cur) =>
-    cur ? { ...cur, failedAttempts: 0, lockedUntil: null, lastLoginAt: now, updatedAt: now } : null,
+    cur
+      ? {
+          ...cur,
+          failedAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: now,
+          updatedAt: now,
+          ...(cur.totp?.enabled ? { totp: { ...cur.totp, lastStep: usedStep ?? cur.totp.lastStep, recovery: recoveryLeft ?? cur.totp.recovery } } : {}),
+        }
+      : null,
   );
+  if (recoveryLeft !== null) await audit(user.staffId, "login_recovery_code_used", user.staffId, { left: recoveryLeft.length }, now);
   if (!updated) return { ok: false, reason: "invalid" };
   // A fresh session on every login (no session fixation).
   const session = await createSession(updated.staffId, cfg, now);

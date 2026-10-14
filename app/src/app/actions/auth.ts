@@ -7,6 +7,8 @@ import { ensureSeeded } from "@/lib/server/seed";
 
 export interface FormState {
   error?: string;
+  /** The password was right and the account needs the code from its authenticator app. */
+  needsCode?: boolean;
 }
 
 const GENERIC_LOGIN_ERROR = "That staff ID/email and password do not match. After several tries the account locks for a while.";
@@ -14,7 +16,7 @@ const GENERIC_LOGIN_ERROR = "That staff ID/email and password do not match. Afte
 export async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
   await ensureSeeded();
   const result = await authenticate(
-    { identifier: formData.get("identifier"), password: formData.get("password") },
+    { identifier: formData.get("identifier"), password: formData.get("password"), code: formData.get("code") },
     { ip: await clientIp() },
   );
   if (!result.ok) {
@@ -22,6 +24,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
       const mins = Math.max(1, Math.ceil(result.retryAfterSec / 60));
       return { error: `Too many attempts. Please try again in about ${mins} minute${mins === 1 ? "" : "s"}.` };
     }
+    if (result.reason === "needs_code") return { needsCode: true };
     return { error: GENERIC_LOGIN_ERROR };
   }
   await setSessionCookie(result.token, result.expiresAt);

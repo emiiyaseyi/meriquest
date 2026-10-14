@@ -13,6 +13,13 @@ export function LoginForm({ example }: { example: string }) {
       <input id="identifier" name="identifier" type="text" inputMode="email" autoComplete="username" required maxLength={120} placeholder={`e.g. ${example}`} className="input" />
       <label htmlFor="password" className="label">Password</label>
       <input id="password" name="password" type="password" autoComplete="current-password" required maxLength={128} className="input" />
+      {state.needsCode ? (
+        <>
+          <label htmlFor="code" className="label">Code from your authenticator app</label>
+          <input id="code" name="code" type="text" inputMode="numeric" autoComplete="one-time-code" required maxLength={20} className="input" placeholder="6-digit code, or a recovery code" autoFocus />
+          <p className="muted small" style={{ margin: 0 }}>Enter your password again with the code. Lost your phone? Use one of your recovery codes.</p>
+        </>
+      ) : null}
       {state.error ? <p role="alert" className="msg msg-error">{state.error}</p> : null}
       <button type="submit" className="btn" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
     </form>

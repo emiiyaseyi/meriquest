@@ -1,5 +1,6 @@
 "use server";
 
+import { adminResetTwoStep } from "@/lib/server/auth/twostep";
 import { reviewReport } from "@/lib/server/chat/service";
 import { nominate, removeNomination } from "@/lib/server/succession/service";
 import { revalidatePath } from "next/cache";
@@ -191,4 +192,13 @@ export async function reviewChatReportAction(_p: AdminFormState, fd: FormData): 
   const r = await reviewReport(admin, fd.get("reportId"), fd.get("action"));
   revalidatePath("/admin/chat");
   return r.ok ? { ok: "Done." } : { error: r.error };
+}
+
+export async function resetTwoStepAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireArea("staff");
+  const id = str(fd.get("staffId"));
+  if (!/^[A-Za-z0-9]{1,20}$/.test(id)) return { error: "Not found." };
+  await adminResetTwoStep(id.toUpperCase(), admin.staffId);
+  revalidatePath("/admin/staff");
+  return { ok: "Two-step sign-in is off for that person." };
 }

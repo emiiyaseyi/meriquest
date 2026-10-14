@@ -91,11 +91,11 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] 7. Succession planning (3+ years) and the leadership simulator mandatory for line managers
 - [x] 8. Chats and groups between colleagues, with moderation (filter, report, admin review); extend the word list with HR
 - [x] 9. Travel between Lagos offices (personal car, pool car, ride-hailing) with a ride screen, skip and turn back; Yaba is a sample room until photos arrive
-- [~] 10. Instant actions and reads in parallel done; still to do: fewer database trips per write, mission swap and shift answers
+- [~] 10. Instant actions, mission swaps and parallel reads done; still to do: fewer database trips per write (best fixed by putting the database in the Vercel region); shift answers must wait for the server
 - [x] 11. Concern evidence files in proper storage (private Supabase bucket) with a virus-scan hook; needs a scanner service and the bucket set up before rollout
 - [x] 12. README rewritten; PRD, workplan and Lagos Life review carry a status note saying what changed and that the rulebook wins (a full rewrite of their bodies is not done)
 - [x] 13. Reports: add play time, shifts and leadership runs per person
 - [x] 14. Workspace items drawn as 3D shapes (admin picks shape and colour)
-- [ ] 15. Optional: Supabase two-step sign-in; keep adding Academy questions and cases
+- [x] 15. Two-step sign-in with an authenticator app (optional, can be required for admin areas); [ ] keep adding Academy questions and cases (ongoing)
 - [ ] On hold: Meristem Stories
 - [ ] Waiting on the owner: database region, Ikoyi floor descriptions, Yaba photos, review of drafts, confirm NEO service standards

@@ -24,6 +24,8 @@ export interface UserRecord {
   updatedAt: number;
   lastLoginAt: number | null;
   passwordChangedAt: number | null;
+  /** Two-step sign-in with an authenticator app. */
+  totp?: { secret: string; enabled: boolean; lastStep: number; recovery: string[] };
 }
 
 /** The only user shape that may reach components or be returned from actions. */
@@ -38,6 +40,8 @@ export interface UserDTO {
   isLineManager: boolean;
   tenureYears: number;
   mustChangePassword: boolean;
+  /** Whether two-step sign-in is switched on for this person. */
+  totpEnabled: boolean;
 }
 
 export function toDTO(u: UserRecord): UserDTO {
@@ -51,6 +55,7 @@ export function toDTO(u: UserRecord): UserDTO {
     role: u.role,
     isLineManager: u.isLineManager,
     tenureYears: u.tenureYears,
+    totpEnabled: u.totp?.enabled === true,
     mustChangePassword: u.mustChangePassword,
   };
 }
