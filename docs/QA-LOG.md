@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## P3: Chats and groups with moderation (14 Oct 2026)
+Scope: priority item 8. The Work Phone Messages app now has working Chats (direct messages, found by name) and Groups (everyone, each pilot unit, a learning corner). Safety: messages are cleaned and checked against an admin-editable word list (look-alike letters and spaced-out letters caught, the blocked word is never repeated back), links are blocked, speed is limited, anyone can report a message with a reason, enough reports hide it until the review team decides, admins can remove a message and pause the sender for a day or a week, and the sender is told. Direct messages are private to the two people; the review team only sees a reported message with a few around it. Admin: Admin > Chat reports (concerns area: admins and reviewers), settings under Settings > Chats and groups.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 528 tests: filter, links, cleaning; group access by unit; private direct messages; rate limit; reports hide, remove, dismiss, mute and unmute; only the review team can read or act |
+| 3 | Authorisation and validation | **Pass** | Conversation ids validated; membership checked on every read and write; review actions need the concerns area; reads are plain requests that answer only about the signed-in person |
+| 4 | Real browser | **Pass** | Throwaway user: groups list for their unit, a message is sent and shown, a blocked-word message is refused with a polite note, no console errors |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: the starting word list is short and mild: the owner and HR should extend it; messages are fetched every four seconds while a chat is open (no live push yet); attachments and images are not allowed.
+
+---
+
 ## P2: Evidence storage and scanning, 3D Workspace items, and faster reads (14 Oct 2026)
 Scope: priority items 11, 14 and part of 10. (11) Concern evidence goes through a virus scan before it is stored (a scanner service reached by address; infected files are refused and logged; unreachable scanner or none in production keeps the file "pending" and admins cannot open it until a clean scan) and is stored in a private Supabase bucket when configured (otherwise the database); older files stay readable. (14) Bought items are drawn as 3D shapes (desk with screen, chair, sofa, plant, lamp, screen, frame, rug, shelf, table, cabinet) with a colour set per item in the catalogue, instead of emoji pictures; the shape and colour are admin settings. (10) Server Actions from one browser run one at a time, so a slow move or purchase made other screens wait; the read-only screens (game state, Workspace items, room activities, shift, simulators) now use plain requests that run side by side, each checking who is asking and never cached. A stale room bar no longer shows after moving to another room.
 

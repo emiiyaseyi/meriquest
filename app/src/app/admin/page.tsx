@@ -6,6 +6,7 @@ import { isLocked, listUsers } from "@/lib/server/auth/users";
 import { requireUser } from "@/lib/server/auth/dal";
 import { AREAS_BY_ROLE, ROLE_LABEL, can } from "@/lib/server/auth/permissions";
 import { countNewConcerns } from "@/lib/server/concerns/service";
+import { countOpenChatReports } from "@/lib/server/chat/service";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -15,6 +16,7 @@ export default async function AdminHome() {
   // Each card, and the figures on it, is only read when the role may open that area
   const users = can(user.role, "staff") ? await listUsers() : [];
   const newConcerns = can(user.role, "concerns") ? await countNewConcerns(user) : 0;
+  const chatOpen = can(user.role, "concerns") ? await countOpenChatReports(user) : 0;
   const active = users.filter((u) => u.status === "active").length;
   const locked = users.filter((u) => isLocked(u)).length;
   return (
@@ -68,6 +70,12 @@ export default async function AdminHome() {
           <Link href="/admin/concerns" className="card">
             <h2>Conduct concerns</h2>
             <p className="muted">{newConcerns === 0 ? "No new reports." : `${newConcerns} new ${newConcerns === 1 ? "report" : "reports"} waiting for review.`}</p>
+          </Link>
+        ) : null}
+        {can(user.role, "concerns") ? (
+          <Link href="/admin/chat" className="card">
+            <h2>Chat reports</h2>
+            <p className="muted">{chatOpen === 0 ? "No reported messages." : `${chatOpen} reported ${chatOpen === 1 ? "message" : "messages"} waiting for review.`}</p>
           </Link>
         ) : null}
         {can(user.role, "audit") ? (

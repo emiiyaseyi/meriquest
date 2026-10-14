@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {can(user.role, "academy") ? <NavLink href="/admin/academy">Academy</NavLink> : null}
           {can(user.role, "announcements") ? <NavLink href="/admin/announcements">Announcements</NavLink> : null}
           {can(user.role, "concerns") ? <NavLink href="/admin/concerns">Concerns</NavLink> : null}
+          {can(user.role, "concerns") ? <NavLink href="/admin/chat">Chat reports</NavLink> : null}
           {can(user.role, "audit") ? <NavLink href="/admin/audit">Audit log</NavLink> : null}
           <NavLink href="/" exact>Back to game</NavLink>
         </nav>

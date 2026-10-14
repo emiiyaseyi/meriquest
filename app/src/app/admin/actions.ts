@@ -1,5 +1,6 @@
 "use server";
 
+import { reviewReport } from "@/lib/server/chat/service";
 import { nominate, removeNomination } from "@/lib/server/succession/service";
 import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/server/auth/dal";
@@ -183,4 +184,11 @@ export async function removeNominationAction(_p: AdminFormState, fd: FormData): 
   const r = await removeNomination(admin, fd.get("id"));
   revalidatePath("/admin/succession");
   return r.ok ? { ok: "Removed." } : { error: r.error };
+}
+
+export async function reviewChatReportAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireArea("concerns");
+  const r = await reviewReport(admin, fd.get("reportId"), fd.get("action"));
+  revalidatePath("/admin/chat");
+  return r.ok ? { ok: "Done." } : { error: r.error };
 }

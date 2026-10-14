@@ -6,6 +6,7 @@ import { DEFAULT_SHIFTS } from "./shift-content";
 import { DEFAULT_LOCATIONS } from "./location-content";
 import { DEFAULT_LEADERSHIP } from "./leadership-content";
 import { DEFAULT_HUNT } from "./hunt-content";
+import { DEFAULT_CHAT } from "./chat-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 import { DECOR_MODELS } from "@/lib/world/types";
@@ -831,6 +832,26 @@ export const huntSchema = z
   })
   .strict();
 
+export const chatSchema = z
+  .object({
+    settings: z
+      .object({
+        maxLength: z.number().int().min(20).max(1000),
+        perMinute: z.number().int().min(1).max(60),
+        reportsToHide: z.number().int().min(1).max(20),
+        historyLimit: z.number().int().min(10).max(200),
+        blockLinks: z.boolean(),
+        directMessages: z.boolean(),
+      })
+      .strict(),
+    groups: z
+      .array(z.object({ id: slug, label: z.string().min(1).max(40), icon: z.string().min(1).max(8), units: z.array(z.string().min(1).max(30)).min(1).max(10) }).strict())
+      .max(40)
+      .refine((g) => new Set(g.map((x) => x.id)).size === g.length, "Each group needs its own id"),
+    blockedWords: z.array(z.string().min(2).max(40)).max(500),
+  })
+  .strict();
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1089,6 +1110,13 @@ export const CONFIG = {
     description: "Client cases for Customer Experience, Wealth Advisory and Investment Advisory (use * for everyone): the meters, the cases with the units they are for, what each choice does, how a run is rated and the Merit points.",
     schema: clientSimSchema,
     default: DEFAULT_CLIENTSIM,
+  },
+  chat: {
+    label: "Chats and groups",
+    group: "Safety",
+    description: "Colleague chats: the groups people can join (use * for everyone), whether direct messages are on, message length and speed limits, how many reports hide a message, whether links are blocked, and the list of blocked words. Reported messages are reviewed under Admin → Concerns.",
+    schema: chatSchema,
+    default: DEFAULT_CHAT,
   },
   floors: {
     label: "Floor access",

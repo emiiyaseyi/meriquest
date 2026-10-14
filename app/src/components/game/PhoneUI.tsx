@@ -1,5 +1,6 @@
 "use client";
 
+import { ChatApp } from "./ChatApp";
 import { useEffect, useState } from "react";
 import { markNoticesReadAction, messagesAction } from "@/app/actions/notices";
 import type { Announcement, Notice } from "@/lib/server/notices/service";
@@ -120,7 +121,7 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
               </div>
             ))}
             {announcements.length === 0 ? <p className="phone-note">No announcements right now.</p> : null}
-            <p className="phone-note">{tab === "chats" ? "Chats with colleagues are coming soon." : "Team groups are coming soon."}</p>
+            <ChatApp key={tab} kind={tab === "chats" ? "direct" : "group"} />
           </div>
         ) : null}
 
