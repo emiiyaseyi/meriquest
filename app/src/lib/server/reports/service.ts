@@ -15,6 +15,10 @@ interface PlayerDoc {
   updatedAt?: number;
   stats?: Partial<PersonStats>;
 }
+interface BeatDoc {
+  staffId: string;
+  lastBeat?: number | null;
+}
 interface PlayDoc {
   staffId: string;
   seconds?: number;
@@ -41,6 +45,8 @@ export interface PersonRow {
   coursesStarted: number;
   certificates: number;
   lastSeen: number | null;
+  /** The game heard from them in the last two minutes. */
+  online: boolean;
   /** Minutes played in the game, all time. */
   playMinutes: number;
   shifts: number;
@@ -51,6 +57,7 @@ export interface PersonRow {
 export interface UnitRow {
   unit: string;
   people: number;
+  online: number;
   activeWeek: number;
   avgPoints: number;
   avgLessons: number;
@@ -70,19 +77,23 @@ export interface CourseRow {
 
 export interface Report {
   at: number;
-  totals: { people: number; activeWeek: number; lessonsPassed: number; certificates: number; avgPoints: number };
+  totals: { people: number; online: number; activeDay: number; activeWeek: number; activeMonth: number; signInsToday: number; playHours: number; shifts: number; leadRuns: number; lessonsPassed: number; certificates: number; avgPoints: number };
   units: UnitRow[];
   courses: CourseRow[];
   people: PersonRow[];
 }
 
-const WEEK = 7 * 86_400_000;
+const DAY = 86_400_000;
+const WEEK = 7 * DAY;
+/** Someone counts as online when the game last heard from them in this time (the game sends a beat every 30 seconds). */
+const ONLINE_MS = 2 * 60_000;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Progress and engagement for everyone, built from what is already stored. Admin-only: the caller checks the role. */
 export async function buildReport(now: number = Date.now()): Promise<Report> {
   const store = getStore();
-  const [users, players, learning, courses, levels, playtime] = await Promise.all([store.list<UserRecord>("users"), store.list<PlayerDoc>("players"), store.list<LearningDoc>("learning"), listCourseMeta(), getConfig("levels"), store.list<PlayDoc>("playtime")]);
+  const [users, players, learning, courses, levels, playtime, beats] = await Promise.all([store.list<UserRecord>("users"), store.list<PlayerDoc>("players"), store.list<LearningDoc>("learning"), listCourseMeta(), getConfig("levels"), store.list<PlayDoc>("playtime"), store.list<BeatDoc>("play_sessions")]);
+  const beatBy = new Map(beats.map((b) => [b.staffId, b.lastBeat ?? 0]));
   const playSeconds = new Map<string, number>();
   for (const d of playtime) playSeconds.set(d.staffId, (playSeconds.get(d.staffId) ?? 0) + (Number.isFinite(d.seconds) ? (d.seconds as number) : 0));
   const playerBy = new Map(players.map((p) => [p.staffId, p]));
@@ -121,6 +132,7 @@ export async function buildReport(now: number = Date.now()): Promise<Report> {
         coursesStarted: started,
         certificates: (l?.certificates ?? []).filter((c) => lessonCount.has(c.courseId)).length,
         lastSeen: seen > 0 ? seen : null,
+        online: now - Math.max(beatBy.get(u.staffId) ?? 0, p?.updatedAt ?? 0) <= ONLINE_MS,
         playMinutes: Math.round((playSeconds.get(u.staffId) ?? 0) / 60),
         shifts: withStats(p?.stats).shifts,
         leadRuns: withStats(p?.stats).leadRuns,
@@ -136,6 +148,7 @@ export async function buildReport(now: number = Date.now()): Promise<Report> {
     .map(([unit, rows]) => ({
       unit,
       people: rows.length,
+      online: rows.filter((r) => r.online).length,
       activeWeek: rows.filter(active).length,
       avgPoints: Math.round(rows.reduce((n, r) => n + r.points, 0) / rows.length),
       avgLessons: round1(rows.reduce((n, r) => n + r.lessonsPassed, 0) / rows.length),
@@ -163,7 +176,14 @@ export async function buildReport(now: number = Date.now()): Promise<Report> {
     at: now,
     totals: {
       people: people.length,
+      online: people.filter((r) => r.online).length,
+      activeDay: people.filter((r) => r.lastSeen !== null && now - r.lastSeen <= DAY).length,
       activeWeek: people.filter(active).length,
+      activeMonth: people.filter((r) => r.lastSeen !== null && now - r.lastSeen <= 30 * DAY).length,
+      signInsToday: users.filter((u) => (u.lastLoginAt ?? 0) > 0 && now - (u.lastLoginAt as number) <= DAY).length,
+      playHours: Math.round((people.reduce((n, r) => n + r.playMinutes, 0) / 60) * 10) / 10,
+      shifts: people.reduce((n, r) => n + r.shifts, 0),
+      leadRuns: people.reduce((n, r) => n + r.leadRuns, 0),
       lessonsPassed: people.reduce((n, r) => n + r.lessonsPassed, 0),
       certificates: people.reduce((n, r) => n + r.certificates, 0),
       avgPoints: people.length ? Math.round(people.reduce((n, r) => n + r.points, 0) / people.length) : 0,

@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## E6: Online and activity counts in admin Reports (14 Oct 2026)
+Scope: Reports shows people online now (the game heard from them in the last 2 minutes), sign-ins in 24 hours, active in 24 hours / 7 / 30 days, total hours played, shifts finished and leadership runs; the unit table gains "Online now" and the people table shows an online badge. Page views are not recorded by the app, so none are shown. Read-only, still behind the admin "reports" area check on the page; no new route or input. New test for the online count.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 562 of 562 |
+| 3 | Authz, validation, secrets, audit, security review | **Pass** | unchanged access rule; counts only, no personal data added beyond the existing table |
+
+---
+
 ## E5: Needs tab shows where to recharge (14 Oct 2026)
 Scope: the "How to recharge" list in the Needs tab now also lists the room activities (dispenser, fridge with its price, pantry, wellness nook and so on), grouped by room. Read-only text built on the server from settings; no new input or route. Types, lint and the game, hunt, streak and notice tests pass (38 of 38); the full `npm run qa` ran for E4 just before.
 

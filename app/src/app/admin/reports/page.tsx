@@ -22,7 +22,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <p className="muted">Learning progress and engagement, from what people have done in MeriQuest. Updated each time you open this page.</p>
 
       <div className="cards">
-        <div className="card"><h2>{r.totals.people}</h2><p className="muted">people · {r.totals.activeWeek} active in the last 7 days</p></div>
+        <div className="card"><h2>{r.totals.online}</h2><p className="muted">online now (seen in the last 2 minutes)</p></div>
+        <div className="card"><h2>{r.totals.signInsToday}</h2><p className="muted">signed in during the last 24 hours</p></div>
+        <div className="card"><h2>{r.totals.activeDay} · {r.totals.activeWeek} · {r.totals.activeMonth}</h2><p className="muted">active in the last 24 hours · 7 days · 30 days (of {r.totals.people} people)</p></div>
+        <div className="card"><h2>{r.totals.playHours}</h2><p className="muted">hours played in total</p></div>
+        <div className="card"><h2>{r.totals.shifts}</h2><p className="muted">work shifts finished</p></div>
+        <div className="card"><h2>{r.totals.leadRuns}</h2><p className="muted">leadership simulator runs</p></div>
         <div className="card"><h2>{r.totals.lessonsPassed}</h2><p className="muted">lessons passed in the Academy</p></div>
         <div className="card"><h2>{r.totals.certificates}</h2><p className="muted">certificates earned</p></div>
         <div className="card"><h2>{r.totals.avgPoints}</h2><p className="muted">average Merit points</p></div>
@@ -31,10 +36,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <div className="card table-wrap">
         <h2>By unit</h2>
         <table>
-          <thead><tr><th>Unit</th><th>People</th><th>Active (7 days)</th><th>Avg points</th><th>Avg lessons passed</th><th>Certificates</th></tr></thead>
+          <thead><tr><th>Unit</th><th>People</th><th>Online now</th><th>Active (7 days)</th><th>Avg points</th><th>Avg lessons passed</th><th>Certificates</th></tr></thead>
           <tbody>
             {r.units.map((u) => (
-              <tr key={u.unit}><td>{u.unit}</td><td>{u.people}</td><td>{u.activeWeek}</td><td>{u.avgPoints}</td><td>{u.avgLessons}</td><td>{u.certificates}</td></tr>
+              <tr key={u.unit}><td>{u.unit}</td><td>{u.people}</td><td>{u.online}</td><td>{u.activeWeek}</td><td>{u.avgPoints}</td><td>{u.avgLessons}</td><td>{u.certificates}</td></tr>
             ))}
           </tbody>
         </table>
@@ -83,7 +88,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td>{p.playMinutes} min</td>
                 <td>{p.shifts}</td>
                 <td>{p.leadRuns > 0 ? `${p.leadRuns} run${p.leadRuns === 1 ? "" : "s"}, latest ${p.leadLast}` : "-"}</td>
-                <td>{day(p.lastSeen)}</td>
+                <td>{p.online ? <span className="badge">online</span> : day(p.lastSeen)}</td>
               </tr>
             ))}
           </tbody>

@@ -63,4 +63,13 @@ describe("progress report", () => {
     expect(lines[0]).toContain("Staff ID");
     expect(csv.toLowerCase()).not.toContain("password");
   });
+
+  it("counts who is online from the last heartbeat", async () => {
+    await getStore().put("play_sessions", "MS1001", { staffId: "MS1001", used: 0, lastPlayAt: NOW, lastBeat: NOW - 30_000, lastActivity: "world" });
+    await getStore().put("play_sessions", "MS1002", { staffId: "MS1002", used: 0, lastPlayAt: NOW, lastBeat: NOW - 10 * 60_000, lastActivity: "world" });
+    const r = await buildReport(NOW);
+    expect(r.totals.online).toBe(1);
+    expect(r.people.find((p) => p.staffId === "MS1001")?.online).toBe(true);
+    expect(r.people.find((p) => p.staffId === "MS1002")?.online).toBe(false);
+  });
 });
