@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C7: Real-browser check of the new phone apps, small fixes, client figures in admin Reports (14 Oct 2026)
+Scope: first browser run of the new apps with a throwaway user (removed afterwards; the script was stopped from sending kudos to real accounts). **Checked in the browser:** all eight apps open and fill (Directory, Kudos, My Role, Market, My Portfolio, Clients, Compliance Desk, Reports); a practice buy works and shows in My Portfolio; a client is served through its steps and gives a rating, the client's decision and a breach note; pre-clearance is approved; a gift is declared and recorded; the Kudos form picks a colleague and shows the daily allowance; the Clients list shows 10 clients for customer experience. **Fixed after the run:** success messages were shown on the red error background; the "Pre-clear" tab wrapped onto two lines (now "Dealing"); a negative amount showed as "₦-0.87" (now "-₦0.87"). **Added:** admin Reports now shows clients served, average client rating and conversations with a breach (cards, people table and the spreadsheet download). Sending kudos was not clicked in the browser (it would have sent a real notification and points to a real account); it is covered by the service tests.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 602 of 602 |
+| 3 | Authz, validation, secrets, audit, security review | **Pass** | the admin Reports page keeps its "reports" area check; no new routes |
+
+---
+
 ## C6: Room places: Meet a client, Ask a question (14 Oct 2026)
 Scope: last of the "Coming soon" builds. The two spots that said "Coming soon" now work: **Meet a client** opens the Work Phone on the Clients app, and **Ask a question** opens it on the Directory (find a colleague, message them or send kudos). The phone opens on the chosen app and returns to the home screen the next time it is opened normally. UI only: no new route, action or input; both apps keep their own server checks.
 

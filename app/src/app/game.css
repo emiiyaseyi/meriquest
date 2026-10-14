@@ -646,3 +646,4 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .client-option { text-align: left; border: 1px solid #cfdcd3; background: #fff; border-radius: 14px; padding: 10px 12px; font: inherit; cursor: pointer; }
 .client-option:hover:not(:disabled) { background: #eaf3ee; border-color: #1f5a3a; }
 .client-option:disabled { opacity: 0.6; cursor: wait; }
+.chat-note.ok { background: #e6f4ec; color: #1f5a3a; }

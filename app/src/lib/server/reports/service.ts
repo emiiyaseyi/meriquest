@@ -45,6 +45,10 @@ export interface PersonRow {
   coursesStarted: number;
   certificates: number;
   lastSeen: number | null;
+  /** Client Desk: clients served, their average rating (null when none) and conversations with a breach. */
+  clientsServed: number;
+  avgCsat: number | null;
+  clientBreaches: number;
   /** The game heard from them in the last two minutes. */
   online: boolean;
   /** Minutes played in the game, all time. */
@@ -77,7 +81,7 @@ export interface CourseRow {
 
 export interface Report {
   at: number;
-  totals: { people: number; online: number; activeDay: number; activeWeek: number; activeMonth: number; signInsToday: number; playHours: number; shifts: number; leadRuns: number; lessonsPassed: number; certificates: number; avgPoints: number };
+  totals: { people: number; online: number; activeDay: number; activeWeek: number; activeMonth: number; signInsToday: number; playHours: number; shifts: number; leadRuns: number; clientsServed: number; avgCsat: number | null; clientBreaches: number; lessonsPassed: number; certificates: number; avgPoints: number };
   units: UnitRow[];
   courses: CourseRow[];
   people: PersonRow[];
@@ -137,6 +141,9 @@ export async function buildReport(now: number = Date.now()): Promise<Report> {
         shifts: withStats(p?.stats).shifts,
         leadRuns: withStats(p?.stats).leadRuns,
         leadLast: withStats(p?.stats).leadLast ?? "",
+        clientsServed: withStats(p?.stats).clientsServed,
+        avgCsat: withStats(p?.stats).clientsServed > 0 ? Math.round((withStats(p?.stats).csatTotal / withStats(p?.stats).clientsServed) * 10) / 10 : null,
+        clientBreaches: withStats(p?.stats).clientBreaches,
       };
     })
     .sort((a, b) => a.staffId.localeCompare(b.staffId));
@@ -184,6 +191,13 @@ export async function buildReport(now: number = Date.now()): Promise<Report> {
       playHours: Math.round((people.reduce((n, r) => n + r.playMinutes, 0) / 60) * 10) / 10,
       shifts: people.reduce((n, r) => n + r.shifts, 0),
       leadRuns: people.reduce((n, r) => n + r.leadRuns, 0),
+      clientsServed: people.reduce((n, r) => n + r.clientsServed, 0),
+      avgCsat: (() => {
+        const served = people.reduce((n, r) => n + r.clientsServed, 0);
+        const total = people.reduce((n, r) => n + (r.avgCsat ?? 0) * r.clientsServed, 0);
+        return served > 0 ? Math.round((total / served) * 10) / 10 : null;
+      })(),
+      clientBreaches: people.reduce((n, r) => n + r.clientBreaches, 0),
       lessonsPassed: people.reduce((n, r) => n + r.lessonsPassed, 0),
       certificates: people.reduce((n, r) => n + r.certificates, 0),
       avgPoints: people.length ? Math.round(people.reduce((n, r) => n + r.points, 0) / people.length) : 0,
@@ -202,7 +216,7 @@ export function csvCell(v: string | number | null): string {
 }
 
 export function reportCsv(r: Report): string {
-  const head = ["Staff ID", "Name", "Unit", "Title", "Role", "Status", "Merit points", "Career level", "Streak", "Best streak", "Lessons passed", "Lessons passed at Hard", "Courses started", "Certificates", "Play minutes", "Shifts finished", "Leadership runs", "Latest leadership rating", "Last seen"];
-  const rows = r.people.map((p) => [p.staffId, p.name, p.unit, p.title, p.role, p.status, p.points, p.level, p.streak, p.bestStreak, p.lessonsPassed, p.hardLessons, p.coursesStarted, p.certificates, p.playMinutes, p.shifts, p.leadRuns, p.leadLast, p.lastSeen ? new Date(p.lastSeen).toISOString() : ""]);
+  const head = ["Staff ID", "Name", "Unit", "Title", "Role", "Status", "Merit points", "Career level", "Streak", "Best streak", "Lessons passed", "Lessons passed at Hard", "Courses started", "Certificates", "Play minutes", "Shifts finished", "Leadership runs", "Latest leadership rating", "Clients served", "Average client rating", "Client breaches", "Last seen"];
+  const rows = r.people.map((p) => [p.staffId, p.name, p.unit, p.title, p.role, p.status, p.points, p.level, p.streak, p.bestStreak, p.lessonsPassed, p.hardLessons, p.coursesStarted, p.certificates, p.playMinutes, p.shifts, p.leadRuns, p.leadLast, p.clientsServed, p.avgCsat, p.clientBreaches, p.lastSeen ? new Date(p.lastSeen).toISOString() : ""]);
   return [head, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }

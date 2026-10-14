@@ -19,7 +19,7 @@ export function ComplianceApp() {
   }, []);
   useEffect(load, [load]);
   if (!v) return <p className="phone-note">Loading…</p>;
-  const tabs: [Tab, string][] = [["standing", "Standing"], ["preclear", "Pre-clear"], ["gifts", "Gifts"], ["rules", "Rules"]];
+  const tabs: [Tab, string][] = [["standing", "Standing"], ["preclear", "Dealing"], ["gifts", "Gifts"], ["rules", "Rules"]];
   return (
     <div className="people compliance">
       <div className="seg" role="tablist">

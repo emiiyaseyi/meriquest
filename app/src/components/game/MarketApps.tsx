@@ -5,7 +5,7 @@ import { tradeAction } from "@/app/actions/market";
 import { getMine } from "@/lib/client/api";
 import type { HoldingView, MarketView, PortfolioView, QuoteView } from "@/lib/server/market/service";
 
-const money = (n: number) => `₦${n.toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
+const money = (n: number) => `${n < 0 ? "-" : ""}₦${Math.abs(n).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 const pct = (n: number) => `${n > 0 ? "+" : ""}${n}%`;
 const tone = (n: number) => (n > 0 ? "up" : n < 0 ? "down" : "flat");
 

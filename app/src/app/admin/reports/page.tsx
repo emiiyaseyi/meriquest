@@ -28,6 +28,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <div className="card"><h2>{r.totals.playHours}</h2><p className="muted">hours played in total</p></div>
         <div className="card"><h2>{r.totals.shifts}</h2><p className="muted">work shifts finished</p></div>
         <div className="card"><h2>{r.totals.leadRuns}</h2><p className="muted">leadership simulator runs</p></div>
+        <div className="card"><h2>{r.totals.clientsServed}</h2><p className="muted">clients served{r.totals.avgCsat !== null ? ` · average rating ${r.totals.avgCsat} of 5` : ""}{r.totals.clientBreaches > 0 ? ` · ${r.totals.clientBreaches} with a breach` : ""}</p></div>
         <div className="card"><h2>{r.totals.lessonsPassed}</h2><p className="muted">lessons passed in the Academy</p></div>
         <div className="card"><h2>{r.totals.certificates}</h2><p className="muted">certificates earned</p></div>
         <div className="card"><h2>{r.totals.avgPoints}</h2><p className="muted">average Merit points</p></div>
@@ -73,9 +74,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <button type="submit" className="btn btn-ghost">Filter</button>
         </form>
         <table>
-          <thead><tr><th>Person</th><th>Unit</th><th>Points</th><th>Level</th><th>Streak</th><th>Lessons passed</th><th>Certificates</th><th>Play time</th><th>Shifts</th><th>Leadership</th><th>Last seen</th></tr></thead>
+          <thead><tr><th>Person</th><th>Unit</th><th>Points</th><th>Level</th><th>Streak</th><th>Lessons passed</th><th>Certificates</th><th>Play time</th><th>Shifts</th><th>Leadership</th><th>Clients</th><th>Last seen</th></tr></thead>
           <tbody>
-            {people.length === 0 ? <tr><td colSpan={11} className="muted">No one matches.</td></tr> : null}
+            {people.length === 0 ? <tr><td colSpan={12} className="muted">No one matches.</td></tr> : null}
             {people.map((p) => (
               <tr key={p.staffId}>
                 <td><strong>{p.name}</strong><br /><span className="muted">{p.staffId} · {p.title}</span></td>
@@ -88,6 +89,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td>{p.playMinutes} min</td>
                 <td>{p.shifts}</td>
                 <td>{p.leadRuns > 0 ? `${p.leadRuns} run${p.leadRuns === 1 ? "" : "s"}, latest ${p.leadLast}` : "-"}</td>
+                <td>{p.clientsServed > 0 ? `${p.clientsServed} · ${p.avgCsat}★${p.clientBreaches > 0 ? ` · ${p.clientBreaches} breach` : ""}` : "-"}</td>
                 <td>{p.online ? <span className="badge">online</span> : day(p.lastSeen)}</td>
               </tr>
             ))}

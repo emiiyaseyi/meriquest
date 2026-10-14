@@ -47,11 +47,12 @@ describe("progress report", () => {
 
   it("adds play time, shifts and leadership runs per person", async () => {
     await getOrCreatePlayer({ staffId: "MS1002" }, NOW);
-    await getStore().update("players", "MS1002", (cur) => ({ ...(cur as object), stats: { shifts: 3, shiftPoints: 30, leadRuns: 2, leadGreat: 1, leadGood: 0, leadLast: "great", simRuns: 0, simGreat: 0 } }) as never);
+    await getStore().update("players", "MS1002", (cur) => ({ ...(cur as object), stats: { shifts: 3, shiftPoints: 30, leadRuns: 2, leadGreat: 1, leadGood: 0, leadLast: "great", simRuns: 0, simGreat: 0, clientsServed: 4, csatTotal: 14, clientBreaches: 1 } }) as never);
     await getStore().put("playtime", "MS1002:2026-10-13", { staffId: "MS1002", date: "2026-10-13", seconds: 1800 });
     await getStore().put("playtime", "MS1002:2026-10-14", { staffId: "MS1002", date: "2026-10-14", seconds: 600 });
     const r = await buildReport(NOW);
-    expect(r.people.find((p) => p.staffId === "MS1002")).toMatchObject({ playMinutes: 40, shifts: 3, leadRuns: 2, leadLast: "great" });
+    expect(r.people.find((p) => p.staffId === "MS1002")).toMatchObject({ playMinutes: 40, shifts: 3, leadRuns: 2, leadLast: "great", clientsServed: 4, avgCsat: 3.5, clientBreaches: 1 });
+    expect(r.totals).toMatchObject({ clientsServed: 4, avgCsat: 3.5, clientBreaches: 1 });
     expect(reportCsv(r)).toContain("Play minutes");
   });
 
