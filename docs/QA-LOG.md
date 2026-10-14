@@ -4,6 +4,11 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## E3: Admin link on the game screen (14 Oct 2026)
+Scope: a visible Admin button next to the Admin preview chip on the game screen (shown only when the person is an admin; the admin pages still check the role on the server). Types and lint clean; full `npm run qa` was run for E2 on the same code apart from this link.
+
+---
+
 ## E2: More Academy scenarios and case studies (14 Oct 2026)
 Scope: 14 new decisions and 7 new written cases across seven built-in courses (money laundering, confidentiality, law and regulation, wealth management, stockbrokers, customer experience, capital). Content only; validated by the existing course schema. A database that was seeded earlier picks the new content up after the Academy seed marker is cleared (or when the admin adds them in the course editor).
 

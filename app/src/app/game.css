@@ -8,6 +8,8 @@
 .chip-mood { color: #1b6b36; }
 .chip-points { background: var(--brand-soft); color: var(--brand); }
 .chip-preview { background: #fff3d6; color: #8a5a00; }
+.chip-admin { background: #1f5a3a; color: #fff; text-decoration: none; font-weight: 600; }
+.chip-admin:hover { background: #17452c; }
 
 .hud-left { position: absolute; left: 12px; top: 64px; bottom: 96px; width: min(280px, calc(100% - 100px)); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; pointer-events: none; }
 .hud-left > * { pointer-events: auto; }

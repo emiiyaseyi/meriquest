@@ -444,7 +444,12 @@ export function GameShell(props: GameShellProps) {
           <header className="hud-top" aria-label="Status">
             <span className="chip">🕒 {clock || "…"}</span>
             <span className="chip chip-mood">😊 {mood}</span>
-            {adminPreview ? <span className="chip chip-preview" title="Work First is not applied to admins">Admin preview</span> : beat?.remainingSeconds != null ? <span className="chip chip-timer">⏳ {countdown(secondsLeft ?? beat.remainingSeconds)} left</span> : null}
+            {adminPreview ? (
+              <>
+                <span className="chip chip-preview" title="Work First is not applied to admins">Admin preview</span>
+                <Link href="/admin" className="chip chip-admin" title="Open the admin area to manage the game">🛠️ Admin</Link>
+              </>
+            ) : beat?.remainingSeconds != null ? <span className="chip chip-timer">⏳ {countdown(secondsLeft ?? beat.remainingSeconds)} left</span> : null}
             <span className="chip chip-points" title={terms.points}>✨ {points.toLocaleString("en-GB")} {terms.points.toLowerCase().includes("point") ? "pts" : ""}</span>
           </header>
 
