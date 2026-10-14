@@ -1,83 +1,65 @@
 # MeriQuest
 
-A life-simulation learning game for Meristem Securities Limited staff. It combines **technical** and **soft-skills** development in realistic workplace scenarios across the Group's 7 subsidiaries.
+A multiplayer life-simulation **learning game** for Meristem Securities Limited. People walk an isometric Meristem office, meet colleagues, look after their needs, take courses in the **Meristem Academy**, handle realistic work situations, and build skills that feed development and succession planning. It teaches technical and soft skills together, uses fictional data only, and is for development, never for pay or ratings.
 
-> **Status:** prototype v0.1 (draft content for SME and Compliance review). Not affiliated with or approved by Meristem until internal sign-off.
+> **Read [docs/RULEBOOK.md](docs/RULEBOOK.md) first.** It holds the locked decisions and overrides every other document. The running to-do list is [docs/TASKS.md](docs/TASKS.md) and every piece of work is recorded in [docs/QA-LOG.md](docs/QA-LOG.md).
 
-## What's in this repo
+## What is built
+
+- **World:** isometric (3D look) rooms with a Lite 2D mode; rotate the view; walk, skip walking, click people, doors and objects. Ikoyi HQ sample rooms, **My Workspace** (a room you decorate), a sample Yaba office, an illustrated Lagos map with city tabs.
+- **Life:** eight needs that recharge at coffee points, water, lunch, rest and the library; colleague interactions; feelings, skills and Today's Plan with a 7-day streak, mission swaps and a daily clue; career level from Merit points.
+- **Doing work:** Go to work shifts with timed situations and scored choices; a location bar with zones and timed activities in each room; rides between offices; the leadership simulator and the client simulation.
+- **Meristem Academy:** 18 imported NEO courses in five groups, with Easy, Medium and Hard quizzes that unlock as you pass, timed classes, notes, optional lesson video, scenarios, case studies and certificates.
+- **Work Phone:** Messages (chats and groups with moderation), Updates, announcements, Academy and plan shortcuts.
+- **Buy mode:** a catalogue paid in Merit points, ghost placing in the live room, 3D shapes, and items that help needs.
+- **Safety:** conduct-concern reports with evidence (virus-scanned, private storage), chat filter and reports, Work First play rules, server-side checks everywhere.
+- **Admin:** staff and access, placements, **form editors for every setting**, Academy course editor, reports with CSV export, announcements, concerns and chat reports, succession planning, audit log; roles for admin, learning and development, reviewer and manager (My team).
+
+## Layout
 
 ```
-game/                 Playable prototype (plain HTML/CSS/JS, no build step)
-  index.html          Entry page
-  auth-config.js      Sign-in settings: default password, email domain, staff ID format, lockout
-  staff.js            Sample staff directory (fictional people) loaded on first run
-  auth.js             Sign-in, password change, admin panel (staff & access)
-  content.js          Learning content: tracks, scenarios, quizzes, competencies, values
-  clients.js          Office segments, personality styles, signature clients
-  clientgen.js        Client generator: case library, channels, tiers, moods, locations
-  engine.js           Game engine: state, scoring, missions, rendering, xAPI-style log
-  styles.css          Styles (light + dark, mobile-first)
-docs/
-  PRD.md              Product requirements
-  WORKPLAN.md         Phased delivery plan, team, milestones
-  CAREER-TRACKS.md    Career tracks and technical + soft skills matrix by role
-  LAGOS-LIFE-REVIEW.md  How Lagos Life is played, what to copy/avoid, gap analysis, decisions
-  CLIENT-SIMULATION.md  Client personality sims, generator, office segments, KPIs
-  templates/CLIENT-CASE-TEMPLATE.md  How to share CX cases (anonymised)
-.claude/launch.json   Local preview config (python http.server)
+app/                  The product (Next.js 16, React 19, TypeScript, Postgres)
+  src/app/            Pages, Server Actions, read-only data routes (/api/me/...)
+  src/components/     Game screens, admin forms, the settings form editor
+  src/lib/            Rules shared by browser and server (pure functions)
+  src/lib/server/     Server only: services, settings registry, store, auth
+  test/               Vitest tests (about 550)
+docs/                 Rulebook, PRD, workplan, task list, QA log, setup guides, reference screenshots
+game/                 The first prototype (retired; do not edit)
 ```
 
 ## Run it locally
 
-Any static web server works. From the repo root:
-
 ```bash
-python -m http.server 5173 --directory game
+cd app
+npm install
+cp .env.example .env.local      # then fill in the values (see docs/DATABASE-SETUP.md)
+npm run dev                     # http://localhost:3000
 ```
 
-Then open http://localhost:5173. Progress is saved in your browser (localStorage), separately for each staff member. Use **L&D report → Reset progress** to start again.
+Useful checks: `npm run qa` runs types, lint, tests and a production build; `npm audit --omit=dev` checks dependencies. Stop the dev server before `npm run qa`, then start it again.
 
-## Signing in (prototype)
+Settings, secrets and the database are described in [docs/DATABASE-SETUP.md](docs/DATABASE-SETUP.md) and [docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md). Never commit `.env.local` or print its values.
 
-- Sign in with a **staff ID** (e.g. `MS1001`) or **work email**, plus a password.
-- Every new or reset account uses the **default password** set in [`game/auth-config.js`](game/auth-config.js). At first sign-in the person must create their own password. **Change the default before sharing the prototype.**
-- Sample accounts are in [`game/staff.js`](game/staff.js). `MS0001` is the L&D admin. Each sample person has a unit, office and starting track.
-- **Admin panel** (⚙️ Admin in the top bar, admins only): search staff, reset a password to the default, unlock locked accounts, disable/enable, change roles, add staff, import/export CSV, and view the audit log.
-- Accounts lock for 15 minutes after 5 failed attempts (configurable).
-- Prototype only: accounts live in this browser, and passwords are stored salted and hashed (SHA-256). **Production must move sign-in to the server** (staff ID/email + password, hashed server-side; see docs/PRD.md §8–10).
-- To wipe all local accounts and progress, clear the site data for `localhost:5173` in your browser.
+## How it is built (short)
 
-In VS Code you can also use the **Live Server** extension: right-click `game/index.html` → *Open with Live Server*.
+- **Server decides, browser shows.** Points, levels, answers, prices, cooldowns, shifts and ratings are decided on the server. The browser may show a result at once and is corrected if the server disagrees (RULEBOOK 2.8).
+- **Settings, not hard-coding.** Anything an admin may want to change is a validated setting with a form editor (RULEBOOK section 4).
+- **One store.** A small key-value interface over Postgres (file or memory for development and tests).
+- **Every change passes the QA and security gate** in RULEBOOK 5.1 before it is committed.
 
-## Move it to GitHub
+## Hosting
 
-```bash
-git init
-```
+Vercel (owner decision, 14 October 2026), Postgres on Supabase. The database should be in the same region as the Vercel functions for speed. Keep the repository private: it contains internal training material.
 
-```bash
-git add . && git commit -m "MeriQuest prototype v0.1"
-```
+## Where things are decided
 
-```bash
-gh repo create meriquest --private --source . --push
-```
-
-Keep the repository **private** (or in your organisation's GitHub account) until Corporate Communications and Compliance have approved the content and branding.
-
-### Quick hosting options for playtests
-- **GitHub Pages** (Settings → Pages → deploy from the `/game` folder via a GitHub Action). Note that a private repo needs a paid plan for Pages.
-- **Azure Static Web Apps** or the company intranet. Upload the four files in `/game`.
-
-## Editing content
-
-All scenarios live in `game/content.js`. To add one, copy an existing scenario object inside a track's `scenarios` array and change:
-- `id` (unique), `title`, `location` (one of the `locations` ids), `type` (`Technical` | `Soft skill` | `Blended`)
-- `who`, `text`
-- `choices`: one `best`, one `ok`, one `poor`, each with `fx` (competency deltas, `trust`, `compliance`, `energy`), `outcome` and, for the best choice, a CEPOEM `value`
-- `coach`: the teaching point
-
-Reload the page to play it.
-
-## Production roadmap
-See [docs/PRD.md](docs/PRD.md) §10 for the recommended stack (Next.js + TypeScript on Netlify, Supabase Postgres/Realtime, staff ID/email + password sign-in, xAPI) and [docs/WORKPLAN.md](docs/WORKPLAN.md) for the phases.
+| Question | Read |
+|---|---|
+| What is locked, what is open | docs/RULEBOOK.md |
+| What to do next | docs/TASKS.md |
+| What was checked and how | docs/QA-LOG.md |
+| Product requirements | docs/PRD.md (see its status note) |
+| Phases and plan | docs/WORKPLAN.md (see its status note) |
+| How the reference game works and what we copied | docs/LAGOS-LIFE-REVIEW.md (see its status note) |
+| Academy content import | docs/ACADEMY-IMPORT.md |

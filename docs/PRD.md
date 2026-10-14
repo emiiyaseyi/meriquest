@@ -1,5 +1,13 @@
 # MeriQuest: Product Requirements Document (PRD)
 
+> **Status note (14 Oct 2026).** This PRD was written on 12 Oct 2026 and is kept for its reasoning. **Where it disagrees with [RULEBOOK.md](RULEBOOK.md), the rulebook wins.** What changed since:
+> - **Look and feel:** isometric (3D look) with a Lite 2D mode, not a 2D map first (RULEBOOK 2.2). The `/game` prototype is retired.
+> - **Hosting:** Vercel with Supabase Postgres (owner decision), not Netlify.
+> - **Work First:** play during working hours in limited sessions (30 minutes, then a pause), but only in working hours (8:30 am to 4:30 pm); no limit outside them (RULEBOOK 2.1).
+> - **Scope built so far:** world and rooms, needs, interactions, shifts, location activities, travel, Workspace decoration, Meristem Academy (18 courses), leadership and client simulations, succession planning, chats and groups with moderation, conduct concerns, reports, manager screen and admin roles. The live list is [TASKS.md](TASKS.md); evidence of checks is [QA-LOG.md](QA-LOG.md).
+> - **Not built or on hold:** Meristem Stories (on hold), cities other than Lagos, photos-based Yaba and Ikoyi floor art (waiting on the owner), real 3D world (later build).
+
+
 **Product:** MeriQuest, a life-simulation learning game for Meristem Securities Limited and its subsidiaries
 **Owner:** Learning & Development (L&D), Group Human Resources
 **Status:** Draft v0.1, for stakeholder review

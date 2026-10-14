@@ -1,5 +1,21 @@
 # MeriQuest: Workplan
 
+> **Status note (14 Oct 2026).** The phases below are the original plan from 12 Oct 2026. Work has run ahead of it as a continuous build in small, checked pieces. **Where this plan disagrees with [RULEBOOK.md](RULEBOOK.md), the rulebook wins; the live to-do list is [TASKS.md](TASKS.md).**
+>
+> | Plan item | Status |
+> |---|---|
+> | Server-side sign-in, staff admin, audit log | Built |
+> | Playable world (isometric, Lite 2D), needs, interactions, missions, streaks | Built |
+> | Meristem Academy with 18 courses, quizzes at three levels, certificates | Built (content to be reviewed by SMEs and Compliance) |
+> | Admin authoring (form editors for every setting and for courses), reports, roles | Built |
+> | Chats and groups with moderation | Built (word list to be extended with HR) |
+> | Manager dashboard and assigning learning | Built (My team) |
+> | Hosting (Vercel) and production database region | Hosting decided; region still to decide |
+> | Load test, penetration test, accessibility pass, DPIA | Not started: needed before the pilot |
+> | Pilot with CX, Wealth Advisory, Investment Advisory | Waiting on content review and the items above |
+> | xAPI statements to an LMS or LRS | Not started |
+
+
 Draft v0.1, 12 October 2026. Indicative timeline: **about 10 months from approval to Group-wide rollout** (updated 12 Oct 2026 for the multiplayer world and 2D map), then a continuous content cycle.
 
 ---

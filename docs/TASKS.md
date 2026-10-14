@@ -12,7 +12,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Sign-in fixes; shared default password kept; /game prototype retired
 - [x] Database: Prisma Postgres for development (temporary)
 - [ ] Decide hosting (Netlify or Vercel) and the production database region with IT, Risk and the DPO
-- [ ] Rewrite the review, PRD, workplan and README to match the rulebook
+- [~] README rewritten; PRD, workplan and review have status notes
 
 ## The world
 - [x] Ikoyi HQ in isometric 3D with a flat 2D Lite switch (3D is the default)
@@ -93,7 +93,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] 9. Travel between Lagos offices (personal car, pool car, ride-hailing) with a ride screen, skip and turn back; Yaba is a sample room until photos arrive
 - [~] 10. Instant actions and reads in parallel done; still to do: fewer database trips per write, mission swap and shift answers
 - [x] 11. Concern evidence files in proper storage (private Supabase bucket) with a virus-scan hook; needs a scanner service and the bucket set up before rollout
-- [ ] 12. Rewrite review, PRD, workplan and README to match the rulebook
+- [x] 12. README rewritten; PRD, workplan and Lagos Life review carry a status note saying what changed and that the rulebook wins (a full rewrite of their bodies is not done)
 - [x] 13. Reports: add play time, shifts and leadership runs per person
 - [x] 14. Workspace items drawn as 3D shapes (admin picks shape and colour)
 - [ ] 15. Optional: Supabase two-step sign-in; keep adding Academy questions and cases

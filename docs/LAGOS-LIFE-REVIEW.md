@@ -1,5 +1,8 @@
 # Lagos Life: Detailed Review and What It Means for MeriQuest
 
+> **Status note (14 Oct 2026).** This review informed the build. Since it was written the owner supplied reference screenshots (kept in `docs/reference/`) and the team has built the matching parts: the isometric world with rotation and clickable people, the floating HUD, needs and recharge spots, the Work Phone, Today's Plan with streaks and mission swaps, the location bar with zones and timed activities, Buy mode with ghost placing, Go to work shifts, rides between offices, the illustrated map, and the daily clue. **Things deliberately not copied:** gambling-style and criminal activities, real money, paid advertising and anything with third-party marks. The rulebook ([RULEBOOK.md](RULEBOOK.md)) holds the decisions; [TASKS.md](TASKS.md) holds what is left.
+
+
 Draft v0.1, 12 October 2026. A reference review to inform the MeriQuest build.
 
 **How this was researched.** Press coverage (Condia, WeeTracker, Arise TV, BrandSpur), independent fan wikis that log in-game observations, Lagos Life's Terms of Use, and a reading of the game's public front-end code. I did **not** create an account or play signed in. Where a detail comes from the code it is marked *(code)*; from fan guides *(fan)*; from press *(press)*. Fan-guide figures are snapshots and the game changes almost daily.
