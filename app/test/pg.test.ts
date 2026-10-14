@@ -146,6 +146,15 @@ describe("pgConnection", () => {
     expect(config.max).toBe(3);
   });
 
+  it("accepts the certificate of the host's own authority and stays fully verified", () => {
+    const pem = ["-----BEGIN CERTIFICATE-----", "A".repeat(120), "-----END CERTIFICATE-----"].join("\n");
+    const { config } = pgConnection(url, "production", pem);
+    expect(config.ssl).toEqual({ rejectUnauthorized: true, ca: pem });
+    // pasted on one line with a literal backslash-n
+    expect(pgConnection(url, "production", pem.split("\n").join("\\n")).config.ssl).toEqual({ rejectUnauthorized: true, ca: pem });
+    expect(() => pgConnection(url, "production", "not a certificate")).toThrow(/not a certificate/);
+  });
+
   it("defaults to verified TLS when sslmode is missing", () => {
     expect(pgConnection("postgres://u:p@h.example.io/db", "production").config.ssl).toEqual({ rejectUnauthorized: true });
   });

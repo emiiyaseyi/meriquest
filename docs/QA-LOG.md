@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## D2: Supabase certificate option and database walk-through (14 Oct 2026)
+Scope: the owner created a Supabase project for the test deployment. Supabase signs database certificates with its own authority, which Node does not trust by default; the app verifies TLS strictly and refuses to skip it in production, so the connection would fail. Added an optional `DATABASE_CA_CERT` setting (the authority's certificate, PEM): the connection is **still fully verified**, it just trusts that authority. Accepts a pasted value with literal backslash-n, and refuses text that is not a certificate. The migration script reads it too. `docs/DATABASE-SETUP.md` Part A now walks through Supabase (Frankfurt region, pooler string, certificate download, one-off migration, optional Data API off). 1 new test (608 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean (pg suite timed out once under load and passed on the re-run) |
+| 2 | Tests | **Pass** | 608 of 608 |
+| 3 | Crypto / TLS | **Pass** | `rejectUnauthorized` stays true; `no-verify` and `disable` are still refused in production; the certificate is an extra trusted authority, not a bypass |
+| 4 | Secrets | **Pass** | no connection string or password in code or docs; the certificate is public |
+
+---
+
 ## W1: Workspace is a desk, and a private office for chosen people (14 Oct 2026)
 Scope: owner feedback on Buy mode. (1) The Workspace now shows the person's **desk** (a small pod around a desk surface) instead of the whole open floor. (2) **Desk size grows with role and experience**: admin-set layouts in Settings > Workspace decoration (default: standard desk 5 by 4, senior desk 6 by 4 from 3 years, team lead desk 7 by 5 for line managers). (3) **Private office** (10 by 8, windows, sofa, cabinet) only for chosen people: by job title (default: Chief, COO, CFO, CEO, CTO, Managing Director, Executive Director, Head of Business), or by staff id; "Head of Client Service" does not get one. Layouts are checked in order and the last one is for everyone else (the setting refuses a list whose last entry has a rule). The **server** works out each person's layout from their title, years and line-manager flag and checks every buy, place and move against that layout's area and item limit; the browser only draws it. The needs rules, which do not know the person, accept anything inside the largest layout. The room is also centred in the space above the Buy mode catalogue. Decision recorded in RULEBOOK §12. 5 new tests (607 total). **Checked in a real browser** with a throwaway user: a standard desk, and a "Chief Operating Officer" office.
 

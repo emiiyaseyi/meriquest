@@ -193,7 +193,7 @@ export function getStore(): Store {
     const env = getEnv();
     if (env.STORE === "postgres") {
       // getEnv() has already guaranteed DATABASE_URL is present for this mode.
-      gs.__mqStore = new PgStore(createPgDb(env.DATABASE_URL as string, env.NODE_ENV));
+      gs.__mqStore = new PgStore(createPgDb(env.DATABASE_URL as string, env.NODE_ENV, env.DATABASE_CA_CERT));
     } else {
       gs.__mqStore = env.STORE === "memory" ? new MemoryStore() : new FileStore(env.DATA_DIR);
     }

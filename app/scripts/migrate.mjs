@@ -22,7 +22,9 @@ try {
 }
 const mode = (u.searchParams.get("sslmode") ?? "require").toLowerCase();
 u.searchParams.delete("sslmode");
-const ssl = mode === "disable" ? false : { rejectUnauthorized: mode !== "no-verify" };
+// A host whose certificate is signed by its own authority (for example Supabase) needs that certificate: set DATABASE_CA_CERT to its text. It is still fully verified.
+const ca = process.env.DATABASE_CA_CERT ? process.env.DATABASE_CA_CERT.split("\\n").join("\n").trim() : undefined;
+const ssl = mode === "disable" ? false : { rejectUnauthorized: mode !== "no-verify", ...(ca ? { ca } : {}) };
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "db", "migrations");
 const files = (await readdir(dir)).filter((f) => /^\d{4}_[a-z0-9_]+\.sql$/.test(f)).sort();

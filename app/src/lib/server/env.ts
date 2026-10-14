@@ -30,6 +30,8 @@ const EnvSchema = z
     EVIDENCE_BUCKET: z.preprocess(emptyToUndefined, z.string().min(3).max(63).default("concern-evidence")),
     EVIDENCE_SCANNER_URL: z.preprocess(emptyToUndefined, z.string().url().max(300).optional()),
     EVIDENCE_SCANNER_TOKEN: z.preprocess(emptyToUndefined, z.string().min(8).max(2000).optional()),
+    // The certificate of the authority that signed the database host's TLS certificate (PEM), for hosts such as Supabase whose authority is not in the default trust list. Optional; the connection is still fully verified.
+    DATABASE_CA_CERT: z.preprocess(emptyToUndefined, z.string().min(100).max(20000).optional()),
     // Encrypts the two-step sign-in secrets. 32 random bytes, base64 (openssl rand -base64 32). Required in production to set up two-step sign-in.
     TOTP_KEY: z.preprocess(emptyToUndefined, z.string().min(32).max(200).optional()),
     SEED_SAMPLE_STAFF: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).default("false")),
@@ -76,6 +78,7 @@ export function getEnv(): Env {
     NODE_ENV: process.env.NODE_ENV,
     STORE: process.env.STORE,
     DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_CA_CERT: process.env.DATABASE_CA_CERT,
     ALLOW_FILE_STORE: process.env.ALLOW_FILE_STORE,
     DATA_DIR: process.env.DATA_DIR,
     DEFAULT_PASSWORD: process.env.DEFAULT_PASSWORD,

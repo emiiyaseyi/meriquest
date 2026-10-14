@@ -21,12 +21,20 @@ export interface PgConnection {
   warnings: string[];
 }
 
+/** A certificate for the database host as text. Pasted values often carry a literal backslash-n instead of line breaks, so those are turned back. */
+export function cleanCa(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const pem = raw.split("\\n").join("\n").trim();
+  if (!/-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----/.test(pem)) throw new Error("DATABASE_CA_CERT is not a certificate (it should start with -----BEGIN CERTIFICATE-----)");
+  return pem;
+}
+
 /**
  * Turn DATABASE_URL into pool settings. TLS is always verified (certificate and host name) unless
  * the URL explicitly asks otherwise, and production refuses `sslmode=disable` and `no-verify`.
  * Errors never include the URL (it contains the password).
  */
-export function pgConnection(databaseUrl: string, nodeEnv: string): PgConnection {
+export function pgConnection(databaseUrl: string, nodeEnv: string, caCert?: string): PgConnection {
   let url: URL;
   try {
     url = new URL(databaseUrl);
@@ -46,7 +54,8 @@ export function pgConnection(databaseUrl: string, nodeEnv: string): PgConnection
   return {
     config: {
       connectionString: url.toString(),
-      ssl: mode === "disable" ? false : { rejectUnauthorized: mode !== "no-verify" },
+      // A host whose certificate is signed by its own authority (for example Supabase) needs that authority's certificate; it is still fully verified.
+      ssl: mode === "disable" ? false : { rejectUnauthorized: mode !== "no-verify", ...(caCert ? { ca: cleanCa(caCert) } : {}) },
       // Serverless functions: a few short-lived connections per instance keep us under the host's cap.
       max: 3,
       idleTimeoutMillis: 10_000,
@@ -74,8 +83,8 @@ export async function withConnectRetry<T>(fn: () => Promise<T>, delayMs = 400): 
   }
 }
 
-export function createPgDb(databaseUrl: string, nodeEnv: string): Db {
-  const { config, warnings } = pgConnection(databaseUrl, nodeEnv);
+export function createPgDb(databaseUrl: string, nodeEnv: string, caCert?: string): Db {
+  const { config, warnings } = pgConnection(databaseUrl, nodeEnv, caCert);
   for (const w of warnings) console.warn(`[db] ${w}`);
   const pool = new Pool(config);
   // An idle-client error (for example the host restarting) must not crash the process.

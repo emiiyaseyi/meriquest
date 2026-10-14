@@ -61,16 +61,20 @@ The owner decided (13 Oct 2026) to host on **Vercel**, not Netlify. `netlify.tom
 ## First deployment to Vercel: a test deployment (step by step)
 This is a **test** deployment: a private project on a **new, empty database**, with no real staff data. It does not need the IT and data-protection approval above; that is needed before real staff data goes in (see "Before real staff data goes in"). `app/vercel.json` is already in the repo: it sets the framework and runs the functions in **Frankfurt (`fra1`)**, so create the database in **Frankfurt (EU Central)** too. A function and a database in the same region is the biggest speed-up available: from a laptop in Lagos to a far database every query was about half a second.
 
-**Part A: a new database (once)**
-1. Create a new empty Postgres database (for example a new Prisma Postgres or Supabase project) in **Frankfurt / EU Central**. Name it `meriquest-test`. Do not reuse the development database.
-2. Copy its connection string. Keep it in a password manager, not in chat or in the repo.
-3. On your machine, in a terminal, from the `app` folder (PowerShell), run the migration once against the new database:
+**Part A: a new database on Supabase (once)**
+1. In Supabase create a new project (for example `meriquest-test`) in region **Central EU (Frankfurt)**. A project's region cannot be changed later. Set a strong database password and keep it in a password manager.
+2. Do **not** create tables by hand. The migration below creates the `kv` table (and `schema_migrations`) for you.
+3. Click **Connect** (top bar) > **Connection string** > method **Transaction pooler**, and copy the URI. Replace `[YOUR-PASSWORD]` with the database password. (The direct connection is IPv6-only and does not work from Vercel; use the pooler.)
+4. Supabase signs its database certificates with its own authority. Download it: **Project Settings > Database > SSL Configuration > Download certificate** (a `.crt` file). The app still verifies the connection fully; it just needs this certificate to trust it. Its text goes in `DATABASE_CA_CERT`.
+5. On your machine, in PowerShell, from the `app` folder, run the migration once (replace the two placeholders; keep the quotes):
    ```
    $env:DATABASE_URL = "paste the connection string here"
+   $env:DATABASE_CA_CERT = Get-Content "$HOME\Downloads\prod-ca-2021.crt" -Raw   # the file you downloaded
    node scripts/migrate.mjs
-   Remove-Item Env:DATABASE_URL
+   Remove-Item Env:DATABASE_URL, Env:DATABASE_CA_CERT
    ```
-   It should say it applied `0001_kv.sql`. (The shared dev database is not touched.)
+   It should say it applied `0001_kv.sql`. In Supabase > **Table Editor** you should now see `kv` and `schema_migrations`.
+6. Recommended: **Project Settings > Data API**: switch the Data API off. The app talks to the database directly, so nothing needs it, and the tables also have row-level security on with no policies.
 
 **Part B: the Vercel project**
 1. Vercel > **Add New > Project > Import** the GitHub repo `emiiyaseyi/meriquest` (the repo stays private).
@@ -83,6 +87,7 @@ This is a **test** deployment: a private project on a **new, empty database**, w
 | `DATABASE_URL` | the new database string from Part A | **yes** |
 | `DEFAULT_PASSWORD` | a new random value, 12+ characters (the shared first-sign-in password) | **yes** |
 | `BOOTSTRAP_ADMIN_PASSWORD` | a different random value, 12+ characters | **yes** |
+| `DATABASE_CA_CERT` | the full text of the Supabase certificate (`-----BEGIN CERTIFICATE-----` to `-----END CERTIFICATE-----`) | no |
 | `TOTP_KEY` | 32 random bytes in base64 (needed for two-step sign-in in production) | **yes** |
 | `BOOTSTRAP_ADMIN_STAFF_ID` | `MS0001` | no |
 | `BOOTSTRAP_ADMIN_EMAIL` | the L&D admin mailbox | no |
