@@ -28,7 +28,7 @@ describe("location bar activities", () => {
   it("shows the zones of the room the person is in", async () => {
     await goTo("ikoyi-floor");
     const loc = await getLocation(me, NOW);
-    expect(loc?.zones.map((z) => z.label)).toEqual(["Pantry", "Reading corner", "Team area", "Wellness nook", "Help corner"]);
+    expect(loc?.zones.map((z) => z.label)).toEqual(["Pantry", "Reading corner", "Team area", "Wellness nook", "Help corner", "Dispenser", "Fridge"]);
     expect(loc?.running).toBeNull();
   });
 
@@ -65,5 +65,17 @@ describe("location bar activities", () => {
     const after = await getOrCreatePlayer(me, NOW + 1000);
     expect(after.points).toBe(before.points);
     expect(after.activity).toBeUndefined();
+  });
+});
+
+describe("fridge costs Merit points", () => {
+  it("lets the dispenser be free and refuses a fridge item without enough points", async () => {
+    await freshWorld();
+    await goTo("ikoyi-floor");
+    expect((await startActivity(me, "floor-disp-water", NOW)).ok).toBe(true);
+    await cancelActivity(me, NOW + 1000);
+    const r = await startActivity(me, "floor-fr-meal", NOW + 2000);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("Merit points");
   });
 });

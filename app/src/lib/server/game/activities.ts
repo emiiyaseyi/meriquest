@@ -19,6 +19,8 @@ export interface ActivityView {
   seconds: number;
   tags: string[];
   points: number;
+  /** Merit points it costs, 0 when free. */
+  cost: number;
   /** When it can be done again, if it cannot be done now. */
   readyAt: number | null;
 }
@@ -55,7 +57,7 @@ function viewOf(p: PlayerRecord, room: Room | undefined, now: number): LocationV
       icon: z.icon,
       activities: z.activities.map((a) => {
         const until = p.cooldowns?.[`act:${a.id}`] ?? 0;
-        return { id: a.id, label: a.label, icon: a.icon, seconds: a.seconds, tags: [...effectTags(a.effects), ...(a.points > 0 ? [`+${a.points} pts`] : [])], points: a.points, readyAt: until > now ? until : null };
+        return { id: a.id, label: a.label, icon: a.icon, seconds: a.seconds, tags: [...effectTags(a.effects), ...(a.points > 0 ? [`+${a.points} pts`] : []), ...(a.cost > 0 ? [`${a.cost} pts`] : [])], points: a.points, cost: a.cost, readyAt: until > now ? until : null };
       }),
     })),
     running: running && p.activity ? { id: running.id, label: running.label, endsAt: p.activity.endsAt } : null,
@@ -95,6 +97,10 @@ export async function startActivity(user: User, activityId: unknown, now: number
       refusal = "Finish what you are doing first.";
       return cur;
     }
+    if (act.cost > 0 && cur.points < act.cost) {
+      refusal = `You need ${act.cost} Merit points for that.`;
+      return cur;
+    }
     const until = cur.cooldowns?.[`act:${act.id}`] ?? 0;
     if (until > now) {
       refusal = `Not just yet. Try again in ${Math.max(1, Math.ceil((until - now) / 60_000))} minute${Math.ceil((until - now) / 60_000) === 1 ? "" : "s"}.`;
@@ -125,7 +131,7 @@ export async function completeActivity(user: User, now: number = Date.now()): Pr
     return rest as PlayerRecord;
   });
   if (!taken) return { ok: false, error: "You are not doing anything right now." };
-  const refusal = await perform(user, { key: `act:${act.id}`, effects: act.effects, cost: 0, gain: act.points, cooldownMinutes: act.cooldownMinutes, feeling: act.feeling, skill: act.skill, event: act.event ?? act.id }, now);
+  const refusal = await perform(user, { key: `act:${act.id}`, effects: act.effects, cost: act.cost, gain: act.points, cooldownMinutes: act.cooldownMinutes, feeling: act.feeling, skill: act.skill, event: act.event ?? act.id }, now);
   if (refusal) return { ok: false, error: refusal };
   return result(user, now, `${act.label}. ${[...effectTags(act.effects), ...(act.points > 0 ? [`+${act.points} Merit points`] : [])].join(" ")}`.trim());
 }

@@ -37,7 +37,7 @@ const a = (
   ...(event ? { event } : {}),
 });
 
-export const DEFAULT_LOCATIONS = {
+const BASE = {
   rooms: [
     {
       scene: "ikoyi-floor",
@@ -529,4 +529,41 @@ export const DEFAULT_LOCATIONS = {
       ],
     },
   ],
+};
+
+/** A free drinks dispenser on every floor. Ids carry the room name so each one keeps its own waiting time. */
+const dispenser = (r: string) => ({
+  id: "dispenser",
+  label: "Dispenser",
+  icon: "🚰",
+  activities: [
+    a(`${r}-disp-water`, "Cool water", "💧", 4, { hydration: 25 }, 0, 10, "Refreshed", "A cool glass of water from the dispenser.", undefined, "water"),
+    a(`${r}-disp-hot`, "Hot drink", "☕", 6, { energy: 8, hydration: 8, mood: 3 }, 0, 30, "Warm and awake", "A hot drink from the dispenser.", undefined, "coffee"),
+  ],
+});
+
+/** A fridge on every floor. Its items cost Merit points. */
+const paid = (cost: number, x: ReturnType<typeof a>) => ({ ...x, cost });
+const fridge = (r: string) => ({
+  id: "fridge",
+  label: "Fridge",
+  icon: "🧊",
+  activities: [
+    paid(3, a(`${r}-fr-juice`, "Chilled juice", "🧃", 5, { hydration: 20, mood: 6 }, 0, 30, "Cool and happy", "A chilled juice from the fridge.")),
+    paid(3, a(`${r}-fr-fruit`, "Fresh fruit", "🍎", 5, { hunger: 15, energy: 6, mood: 3 }, 0, 45, "Light and fresh", "A piece of fresh fruit.")),
+    paid(4, a(`${r}-fr-snack`, "Snack pack", "🥜", 5, { hunger: 20, mood: 5 }, 0, 45, "Satisfied", "A small snack keeps you going.")),
+    paid(8, a(`${r}-fr-meal`, "Meal box", "🍱", 10, { hunger: 45, energy: 8, mood: 4 }, 0, 120, "Well fed", "A proper meal from the fridge.", undefined, "lunch")),
+  ],
+});
+
+const ROOMS_WITH_FRIDGE: Record<string, string> = { "ikoyi-floor": "floor", "ikoyi-lobby": "lobby", "ikoyi-boardroom": "board", "ikoyi-lounge": "lounge", "yaba-lobby": "yaba" };
+
+export const DEFAULT_LOCATIONS = {
+  rooms: [
+    ...BASE.rooms,
+    { scene: "yaba-lobby", status: "A quiet morning at the Yaba office", zones: [] as (typeof BASE.rooms)[number]["zones"] },
+  ].map((room) => {
+    const r = ROOMS_WITH_FRIDGE[room.scene];
+    return r ? { ...room, zones: [...room.zones, dispenser(r), fridge(r)] } : room;
+  }),
 };

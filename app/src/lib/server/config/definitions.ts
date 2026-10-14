@@ -736,6 +736,8 @@ export const locationsSchema = z
                             effects: effectsSchema,
                             /** Merit points earned. */
                             points: z.number().int().min(0).max(100),
+                            /** Merit points it costs (a fridge, for example). 0 means free. */
+                            cost: z.number().int().min(0).max(1000).default(0),
                             cooldownMinutes: z.number().int().min(0).max(1440),
                             feeling: feelingSchema,
                             skill: skillGain.optional(),

@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## E4: Dispenser and fridge on every floor (14 Oct 2026)
+Scope: each room's location bar gets a free Dispenser (cool water, hot drink) and a Fridge whose items cost Merit points (juice 3, fruit 3, snack 4, meal box 8). Activities gain an optional `cost` (default 0, editable in Settings > Room activities). The server refuses a costed activity when the person lacks the points, and takes the points when it is finished. Yaba lobby now has a bar too. New test covers free dispenser and refused fridge item.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 561 of 561 (store concurrency test times out only under load; passes alone) |
+| 3 | Validation, authz | **Pass** | cost is validated by schema and checked on the server |
+| 4 | Secrets, audit, security review | **Pass** | no new inputs or routes |
+
+---
+
 ## E3: Admin link on the game screen (14 Oct 2026)
 Scope: a visible Admin button next to the Admin preview chip on the game screen (shown only when the person is an admin; the admin pages still check the role on the server). Types and lint clean; full `npm run qa` was run for E2 on the same code apart from this link.
 
