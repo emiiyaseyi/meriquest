@@ -553,3 +553,6 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .hunt-card { background: linear-gradient(135deg, #efe9ff, #e0ecff); border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .hunt-card.found { background: #e3f5e8; }
 .hunt-clue { margin: 0; font-weight: 700; line-height: 1.35; }
+
+.ac-required { appearance: none; border: 1px solid #f0b3a8; background: #fdeeea; border-radius: 18px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.ac-required:hover { background: #fbe1da; }

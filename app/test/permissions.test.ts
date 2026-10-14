@@ -19,7 +19,7 @@ describe("roles and areas", () => {
   });
 
   it("limits the learning team to learning areas and reviewers to concerns", () => {
-    expect(AREAS_BY_ROLE.ld).toEqual(["reports", "academy", "announcements", "placements"]);
+    expect(AREAS_BY_ROLE.ld).toEqual(["reports", "academy", "announcements", "placements", "succession"]);
     for (const a of ["settings", "staff", "audit", "concerns"] as const) expect(can("ld", a), a).toBe(false);
     expect(AREAS_BY_ROLE.reviewer).toEqual(["concerns"]);
     for (const a of AREAS.filter((x) => x !== "concerns")) expect(can("reviewer", a), a).toBe(false);

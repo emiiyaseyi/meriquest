@@ -43,6 +43,8 @@ export interface AcademyHome {
   quizSize: number;
   passCorrect: number;
   retryMinutes: number;
+  /** Something this person is required to do, such as the leadership simulator for a line manager. */
+  required: { id: string; title: string; reason: string } | null;
   /** Courses a manager has asked this person to take. */
   assigned: { courseId: string; title: string; due: string | null; note: string; by: string }[];
   /** A class that is running now, if any. */

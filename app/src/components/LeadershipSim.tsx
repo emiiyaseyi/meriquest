@@ -10,7 +10,8 @@ type Ok = Extract<LeadResult, { ok: true }>;
  * The leadership simulator: a short run of people-management decisions. Each choice moves meters such as team morale,
  * delivery, client trust and compliance, and the run is rated at the end. The server decides what each choice does.
  */
-export function LeadershipSim({ onBack }: { onBack: () => void }) {
+export function LeadershipSim({ onBack, kind = "leadership" }: { onBack: () => void; kind?: "leadership" | "clientsim" }) {
+  const client = kind === "clientsim";
   const [view, setView] = useState<LeadView | null>(null);
   const [last, setLast] = useState<Ok | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,11 +19,11 @@ export function LeadershipSim({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     let live = true;
-    void getLeadAction().then((v) => live && setView(v));
+    void getLeadAction(kind).then((v) => live && setView(v));
     return () => {
       live = false;
     };
-  }, []);
+  }, [kind]);
 
   const run = (fn: () => Promise<LeadResult>) =>
     start(async () => {
@@ -42,9 +43,9 @@ export function LeadershipSim({ onBack }: { onBack: () => void }) {
     <>
       <button type="button" className="ac-back" onClick={onBack}>‹ Academy</button>
       <div className="ac-hero">
-        <p className="ac-kicker">LEADERSHIP SIMULATOR</p>
-        <h3>Lead a team through real decisions</h3>
-        <p>Each choice moves your meters. Keep the team, the work, your clients and the rules in balance. There is rarely a perfect answer, but there is usually a better one.</p>
+        <p className="ac-kicker">{client ? "CLIENT SIMULATION" : "LEADERSHIP SIMULATOR"}</p>
+        <h3>{client ? "Handle real client situations" : "Lead a team through real decisions"}</h3>
+        <p>{client ? "Each choice moves your meters: client trust, compliance, revenue and risk control. Cases are drawn for your unit. There is rarely a perfect answer, but there is usually a better one." : "Each choice moves your meters. Keep the team, the work, your clients and the rules in balance. There is rarely a perfect answer, but there is usually a better one."}</p>
         {view ? <span className="ac-pill">Runs today: {view.today.count}/{view.today.max}</span> : null}
       </div>
       {error ? <p role="alert" className="msg msg-error">{error}</p> : null}
@@ -88,12 +89,12 @@ export function LeadershipSim({ onBack }: { onBack: () => void }) {
           <p className="ac-notes">{view.run.scenario.story}</p>
           <div className="stack" style={{ gap: 8 }}>
             {view.run.scenario.choices.map((c, i) => (
-              <button key={i} type="button" className="ac-opt" disabled={busy} onClick={() => run(() => answerLeadAction(i))}>{c}</button>
+              <button key={i} type="button" className="ac-opt" disabled={busy} onClick={() => run(() => answerLeadAction(i, kind))}>{c}</button>
             ))}
           </div>
         </div>
       ) : view ? (
-        <button type="button" className="primary-wide" disabled={busy || view.today.count >= view.today.max} onClick={() => { setLast(null); run(startLeadAction); }}>
+        <button type="button" className="primary-wide" disabled={busy || view.today.count >= view.today.max} onClick={() => { setLast(null); run(() => startLeadAction(kind)); }}>
           {view.today.count >= view.today.max ? "Come back tomorrow" : last?.finished ? "Start another run" : "Start a run"}
         </button>
       ) : null}

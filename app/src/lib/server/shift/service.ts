@@ -6,6 +6,7 @@ import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { notify } from "../notices/service";
 import { recordEvent } from "../game/missions";
 import { dayKey } from "@/lib/game";
+import { withStats } from "@/lib/stats";
 import { choiceOrder, drawTasks, opensAt, shiftPay, type ShiftRecord, type ShiftSettings, type ShiftTaskDef, type Verdict } from "@/lib/shift";
 
 type Cfg = Awaited<ReturnType<typeof getConfig<"shifts">>>;
@@ -136,7 +137,8 @@ export async function finishShift(user: Pick<UserDTO, "staffId">, now: number = 
       const skill = byId.get(id)?.skill;
       if (skill && rec.answers[id]?.verdict === "best") skillXp[skill] = (skillXp[skill] ?? 0) + cfg.settings.skillXpBest;
     }
-    return { next: { shift: undefined, points: p.points + pay.points, skillXp }, message: `Shift complete. You earned ${pay.points} Merit points (${pay.best} of ${rec.taskIds.length} handled the best way).` };
+    const st = withStats(p.stats);
+    return { next: { shift: undefined, points: p.points + pay.points, skillXp, stats: { ...st, shifts: st.shifts + 1, shiftPoints: st.shiftPoints + pay.points } }, message: `Shift complete. You earned ${pay.points} Merit points (${pay.best} of ${rec.taskIds.length} handled the best way).` };
   });
   if (r.ok) {
     await notify(user.staffId, { icon: "💼", text: r.message, tone: "good" }, now);

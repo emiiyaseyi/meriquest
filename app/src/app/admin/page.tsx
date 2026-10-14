@@ -40,6 +40,12 @@ export default async function AdminHome() {
             <p className="muted">See each person&apos;s starting path, override it, or switch retakes on and off.</p>
           </Link>
         ) : null}
+        {can(user.role, "succession") ? (
+          <Link href="/admin/succession" className="card">
+            <h2>Succession</h2>
+            <p className="muted">Who could step into each line manager&apos;s role, and how soon. Also who still owes the leadership simulator.</p>
+          </Link>
+        ) : null}
         {can(user.role, "academy") ? (
           <Link href="/admin/academy" className="card">
             <h2>Academy</h2>

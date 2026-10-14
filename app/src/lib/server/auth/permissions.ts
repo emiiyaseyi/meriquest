@@ -8,13 +8,13 @@ import type { Role } from "../types";
  *   reviewer conduct concerns only
  *   manager  no admin area (managers use the My team screen)
  */
-export type Area = "settings" | "staff" | "placements" | "reports" | "academy" | "announcements" | "concerns" | "audit";
+export type Area = "settings" | "staff" | "placements" | "reports" | "academy" | "announcements" | "concerns" | "audit" | "succession";
 
-export const AREAS: readonly Area[] = ["settings", "staff", "placements", "reports", "academy", "announcements", "concerns", "audit"];
+export const AREAS: readonly Area[] = ["settings", "staff", "placements", "reports", "academy", "announcements", "concerns", "audit", "succession"];
 
 export const AREAS_BY_ROLE: Record<Role, readonly Area[]> = {
   admin: AREAS,
-  ld: ["reports", "academy", "announcements", "placements"],
+  ld: ["reports", "academy", "announcements", "placements", "succession"],
   reviewer: ["concerns"],
   manager: [],
   player: [],

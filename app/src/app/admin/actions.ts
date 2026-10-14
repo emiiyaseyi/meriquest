@@ -1,5 +1,6 @@
 "use server";
 
+import { nominate, removeNomination } from "@/lib/server/succession/service";
 import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/server/auth/dal";
 import {
@@ -168,4 +169,18 @@ export async function restoreBuiltInsAction(): Promise<AdminFormState> {
   const { added } = await restoreBuiltIns(admin);
   revalidatePath("/admin/academy");
   return { ok: added.length === 0 ? "Nothing was missing." : `Added ${added.length} built-in course${added.length === 1 ? "" : "s"}.` };
+}
+
+export async function nominateAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireArea("succession");
+  const r = await nominate(admin, fd.get("incumbent"), fd.get("successor"), fd.get("readiness"), fd.get("note"));
+  revalidatePath("/admin/succession");
+  return r.ok ? { ok: "Added." } : { error: r.error };
+}
+
+export async function removeNominationAction(_p: AdminFormState, fd: FormData): Promise<AdminFormState> {
+  const admin = await requireArea("succession");
+  const r = await removeNomination(admin, fd.get("id"));
+  revalidatePath("/admin/succession");
+  return r.ok ? { ok: "Removed." } : { error: r.error };
 }

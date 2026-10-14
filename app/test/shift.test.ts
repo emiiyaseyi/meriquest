@@ -83,6 +83,7 @@ describe("work shifts", () => {
     const after = await getOrCreatePlayer(me, end);
     expect(after.points - before).toBe(3 * 4 + 5);
     expect(after.shift).toBeUndefined();
+    expect(after.stats).toMatchObject({ shifts: 1, shiftPoints: 17 });
     expect((await getShift(me, end)).active).toBeNull();
   });
 

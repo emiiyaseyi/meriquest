@@ -9,6 +9,7 @@ import { LeadershipSim } from "@/components/LeadershipSim";
 type View =
   | { kind: "home" }
   | { kind: "lead" }
+  | { kind: "sim" }
   | { kind: "course"; id: string }
   | { kind: "notes"; course: string; lesson: string }
   | { kind: "quiz"; course: string; lesson: string }
@@ -137,6 +138,7 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
 
   /* ------------------------------------- home ------------------------------------- */
   if (view.kind === "lead") return wrap(<LeadershipSim onBack={() => go({ kind: "home" })} />);
+  if (view.kind === "sim") return wrap(<LeadershipSim kind="clientsim" onBack={() => go({ kind: "home" })} />);
 
   if (view.kind === "home") {
     const byGroup = home ? [...home.groups.map((g) => ({ ...g, courses: home.courses.filter((c) => c.group === g.id) })), { id: "", label: "More courses", icon: "📚", courses: home.courses.filter((c) => !home.groups.some((g) => g.id === c.group)) }].filter((g) => g.courses.length > 0) : [];
@@ -157,6 +159,12 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
         ) : null}
         {err}
         {!home ? <p className="phone-note">Loading…</p> : null}
+        {home?.required ? (
+          <button type="button" className="ac-required" onClick={() => go({ kind: "lead" })}>
+            <strong>⚠️ Required: {home.required.title}</strong>
+            <span className="muted small">{home.required.reason} Start it now.</span>
+          </button>
+        ) : null}
         {home && home.assigned.length > 0 ? (
           <div className="ac-assigned" role="region" aria-label="Assigned to you">
             <strong>📌 Assigned to you</strong>
@@ -168,6 +176,10 @@ export function AcademyApp({ onBack, embedded = false }: { onBack?: () => void; 
             ))}
           </div>
         ) : null}
+        <button type="button" className="ac-lead-card" onClick={() => go({ kind: "sim" })}>
+          <span className="ac-icon" aria-hidden="true">💼</span>
+          <span><strong>Client simulation</strong><span className="muted small"> Handle client cases for your unit and see what your choices do to trust, compliance, revenue and risk</span></span>
+        </button>
         <button type="button" className="ac-lead-card" onClick={() => go({ kind: "lead" })}>
           <span className="ac-icon" aria-hidden="true">🧭</span>
           <span><strong>Leadership simulator</strong><span className="muted small"> Make people-management decisions and see what they do to your team, delivery, clients and compliance</span></span>

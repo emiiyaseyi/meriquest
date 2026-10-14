@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## P1: Reports gaps, succession planning and client simulation (14 Oct 2026)
+Scope: priority items 13, 7 and 6. (13) Reports now include play minutes, shifts finished and leadership runs per person (also in the CSV), from running totals kept on each record. (7) Succession: Admin > Succession (admins and the learning team) lists each line manager's role, named successors with how soon they could be ready, suggestions from the same unit with at least 3 years' service ranked by leadership results, certificates and lessons, and who still owes the leadership simulator; line managers see a "Required" banner in the Academy until they have done it within the refresh period (180 days by default; settings). (6) Client simulation: the leadership engine now serves two simulators; the client simulation deals each person cases for their unit (Customer Experience, Wealth Advisory, Investment Advisory, plus ones for everyone) with meters for client trust, compliance, revenue and risk control; admin-editable under Settings.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 508 tests: totals, succession rules and access, mandatory simulator, client cases dealt by unit, separate totals |
+| 3 | Authorisation | **Pass** | Succession is its own admin area (admin and learning team only), checked on the page, the actions and in the service |
+| 4 | Input validation | **Pass** | Nomination role, person, readiness and note validated; successor tenure enforced; settings checked by strict schemas |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: succession and the client simulation are covered by tests but not yet driven in a browser; the client cases are drafts for the business owners to review.
+
+---
+
 ## M8: Daily clue and leadership simulator browser check (13-14 Oct 2026)
 Scope: the daily clue from the reference "Daily gem hunt", adapted: a riddle on the Goals tab that points to a room in the building; arriving in that room pays Merit points once (more if found within the first minutes after the clue is first shown). Same clue all day, different each day; the room is never sent to the browser before it is found; clues, points and the fast window are admin settings. Also: the leadership simulator was driven in a browser (start a run, decisions change the meters).
 

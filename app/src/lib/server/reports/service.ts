@@ -4,6 +4,7 @@ import { getConfig } from "../config/registry";
 import { listCourseMeta } from "../academy/content";
 import { levelFor } from "@/lib/world/player";
 import type { Streak } from "@/lib/game";
+import { withStats, type PersonStats } from "@/lib/stats";
 import type { UserRecord } from "../types";
 
 /** The parts of the stored records the reports read. */
@@ -12,6 +13,11 @@ interface PlayerDoc {
   points?: number;
   streak?: Streak;
   updatedAt?: number;
+  stats?: Partial<PersonStats>;
+}
+interface PlayDoc {
+  staffId: string;
+  seconds?: number;
 }
 interface LearningDoc {
   staffId: string;
@@ -35,6 +41,11 @@ export interface PersonRow {
   coursesStarted: number;
   certificates: number;
   lastSeen: number | null;
+  /** Minutes played in the game, all time. */
+  playMinutes: number;
+  shifts: number;
+  leadRuns: number;
+  leadLast: string;
 }
 
 export interface UnitRow {
@@ -71,7 +82,9 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 /** Progress and engagement for everyone, built from what is already stored. Admin-only: the caller checks the role. */
 export async function buildReport(now: number = Date.now()): Promise<Report> {
   const store = getStore();
-  const [users, players, learning, courses, levels] = await Promise.all([store.list<UserRecord>("users"), store.list<PlayerDoc>("players"), store.list<LearningDoc>("learning"), listCourseMeta(), getConfig("levels")]);
+  const [users, players, learning, courses, levels, playtime] = await Promise.all([store.list<UserRecord>("users"), store.list<PlayerDoc>("players"), store.list<LearningDoc>("learning"), listCourseMeta(), getConfig("levels"), store.list<PlayDoc>("playtime")]);
+  const playSeconds = new Map<string, number>();
+  for (const d of playtime) playSeconds.set(d.staffId, (playSeconds.get(d.staffId) ?? 0) + (Number.isFinite(d.seconds) ? (d.seconds as number) : 0));
   const playerBy = new Map(players.map((p) => [p.staffId, p]));
   const learnBy = new Map(learning.map((l) => [l.staffId, l]));
   const lessonCount = new Map(courses.map((c) => [c.id, c.lessonIds.length]));
@@ -108,6 +121,10 @@ export async function buildReport(now: number = Date.now()): Promise<Report> {
         coursesStarted: started,
         certificates: (l?.certificates ?? []).filter((c) => lessonCount.has(c.courseId)).length,
         lastSeen: seen > 0 ? seen : null,
+        playMinutes: Math.round((playSeconds.get(u.staffId) ?? 0) / 60),
+        shifts: withStats(p?.stats).shifts,
+        leadRuns: withStats(p?.stats).leadRuns,
+        leadLast: withStats(p?.stats).leadLast ?? "",
       };
     })
     .sort((a, b) => a.staffId.localeCompare(b.staffId));
@@ -165,7 +182,7 @@ export function csvCell(v: string | number | null): string {
 }
 
 export function reportCsv(r: Report): string {
-  const head = ["Staff ID", "Name", "Unit", "Title", "Role", "Status", "Merit points", "Career level", "Streak", "Best streak", "Lessons passed", "Lessons passed at Hard", "Courses started", "Certificates", "Last seen"];
-  const rows = r.people.map((p) => [p.staffId, p.name, p.unit, p.title, p.role, p.status, p.points, p.level, p.streak, p.bestStreak, p.lessonsPassed, p.hardLessons, p.coursesStarted, p.certificates, p.lastSeen ? new Date(p.lastSeen).toISOString() : ""]);
+  const head = ["Staff ID", "Name", "Unit", "Title", "Role", "Status", "Merit points", "Career level", "Streak", "Best streak", "Lessons passed", "Lessons passed at Hard", "Courses started", "Certificates", "Play minutes", "Shifts finished", "Leadership runs", "Latest leadership rating", "Last seen"];
+  const rows = r.people.map((p) => [p.staffId, p.name, p.unit, p.title, p.role, p.status, p.points, p.level, p.streak, p.bestStreak, p.lessonsPassed, p.hardLessons, p.coursesStarted, p.certificates, p.playMinutes, p.shifts, p.leadRuns, p.leadLast, p.lastSeen ? new Date(p.lastSeen).toISOString() : ""]);
   return [head, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }

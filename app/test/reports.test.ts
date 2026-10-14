@@ -45,6 +45,16 @@ describe("progress report", () => {
     expect(r.units.reduce((n, u) => n + u.people, 0)).toBe(r.people.length);
   });
 
+  it("adds play time, shifts and leadership runs per person", async () => {
+    await getOrCreatePlayer({ staffId: "MS1002" }, NOW);
+    await getStore().update("players", "MS1002", (cur) => ({ ...(cur as object), stats: { shifts: 3, shiftPoints: 30, leadRuns: 2, leadGreat: 1, leadGood: 0, leadLast: "great", simRuns: 0, simGreat: 0 } }) as never);
+    await getStore().put("playtime", "MS1002:2026-10-13", { staffId: "MS1002", date: "2026-10-13", seconds: 1800 });
+    await getStore().put("playtime", "MS1002:2026-10-14", { staffId: "MS1002", date: "2026-10-14", seconds: 600 });
+    const r = await buildReport(NOW);
+    expect(r.people.find((p) => p.staffId === "MS1002")).toMatchObject({ playMinutes: 40, shifts: 3, leadRuns: 2, leadLast: "great" });
+    expect(reportCsv(r)).toContain("Play minutes");
+  });
+
   it("exports one row per person under a header, and never includes passwords", async () => {
     const r = await buildReport(NOW);
     const csv = reportCsv(r);

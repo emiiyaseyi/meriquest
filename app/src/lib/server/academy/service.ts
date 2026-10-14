@@ -10,6 +10,7 @@ import { applyEffects, dayKey } from "@/lib/game";
 import { hashString, seeded } from "@/lib/iso/geometry";
 import { parseVideo } from "@/lib/academy-video";
 import { listMyAssignments } from "../manager/service";
+import { requiredFor } from "../leadership/service";
 import { getCourseDoc, listCourseMeta, type CourseDoc, type CourseMeta } from "./content";
 import type { AcademyHome, AcademyResult, CaseView, CourseCard, CourseView, Level, LessonNotes, LessonRow, QuizResult, QuizSet, ScenarioOutcome, ScenarioPlay, ScenarioRow } from "@/lib/academy";
 
@@ -171,7 +172,7 @@ function card(c: CardSource, p: CourseProgress | undefined, rec: LearningRecord,
   };
 }
 
-export async function getAcademy(user: Pick<UserDTO, "staffId" | "unit">, now: number = Date.now()): Promise<AcademyHome> {
+export async function getAcademy(user: Pick<UserDTO, "staffId" | "unit"> & Partial<Pick<UserDTO, "isLineManager">>, now: number = Date.now()): Promise<AcademyHome> {
   const { rec, academy } = await load(user, now);
   const metas = await listCourseMeta();
   let attending: AcademyHome["attending"] = null;
@@ -200,6 +201,7 @@ export async function getAcademy(user: Pick<UserDTO, "staffId" | "unit">, now: n
     passCorrect: academy.settings.passCorrect,
     retryMinutes: academy.settings.retryMinutes,
     attending,
+    required: await requiredFor(user, now),
     assigned: (await listMyAssignments(user.staffId)).filter((a) => !(rec.certificates ?? []).some((c) => c.courseId === a.courseId)),
   };
 }

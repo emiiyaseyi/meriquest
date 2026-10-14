@@ -9,6 +9,7 @@ import { cleanProgress, type StoredFeeling } from "@/lib/game";
 import type { DecorState } from "@/lib/decor";
 import type { ShiftRecord } from "@/lib/shift";
 import type { Streak } from "@/lib/game";
+import type { PersonStats } from "@/lib/stats";
 import { floorBlock } from "@/lib/world/access";
 import { getConfig } from "../config/registry";
 import { recordEvent } from "../game/missions";
@@ -42,6 +43,10 @@ export interface PlayerRecord {
   shiftDay?: { day: string; count: number };
   /** The leadership simulator: runs started today, and the run in progress. */
   lead?: { day: string; count: number; run?: { ids: string[]; idx: number; meters: Record<string, number>; seed: number } };
+  /** The same for the client simulation. */
+  sim?: { day: string; count: number; run?: { ids: string[]; idx: number; meters: Record<string, number>; seed: number } };
+  /** Running totals for reports: shifts finished and the leadership simulator. */
+  stats?: PersonStats;
   /** Today's clue: when it was first shown and whether it has been found. */
   hunt?: { day: string; shownAt: number; found: boolean };
   /** Days in a row the person has checked in. */

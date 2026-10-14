@@ -58,6 +58,9 @@ describe("leadership simulator run", () => {
     expect(last?.ok && last.finished?.points).toBeGreaterThan(0);
     const after = (await getOrCreatePlayer(me, NOW)).points;
     expect(after - before).toBe(last?.ok && last.finished ? last.finished.points : -1);
+    const st = (await getOrCreatePlayer(me, NOW)).stats;
+    expect(st?.leadRuns).toBe(1);
+    expect(st?.leadLast).toBe(last?.ok && last.finished ? last.finished.rating : "none");
     expect((await getLead(me, NOW)).run).toBeNull();
     expect((await answerLead(me, 0, NOW)).ok).toBe(false); // nothing left to answer
   });
@@ -71,5 +74,43 @@ describe("leadership simulator run", () => {
     for (let r = 0; r < DEFAULT_LEADERSHIP.settings.rounds; r++) await answerLead(me, 0, NOW + 1000);
     expect((await startLead(me, NOW + 2000)).ok).toBe(false);
     expect((await startLead(me, NOW + 24 * 3_600_000)).ok).toBe(true);
+  });
+});
+
+describe("client simulation", () => {
+  beforeEach(async () => {
+    await freshWorld();
+  });
+
+  it("ships valid cases, with a good number for every pilot unit", async () => {
+    const { clientSimSchema } = await import("@/lib/server/config/definitions");
+    const { DEFAULT_CLIENTSIM } = await import("@/lib/server/config/clientsim-content");
+    expect(clientSimSchema.safeParse(DEFAULT_CLIENTSIM).success).toBe(true);
+    for (const u of ["cx", "wealth", "invest"]) {
+      expect(DEFAULT_CLIENTSIM.scenarios.filter((s) => s.units.includes(u)).length, u).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it("deals a person only cases for their unit and for everyone", async () => {
+    const { startSim, answerSim } = await import("@/lib/server/leadership/service");
+    const { DEFAULT_CLIENTSIM } = await import("@/lib/server/config/clientsim-content");
+    const ids = new Map(DEFAULT_CLIENTSIM.scenarios.map((s) => [s.id, s.units]));
+    const seen = new Set<string>();
+    const r = await startSim({ staffId: "MS1001", unit: "wealth" }, "clientsim", NOW);
+    expect(r.ok).toBe(true);
+    let view = r.ok ? r.view : null;
+    for (let i = 0; i < DEFAULT_CLIENTSIM.settings.rounds && view?.run; i++) {
+      seen.add(view.run.scenario.id);
+      const a = await answerSim({ staffId: "MS1001" }, "clientsim", 0, NOW);
+      view = a.ok ? a.view : null;
+    }
+    expect(seen.size).toBeGreaterThan(0);
+    for (const id of seen) {
+      const units = ids.get(id) ?? [];
+      expect(units.includes("wealth") || units.includes("*"), id).toBe(true);
+    }
+    const st = (await getOrCreatePlayer(me, NOW)).stats;
+    expect(st?.simRuns).toBe(1);
+    expect(st?.leadRuns).toBe(0); // the leadership totals are separate
   });
 });

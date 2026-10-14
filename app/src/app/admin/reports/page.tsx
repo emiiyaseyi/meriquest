@@ -68,9 +68,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <button type="submit" className="btn btn-ghost">Filter</button>
         </form>
         <table>
-          <thead><tr><th>Person</th><th>Unit</th><th>Points</th><th>Level</th><th>Streak</th><th>Lessons passed</th><th>Certificates</th><th>Last seen</th></tr></thead>
+          <thead><tr><th>Person</th><th>Unit</th><th>Points</th><th>Level</th><th>Streak</th><th>Lessons passed</th><th>Certificates</th><th>Play time</th><th>Shifts</th><th>Leadership</th><th>Last seen</th></tr></thead>
           <tbody>
-            {people.length === 0 ? <tr><td colSpan={8} className="muted">No one matches.</td></tr> : null}
+            {people.length === 0 ? <tr><td colSpan={11} className="muted">No one matches.</td></tr> : null}
             {people.map((p) => (
               <tr key={p.staffId}>
                 <td><strong>{p.name}</strong><br /><span className="muted">{p.staffId} · {p.title}</span></td>
@@ -80,6 +80,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td>{p.streak}{p.bestStreak > p.streak ? <span className="muted"> (best {p.bestStreak})</span> : null}</td>
                 <td>{p.lessonsPassed}{p.hardLessons > 0 ? <span className="muted"> ({p.hardLessons} at Hard)</span> : null}</td>
                 <td>{p.certificates}</td>
+                <td>{p.playMinutes} min</td>
+                <td>{p.shifts}</td>
+                <td>{p.leadRuns > 0 ? `${p.leadRuns} run${p.leadRuns === 1 ? "" : "s"}, latest ${p.leadLast}` : "-"}</td>
                 <td>{day(p.lastSeen)}</td>
               </tr>
             ))}

@@ -6,6 +6,7 @@ import { DEFAULT_SHIFTS } from "./shift-content";
 import { DEFAULT_LOCATIONS } from "./location-content";
 import { DEFAULT_LEADERSHIP } from "./leadership-content";
 import { DEFAULT_HUNT } from "./hunt-content";
+import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 
 /**
@@ -737,7 +738,8 @@ export const locationsSchema = z
   })
   .strict();
 
-export const leadershipSchema = z
+function makeSimSchema(withUnits: boolean) {
+  return z
   .object({
     settings: z
       .object({
@@ -753,6 +755,10 @@ export const leadershipSchema = z
         goodAverage: z.number().int().min(1).max(100),
         /** No meter may end below this for a good run. */
         floor: z.number().int().min(0).max(100),
+        /** Line managers must finish a run at least this often (in days). 0 switches the requirement off. */
+        leadershipRefreshDays: z.number().int().min(0).max(1000).default(180),
+        /** Years at Meristem a person needs before they can be named as a successor. */
+        successionMinTenure: z.number().min(0).max(40).default(3),
       })
       .strict(),
     meters: z.array(z.object({ id: slug, label: z.string().min(1).max(24), icon: z.string().min(1).max(8) }).strict()).min(1).max(8),
@@ -763,6 +769,8 @@ export const leadershipSchema = z
             id: slug,
             title: z.string().min(1).max(80),
             story: z.string().min(1).max(500),
+            /** Units this case is for (used by the client simulation); * means everyone. */
+            ...(withUnits ? { units: z.array(z.string().min(1).max(30)).min(1).max(10).default(["*"]) } : {}),
             choices: z
               .array(
                 z
@@ -786,6 +794,10 @@ export const leadershipSchema = z
   .strict()
   .refine((d) => d.scenarios.every((s) => s.choices.every((c) => Object.keys(c.effects).every((k) => d.meters.some((m) => m.id === k)))), "A choice changes a meter that is not in the list")
   .refine((d) => d.settings.goodAverage <= d.settings.greatAverage, "The good average cannot be above the great average");
+}
+
+export const leadershipSchema = makeSimSchema(false);
+export const clientSimSchema = makeSimSchema(true);
 
 export const huntSchema = z
   .object({
@@ -1065,6 +1077,13 @@ export const CONFIG = {
     description: "The daily clue: a riddle that points to a room. Finding the room earns Merit points, more if found within the first minutes after the clue is shown. Each person gets the same clue all day and a different one each day.",
     schema: huntSchema,
     default: DEFAULT_HUNT,
+  },
+  clientsim: {
+    label: "Client simulation",
+    group: "Content",
+    description: "Client cases for Customer Experience, Wealth Advisory and Investment Advisory (use * for everyone): the meters, the cases with the units they are for, what each choice does, how a run is rated and the Merit points.",
+    schema: clientSimSchema,
+    default: DEFAULT_CLIENTSIM,
   },
   floors: {
     label: "Floor access",

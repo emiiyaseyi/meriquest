@@ -3,7 +3,7 @@ type Fx = Record<string, number>;
 const c = (text: string, effects: Fx, feedback: string) => ({ text, effects, feedback });
 
 export const DEFAULT_LEADERSHIP = {
-  settings: { rounds: 5, startMeter: 55, runsPerDay: 2, pointsGreat: 12, pointsGood: 7, pointsLearning: 2, greatAverage: 70, goodAverage: 58, floor: 35 },
+  settings: { rounds: 5, startMeter: 55, runsPerDay: 2, pointsGreat: 12, pointsGood: 7, pointsLearning: 2, greatAverage: 70, goodAverage: 58, floor: 35, leadershipRefreshDays: 180, successionMinTenure: 3 },
   meters: [
     { id: "morale", label: "Team morale", icon: "😊" },
     { id: "delivery", label: "Delivery", icon: "📦" },
