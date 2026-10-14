@@ -628,3 +628,16 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .kudos-card small { display: block; color: #8a958e; }
 .role-card { display: flex; flex-direction: column; padding: 12px; border-radius: 14px; background: #eaf3ee; }
 .chat-note.ok { color: #1f5a3a; }
+
+/* Market and portfolio */
+.market-state { display: flex; flex-direction: column; padding: 10px 12px; border-radius: 12px; background: #eaf3ee; }
+.market-state small { color: #5b6b61; }
+.quote { align-items: center; }
+.quote-price { margin-left: auto; text-align: right; display: flex; flex-direction: column; }
+.chg.up { color: #1f7a45; }
+.chg.down { color: #b53a2b; }
+.chg.flat { color: #5b6b61; }
+.trade-sheet { position: sticky; bottom: -14px; z-index: 5; margin: 0 -14px -22px; background: #fff; border-radius: 18px 18px 0 0; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18); max-height: 80%; overflow: auto; }
+.trade-head { display: flex; justify-content: space-between; align-items: center; }
+.trade-price, .trade-total { margin: 0; }
+.trade-label { font-size: 12px; color: #5b6b61; }

@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C2: Practice market and My Portfolio (14 Oct 2026)
+Scope: second "Coming soon" build (work apps: Market and My Portfolio). Owner decisions: each person starts with practice cash by growth level (1,000,000 / 5,000,000 / 10,000,000, set in Settings > Practice market), separate from Merit points; prices move by admin-scheduled market states (calm, rally, sell-off, rate shock) and a calendar. **Market**: 14 fictional instruments (shares, bonds, bills, money market, funds), prices worked out from the clock and market state so everyone sees the same price, today's change, a restricted share the Group "advises on". **My Portfolio**: cash, holdings, profit or loss, recent trades. Trading rules teach personal dealing: restricted list (cannot buy), holding period before a sale (30 minutes by default), daily trade limit, fee on every trade. The server sets the price and checks cash, holdings and limits inside one atomic update of the person's portfolio. Trades are allowed only when Work First allows world play. New route `/api/me/market` (own data), action `tradeAction` (re-checks the user), audit entry per trade, mission "Make a practice trade". 9 new tests (578 total), including two simultaneous buys that cannot spend the same cash twice.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 578 of 578 |
+| 3 | Input validation | **Pass** | side, id and units strictly checked (whole number 1 to 1,000,000); price never taken from the browser |
+| 4 | Authz, sessions, economy tampering | **Pass** | signed-in only; own portfolio only; atomic cash and holdings update; no Merit points involved |
+| 5 | Secrets, audit, security review | **Pass** | no secrets; trades audited |
+
+Not yet checked in a browser (types, lint and service tests only). Practice prices and names are fictional; no live data (RULEBOOK §3).
+
+---
+
 ## C1: Work Phone people apps: Directory, Kudos, My Role (14 Oct 2026)
 Scope: first of the "Coming soon" builds. **Directory** (search active colleagues by name, title or unit; shows name, title and unit only, never email; message or send kudos). **Kudos** (thank a colleague with an admin-set kind and an optional note that passes the chat word filter and blocks links; the giver pays nothing, so no points are transferred, in line with RULEBOOK §2.11; the game awards the receiver a small admin-set amount up to a daily cap; limits per day and one per colleague per day, enforced in one atomic update; notice to the receiver; audit entry). **My Role** (own title, unit, tenure, skill levels and unit courses still to do). New settings "Kudos" under Settings > Gameplay, new mission "Thank a colleague". New read route `/api/me/people` (signed-in, own and directory data only) and server action `giveKudosAction` (re-checks the user). 7 new tests (569 total).
 

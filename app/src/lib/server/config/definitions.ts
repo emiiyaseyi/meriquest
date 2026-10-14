@@ -8,6 +8,7 @@ import { DEFAULT_LEADERSHIP } from "./leadership-content";
 import { DEFAULT_HUNT } from "./hunt-content";
 import { DEFAULT_CHAT } from "./chat-content";
 import { DEFAULT_KUDOS } from "./kudos-content";
+import { DEFAULT_MARKET } from "./market-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 import { DECOR_MODELS } from "@/lib/world/types";
@@ -890,6 +891,50 @@ export const kudosSchema = z
   })
   .strict();
 
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "a date like 2026-10-19");
+
+export const marketSchema = z
+  .object({
+    settings: z
+      .object({
+        startBands: z.array(z.object({ fromLevel: z.number().int().min(0).max(20), cash: z.number().min(0).max(1_000_000_000) }).strict()).min(1).max(8),
+        feePct: z.number().min(0).max(10),
+        tradesPerDay: z.number().int().min(1).max(200),
+        holdingMinutes: z.number().int().min(0).max(10_080),
+        tickMinutes: z.number().int().min(5).max(240),
+        windowTicks: z.number().int().min(8).max(300),
+        defaultState: slug,
+      })
+      .strict(),
+    kinds: z.array(z.object({ id: slug, label: z.string().min(1).max(30), icon: z.string().min(1).max(8) }).strict()).min(1).max(10),
+    instruments: z
+      .array(
+        z
+          .object({
+            id: slug,
+            name: z.string().min(1).max(50),
+            kind: slug,
+            price: z.number().min(0.01).max(1_000_000),
+            volatility: z.number().min(0).max(10),
+            incomePct: z.number().min(-50).max(100),
+            restricted: z.string().max(200).optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(60),
+    states: z
+      .array(z.object({ id: slug, label: z.string().min(1).max(30), icon: z.string().min(1).max(8), drift: z.record(slug, z.number().min(-2).max(2)) }).strict())
+      .min(1)
+      .max(12),
+    schedule: z.array(z.object({ state: slug, from: isoDay, to: isoDay }).strict()).max(100),
+  })
+  .strict()
+  .refine((m) => new Set(m.instruments.map((i) => i.id)).size === m.instruments.length, "Each instrument needs its own id")
+  .refine((m) => m.instruments.every((i) => m.kinds.some((k) => k.id === i.kind)), "An instrument has a kind that is not in the list")
+  .refine((m) => m.states.some((s) => s.id === m.settings.defaultState), "The default state is not in the list of states")
+  .refine((m) => m.schedule.every((s) => m.states.some((x) => x.id === s.state) && s.from <= s.to), "Each planned state must exist and end on or after it starts");
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1045,9 +1090,9 @@ export const CONFIG = {
       { id: "todays-plan", label: "Today's Plan", icon: "🎯", enabled: true, soon: false },
       { id: "directory", label: "Directory", icon: "📇", enabled: true, soon: false },
       { id: "kudos", label: "Kudos", icon: "🌟", enabled: true, soon: false },
-      { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: true },
+      { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: false },
       { id: "clients", label: "Clients", icon: "🤝", enabled: true, soon: true },
-      { id: "market", label: "Market", icon: "🏦", enabled: true, soon: true },
+      { id: "market", label: "Market", icon: "🏦", enabled: true, soon: false },
       { id: "compliance", label: "Compliance Desk", icon: "🛡️", enabled: true, soon: true },
       { id: "reports", label: "Reports", icon: "📊", enabled: true, soon: true },
       { id: "settings", label: "Settings", icon: "⚙️", enabled: true, soon: false },
@@ -1110,6 +1155,7 @@ export const CONFIG = {
         { id: "hydrate-twice", title: "Drink water twice", description: "Stay hydrated through the day.", event: "water", target: 2, rewardPoints: 5 },
         { id: "two-breaks", title: "Take two breaks", description: "Rest twice to stay fresh.", event: "rest", target: 2, rewardPoints: 5 },
         { id: "give-kudos", title: "Thank a colleague", description: "Send kudos to someone who helped you.", event: "kudos", target: 1, rewardPoints: 4 },
+        { id: "first-trade", title: "Make a practice trade", description: "Buy or sell something in the practice market.", event: "trade", target: 1, rewardPoints: 4 },
         { id: "two-coffees", title: "Two coffee chats", description: "Have two coffee chats with colleagues.", event: "coffee", target: 2, rewardPoints: 5 },
         { id: "two-shifts", title: "Two shifts in a day", description: "Finish two work shifts.", event: "shift", target: 2, rewardPoints: 10 },
         { id: "two-clients", title: "Serve two clients", description: "Finish two client simulation runs.", event: "sim", target: 2, rewardPoints: 10 },
@@ -1178,6 +1224,13 @@ export const CONFIG = {
     description: "Colleague chats: the groups people can join (use * for everyone), whether direct messages are on, message length and speed limits, how many reports hide a message, whether links are blocked, and the list of blocked words. Reported messages are reviewed under Admin → Concerns.",
     schema: chatSchema,
     default: DEFAULT_CHAT,
+  },
+  market: {
+    label: "Practice market",
+    group: "Gameplay",
+    description: "The practice market behind Market and My Portfolio: the fictional instruments and their prices, the market states (calm, rally, sell-off, rate shock) and the calendar that plans them, the practice cash people start with by level, trading fees, the daily trade limit and the holding period. All prices are fictional and are never advice.",
+    schema: marketSchema,
+    default: DEFAULT_MARKET,
   },
   kudos: {
     label: "Kudos",
