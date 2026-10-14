@@ -6,6 +6,7 @@ import { getOrCreatePlayer } from "../world/service";
 import { playStatus } from "../workfirst/service";
 import { recordEvent } from "../game/missions";
 import { audit } from "../audit";
+import { hasPreclearance, spendPreclearance } from "../compliance/preclear";
 import { levelFor } from "@/lib/world/player";
 import { dayOf, feeFor, priceAt, startCashFor, stateOn, type MarketInstrument, type MarketRules } from "@/lib/market";
 
@@ -150,6 +151,9 @@ export async function trade(user: Pick<UserDTO, "staffId" | "unit" | "role">, si
   if (!inst) return { ok: false, error: "That is not on the market." };
   if (side === "buy" && inst.restricted) return { ok: false, error: inst.restricted };
   await portfolioOf(user, now);
+  // Personal dealing: when the rule is on, a trade needs an approved, unused pre-clearance from the Compliance Desk
+  const needsClearance = (await getConfig("compliance")).settings.requirePreclearance;
+  if (needsClearance && !(await hasPreclearance(user.staffId, inst.id, side, now))) return { ok: false, error: "Personal dealing rule: you need an approved pre-clearance from the Compliance Desk for this trade first." };
 
   const p = price(inst);
   const gross = Math.round(p * units * 100) / 100;
@@ -191,7 +195,23 @@ export async function trade(user: Pick<UserDTO, "staffId" | "unit" | "role">, si
     return { ...cur, cash: Math.round(cash * 100) / 100, holdings, trades: [{ at: now, side, id: inst.id, name: inst.name, units, price: p, fee } satisfies Trade, ...cur.trades].slice(0, MAX_TRADES_KEPT), day, count: used + 1 };
   });
   if (refusal) return { ok: false, error: refusal };
+  if (needsClearance) await spendPreclearance(user.staffId, inst.id, side, now);
   await audit(user.staffId, "market.trade", inst.id, { side, units }, now);
   await recordEvent(user.staffId, "trade", now);
   return { ok: true, message: `${side === "buy" ? "Bought" : "Sold"} ${units} × ${inst.name} at ${p.toLocaleString("en-NG", { maximumFractionDigits: 2 })}.` };
+}
+
+/** One instrument's current practice price and any restriction, for the Compliance Desk. */
+export async function quoteOf(id: string, now: number): Promise<{ id: string; name: string; price: number; restricted: string | null } | null> {
+  const { cfg, price } = await setup(now);
+  const i = cfg.instruments.find((x) => x.id === id);
+  return i ? { id: i.id, name: i.name, price: price(i), restricted: i.restricted ?? null } : null;
+}
+
+/** Minutes left before a holding can be sold (0 when it can be sold or is not held). */
+export async function holdingMinutesLeft(staffId: string, id: string, now: number): Promise<number> {
+  const [cfg, doc] = await Promise.all([getConfig("market"), getStore().get<PortfolioDoc>("portfolios", staffId)]);
+  const h = doc?.holdings[id];
+  if (!h || cfg.settings.holdingMinutes === 0) return 0;
+  return Math.max(0, Math.ceil((h.boughtAt + cfg.settings.holdingMinutes * 60_000 - now) / 60_000));
 }

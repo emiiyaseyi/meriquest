@@ -10,6 +10,7 @@ import { DEFAULT_CHAT } from "./chat-content";
 import { DEFAULT_KUDOS } from "./kudos-content";
 import { DEFAULT_MARKET } from "./market-content";
 import { DEFAULT_CLIENTS } from "./clients-content";
+import { DEFAULT_COMPLIANCE } from "./compliance-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 import { DECOR_MODELS } from "@/lib/world/types";
@@ -1018,6 +1019,24 @@ export const clientsSchema = z
   .refine((c) => c.clients.every((x) => x.flow.filter((f) => c.steps.find((s) => s.id === f)?.recommend).length <= 1), "A flow can have the recommend step only once")
   .refine((c) => c.clients.every((x) => !x.flow.some((f) => c.steps.find((s) => s.id === f)?.prompt.includes("{ask}")) || x.ask.length > 0), "A client whose flow uses a step with {ask} needs something in 'ask'");
 
+export const complianceSchema = z
+  .object({
+    settings: z
+      .object({
+        requirePreclearance: z.boolean(),
+        preclearHours: z.number().int().min(1).max(720),
+        maxDealValue: z.number().min(0).max(1_000_000_000),
+        giftRecordLimit: z.number().min(0).max(100_000_000),
+        giftDeclineLimit: z.number().min(0).max(100_000_000),
+        keep: z.number().int().min(5).max(200),
+      })
+      .strict(),
+    giftKinds: z.array(z.object({ id: slug, label: z.string().min(1).max(40), icon: z.string().min(1).max(8) }).strict()).min(1).max(12),
+  })
+  .strict()
+  .refine((c) => c.settings.giftRecordLimit <= c.settings.giftDeclineLimit, "The record limit cannot be above the decline limit")
+  .refine((c) => new Set(c.giftKinds.map((k) => k.id)).size === c.giftKinds.length, "Each kind needs its own id");
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1176,8 +1195,8 @@ export const CONFIG = {
       { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: false },
       { id: "clients", label: "Clients", icon: "🤝", enabled: true, soon: false },
       { id: "market", label: "Market", icon: "🏦", enabled: true, soon: false },
-      { id: "compliance", label: "Compliance Desk", icon: "🛡️", enabled: true, soon: true },
-      { id: "reports", label: "Reports", icon: "📊", enabled: true, soon: true },
+      { id: "compliance", label: "Compliance Desk", icon: "🛡️", enabled: true, soon: false },
+      { id: "reports", label: "Reports", icon: "📊", enabled: true, soon: false },
       { id: "settings", label: "Settings", icon: "⚙️", enabled: true, soon: false },
     ],
   },
@@ -1315,6 +1334,13 @@ export const CONFIG = {
     description: "The practice market behind Market and My Portfolio: the fictional instruments and their prices, the market states (calm, rally, sell-off, rate shock) and the calendar that plans them, the practice cash people start with by level, trading fees, the daily trade limit and the holding period. All prices are fictional and are never advice.",
     schema: marketSchema,
     default: DEFAULT_MARKET,
+  },
+  compliance: {
+    label: "Compliance Desk",
+    group: "Compliance",
+    description: "The Compliance Desk app: whether practice trades need a pre-clearance first, how long a pre-clearance lasts, the largest personal deal the desk will approve, the gifts and entertainment limits (record, wait for approval, decline) and the kinds of gift. The restricted shares are set in Practice market, and the regulators in Regulators.",
+    schema: complianceSchema,
+    default: DEFAULT_COMPLIANCE,
   },
   clients: {
     label: "Client Desk",

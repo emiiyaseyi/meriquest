@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C5: Compliance Desk and Reports app (14 Oct 2026)
+Scope: fourth and fifth "Coming soon" builds. **Compliance Desk** (RULEBOOK §2.9): your compliance standing (compliance courses certified, client breaches, turned-down requests, declined offers); **personal-dealing pre-clearance** (the desk answers at once from rules: restricted share, holding period, the largest deal it will approve; an approval lasts a set number of hours and covers one trade); a **gifts and entertainment register** (record and accept up to a limit, wait for approval above it, decline above the upper limit, never accept cash); the restricted list; the regulators. A new setting under Settings > Compliance Desk can **require a pre-clearance before any practice trade** (off by default); the market then refuses a trade without one and uses it up after one trade. **Reports** app: your own progress (level, points, streak, lessons, certificates, shifts, leadership runs, average client rating, kudos, practice portfolio, strongest skills). New routes `/api/me/compliance` and `/api/me/report` (own data only), actions `requestPreclearanceAction` and `declareGiftAction` (re-check the user), audit entries. 10 new tests (602 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean after fixing two lint errors (a function named like a hook, and `Date.now()` during render) |
+| 2 | Tests | **Pass** | 602 of 602 |
+| 3 | Input validation | **Pass** | instrument, side, units, gift kind, value and the "from" text all checked and capped |
+| 4 | Authz, economy tampering | **Pass** | signed-in only; own records only; the desk decides from the rules, never from the browser; a pre-clearance is single-use |
+| 5 | Secrets, audit, security review | **Pass** | no secrets; requests and declarations audited |
+
+Not yet checked in a browser. Admin Reports does not yet show clients served or average rating (open item).
+
+---
+
 ## C4: Client Desk reworked: more clients and different conversations (14 Oct 2026)
 Scope: owner feedback on C3. (1) Clients a day are set **by unit** in Settings > Client Desk: customer experience 10, wealth advisory 15, investment advisory 15, any other unit 10. The library grew to 42 clients so every unit can fill a day. (2) Each client has **their own conversation flow**, so no two kinds feel the same: a short chat (3 steps), the standard 4 steps, **onboarding** (documents, risk profile, account opening with the checker's approval), a **presentation** (prepare, then a hard question), **price and trust objections**, **comparison with a competitor**, **several rounds of convincing**, a complaint-only flow for an upset client, and clients who **ask for something improper** (backdating a form, splitting a cash deposit, a share tip before an announcement, a gift for priority). Each client has a **resistance**: some take longer to convince, and "just looking" clients never invest however well they are served, but the rating still reflects service quality. The result now shows what the client decided (invests, wants time, declines, stays, leaves). Breaches are data-driven (promising returns, doing the improper thing, off-schedule discount, opening before documents, rigged risk profile, bypassing the checker, bluffing). Merit points per client were lowered (3 / 2 / 0, plus 2 when the client invests) because a person now serves 10 to 15 a day; all are editable. Server still scores everything; one atomic update per step. 6 new tests (592 total).
 
