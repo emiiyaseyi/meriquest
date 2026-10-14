@@ -4,6 +4,19 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## E1: Much more content and new mission events (14 Oct 2026)
+Scope: engagement review (docs/ENGAGEMENT.md) and content. Shift situations 21 to 59, room activities (new Wellness nook, Help corner, Information desk, Workspace room), daily clues 8 to 33, leadership cases 7 to 15, client-simulation cases 12 to 24, missions 11 to 32. New mission events (shift, lead, sim, clue, decorate, chat) are counted by the server after the action succeeds; a failure to count never blocks the action. No new inputs, routes or permissions; all content is validated by the existing schemas.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 560 of 560 (one load-related timeout in the store test passes alone) |
+| 3 | Input validation, authz, sessions, headers | **Pass** | unchanged; content only |
+| 4 | Secret scan, `npm audit` | **Pass** | in `npm run qa` |
+| 5 | Security review | **Pass** | no new attack surface |
+
+---
+
 ## P5: Two-step sign-in, instant mission swaps, README and status notes (14 Oct 2026)
 Scope: priority items 15, 10 (part) and 12. (15) Two-step sign-in with an authenticator app (time-based codes, RFC 6238): set up on Account > Two-step sign-in with a key and a first code, ten single-use recovery codes shown once, a code can be used once only, wrong codes count towards the account lock and are rate limited, turning it off needs the password and a current code, an admin can reset it for someone who lost their phone, and a setting (Settings > Sign-in rules) can require it for anyone who opens the admin area. The secret is encrypted with a server key (TOTP_KEY, needed in production). (10) Mission swaps now show their result at once: the server sends the mission a swap would bring and picks the same one. (12) README rewritten; PRD, workplan and the Lagos Life review carry a status note.
 

@@ -2,6 +2,7 @@ import "server-only";
 import { getConfig } from "../config/registry";
 import { getStore } from "../store";
 import { notify } from "../notices/service";
+import { recordEvent } from "../game/missions";
 import type { PlayerRecord } from "../world/service";
 import { dayKey } from "@/lib/game";
 import { hashString } from "@/lib/iso/geometry";
@@ -59,6 +60,7 @@ export async function checkHunt(staffId: string, sceneId: string, now: number): 
       points = now <= h.shownAt + cfg.settings.fastMinutes * 60_000 ? cfg.settings.pointsFast : cfg.settings.pointsLater;
       return { ...cur, points: cur.points + points, hunt: { ...h, found: true }, updatedAt: now };
     });
+    if (points > 0) await recordEvent(staffId, "clue", now);
     if (points > 0) await notify(staffId, { icon: "🧭", text: `You found today's clue. +${points} Merit points.`, tone: "good" }, now);
   } catch {
     // The clue is a bonus: it must never break travelling

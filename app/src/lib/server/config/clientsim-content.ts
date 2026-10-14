@@ -1,4 +1,5 @@
 /** The starting client simulation. Cases are tagged with the units they are for. Admins can edit everything under Settings. All people and amounts are fictional. */
+import { MORE_CLIENT_CASES } from "./sim-content-more";
 type Fx = Record<string, number>;
 const c = (text: string, effects: Fx, feedback: string) => ({ text, effects, feedback });
 const sc = (id: string, units: string[], title: string, story: string, choices: ReturnType<typeof c>[]) => ({ id, units, title, story, choices });
@@ -12,6 +13,7 @@ export const DEFAULT_CLIENTSIM = {
     { id: "risk", label: "Risk control", icon: "⚖️" },
   ],
   scenarios: [
+    ...MORE_CLIENT_CASES,
     sc("cs-cx-delayed", ["cx"], "The client who has waited three days", "Mrs Bello says her redemption has not arrived after three days. She is calm but firm, and has told you she will take her money elsewhere.", [
       c("Apologise, check the status in front of her, tell her exactly when it will arrive, and call her yourself when it does.", { trust: 10, compliance: 3, revenue: 4, risk: 2 }, "Ownership and a clear next step win back trust."),
       c("Tell her the back office handles it and give her their number.", { trust: -8, compliance: 0, revenue: -4, risk: 0 }, "Passing her on breaks the ownership standard."),

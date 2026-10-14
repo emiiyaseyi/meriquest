@@ -7,6 +7,7 @@ import { assertArea } from "../auth/permissions";
 import { rateLimit } from "../auth/ratelimit";
 import { getUser } from "../auth/users";
 import { notify } from "../notices/service";
+import { recordEvent } from "../game/missions";
 import type { UserDTO, UserRecord } from "../types";
 import { CONV_RE, checkMessage, cleanMessage, dmId, groupId, isDm } from "@/lib/chat";
 
@@ -158,6 +159,7 @@ export async function postMessage(user: Pick<UserDTO, "staffId" | "name" | "unit
   const msg: ChatMessage = { id: `${String(now).padStart(15, "0")}-${randomBytes(3).toString("hex")}`, staffId: user.staffId, name: user.name, text: clean, at: now, hidden: false, removed: false, reports: [] };
   await getStore().update<Thread>("chat_threads", conv as string, (cur) => ({ id: conv as string, messages: [...(cur?.messages ?? []), msg].slice(-MAX_KEPT) }));
   if (a.kind === "direct" && a.other) await notify(a.other.staffId, { icon: "💬", text: `${user.name} sent you a message.`, tone: "info" }, now);
+  await recordEvent(user.staffId, "chat", now);
   return { ok: true };
 }
 

@@ -28,7 +28,7 @@ describe("location bar activities", () => {
   it("shows the zones of the room the person is in", async () => {
     await goTo("ikoyi-floor");
     const loc = await getLocation(me, NOW);
-    expect(loc?.zones.map((z) => z.label)).toEqual(["Pantry", "Reading corner", "Team area"]);
+    expect(loc?.zones.map((z) => z.label)).toEqual(["Pantry", "Reading corner", "Team area", "Wellness nook", "Help corner"]);
     expect(loc?.running).toBeNull();
   });
 

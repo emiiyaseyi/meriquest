@@ -4,6 +4,7 @@ import { getStore } from "../store";
 import type { UserDTO } from "../types";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { notify } from "../notices/service";
+import { recordEvent } from "../game/missions";
 import { dayKey } from "@/lib/game";
 import { withStats } from "@/lib/stats";
 import { hashString } from "@/lib/iso/geometry";
@@ -143,6 +144,7 @@ export async function answerSim(user: Pick<UserDTO, "staffId">, kind: SimKind, s
   const p = saved as PlayerRecord;
   if (finished) {
     const f: { rating: Rating; points: number } = finished;
+    await recordEvent(user.staffId, kind === "leadership" ? "lead" : "sim", now);
     await notify(user.staffId, { icon: kind === "leadership" ? "🧭" : "💼", text: `${LABEL[kind]} finished: ${f.rating === "great" ? "great" : f.rating === "good" ? "good" : "a learning run"}. +${f.points} Merit points.`, tone: "good" }, now);
     return { ok: true, view: viewOf(p, cfg, tz, now, kind), feedback, changes, finished: { ...f, meters: cfg.meters.map((m) => ({ id: m.id, label: m.label, icon: m.icon, value: finalMeters[m.id] ?? 0 })) } };
   }

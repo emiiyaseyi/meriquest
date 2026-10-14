@@ -1,4 +1,5 @@
 /** The starting leadership simulator. Admins can edit meters, scenarios and points under Settings. All people are fictional. */
+import { MORE_LEAD_CASES } from "./sim-content-more";
 type Fx = Record<string, number>;
 const c = (text: string, effects: Fx, feedback: string) => ({ text, effects, feedback });
 
@@ -11,6 +12,7 @@ export const DEFAULT_LEADERSHIP = {
     { id: "compliance", label: "Compliance", icon: "🛡️" },
   ],
   scenarios: [
+    ...MORE_LEAD_CASES,
     {
       id: "lead-deadline-clash",
       title: "Two deadlines, one team",

@@ -4,9 +4,12 @@ type Task = { id: string; units: string[]; title: string; story: string; skill?:
 
 const t = (id: string, units: string[], title: string, story: string, skill: string, c: [V, string, string][]): Task => ({ id, units, title, story, skill, choices: c.map(([verdict, text, feedback]) => ({ text, verdict, feedback })) });
 
+import { MORE_SHIFT_TASKS } from "./shift-content-more";
+
 export const DEFAULT_SHIFTS = {
   settings: { minutes: 8, tasksPerShift: 3, shiftsPerDay: 2, pointsBest: 4, pointsPartly: 2, completionBonus: 5, skillXpBest: 2 },
   tasks: [
+    ...MORE_SHIFT_TASKS,
     t("cx-delayed-transfer", ["cx"], "A client is angry about a delayed transfer", "A client walks up to the desk and says his transfer has been pending for two days. People are watching.", "client-care", [
       ["best", "Stay calm, thank him for waiting, take ownership, check the status and tell him exactly when he will hear back.", "Calm ownership and a clear next step settle a client."],
       ["partly", "Offer him water and ask him to wait while you find the right person.", "Hospitality helps, but he needs action and a time."],

@@ -5,6 +5,7 @@ import { getStore } from "../store";
 import { getOrCreatePlayer, type PlayerRecord } from "@/lib/server/world/service";
 import type { UserDTO } from "../types";
 import { canPlace, cleanDecor, cutDecay, decayCuts, firstFree, type DecorItem, type DecorState } from "@/lib/decor";
+import { recordEvent } from "../game/missions";
 import type { Needs } from "@/lib/world/player";
 
 type Cfg = Awaited<ReturnType<typeof getConfig<"decor">>>;
@@ -61,11 +62,18 @@ async function change(user: Pick<UserDTO, "staffId">, now: number, fn: (d: Decor
   return { ok: true, view: viewOf(saved as PlayerRecord, cfg), message };
 }
 
+/** Count a buy or a placing towards today's missions when it worked. */
+async function decorated(user: Pick<UserDTO, "staffId">, now: number, run: Promise<DecorResult>): Promise<DecorResult> {
+  const r = await run;
+  if (r.ok) await recordEvent(user.staffId, "decorate", now);
+  return r;
+}
+
 const newUid = () => randomBytes(4).toString("hex");
 const placedCount = (d: DecorState, id: string) => d.placed.filter((p) => p.item === id).length;
 
 export function buyItem(user: Pick<UserDTO, "staffId">, itemId: string, now: number = Date.now()): Promise<DecorResult> {
-  return change(user, now, (d, p, cfg, byId) => {
+  return decorated(user, now, change(user, now, (d, p, cfg, byId) => {
     const it = byId.get(itemId);
     if (!it) return "That item is not in the catalogue.";
     if (p.points < it.price) return `You need ${it.price} Merit points for the ${it.name}.`;
@@ -81,14 +89,14 @@ export function buyItem(user: Pick<UserDTO, "staffId">, itemId: string, now: num
       }
     }
     return { decor: { ...d, owned, placed }, points: p.points - it.price, message: `You bought the ${it.name}${where}.` };
-  });
+  }));
 }
 
 const turn = (r: unknown): 0 | 1 => (r === 1 ? 1 : 0);
 
 /** Buy an item and put it down in one step, as the placing panel does: a copy already owned is used first, otherwise it is bought. */
 export function buyAndPlace(user: Pick<UserDTO, "staffId">, itemId: string, x: unknown, y: unknown, rot: unknown, now: number = Date.now()): Promise<DecorResult> {
-  return change(user, now, (d, p, cfg, byId) => {
+  return decorated(user, now, change(user, now, (d, p, cfg, byId) => {
     const it = byId.get(itemId);
     if (!it) return "That item is not in the catalogue.";
     if (d.placed.length >= cfg.settings.maxPlaced) return `Your Workspace is full (${cfg.settings.maxPlaced} things).`;
@@ -99,7 +107,7 @@ export function buyAndPlace(user: Pick<UserDTO, "staffId">, itemId: string, x: u
     if (!have && (d.owned[it.id] ?? 0) >= 20) return "You already have plenty of those.";
     const owned = have ? d.owned : { ...d.owned, [it.id]: (d.owned[it.id] ?? 0) + 1 };
     return { decor: { ...d, owned, placed: [...d.placed, { uid: newUid(), item: it.id, x, y, rot: r }] }, points: have ? p.points : p.points - it.price, message: have ? `Placed the ${it.name}.` : `You bought the ${it.name} and placed it.` };
-  });
+  }));
 }
 
 export function placeItem(user: Pick<UserDTO, "staffId">, itemId: string, x: unknown, y: unknown, now: number = Date.now(), rot?: unknown): Promise<DecorResult> {
