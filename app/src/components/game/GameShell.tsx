@@ -15,6 +15,9 @@ import { CityMap, type MapPick } from "./CityMap";
 import { BuyMode, type Ghost } from "./BuyMode";
 import { ShiftHud } from "./ShiftHud";
 import { LocationBar } from "./LocationBar";
+import { TripScreen } from "./TripScreen";
+import { startTripAction } from "@/app/actions/travel";
+import type { TravelOptions, TripView } from "@/lib/server/travel/service";
 import { getMine } from "@/lib/client/api";
 import type { DecorView } from "@/lib/server/decor/service";
 import { WORKSPACE_ID, withDecor } from "@/lib/world/scenes";
@@ -160,6 +163,9 @@ export function GameShell(props: GameShellProps) {
   /** Moves to the server are sent one after another, in the order they were made. */
   const travelQueue = useRef<Promise<void>>(Promise.resolve());
   const decorFetched = useRef(false);
+  const [travel, setTravel] = useState<TravelOptions | null>(null);
+  const [trip, setTrip] = useState<TripView | null>(null);
+  const [tripMode, setTripMode] = useState<string>("");
   const [spot, setSpot] = useState<Hotspot | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -309,6 +315,34 @@ export function GameShell(props: GameShellProps) {
     setMeTab(t);
     setOverlay("me");
   }, []);
+  // The ways of travelling between offices, and a ride that is still going after a refresh
+  useEffect(() => {
+    let live = true;
+    getMine<TravelOptions>("trip")
+      .then((t) => {
+        if (!live) return;
+        setTravel(t);
+        setTrip(t.active);
+        setTripMode((m) => m || (t.modes[0]?.id ?? ""));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  const arrive_ = useCallback(
+    (r: { arrived?: { scene: string; arrive: { x: number; y: number } } }) => {
+      setTrip(null);
+      if (r.arrived) {
+        setSceneId(r.arrived.scene);
+        setArrive(r.arrived.arrive);
+      }
+      setOverlay(null);
+      setMapPick(null);
+      void getMine<GameState>("game").then(setGame).catch(() => undefined);
+    },
+    [],
+  );
   // In My Workspace, show what the person has bought. Fetched on entering the room and again after Buy mode closes.
   useEffect(() => {
     if (overlay === "buy" || (sceneId !== WORKSPACE_ID && decorFetched.current)) return;
@@ -486,7 +520,50 @@ export function GameShell(props: GameShellProps) {
             <div className="me-id"><h2>Yaba office</h2><p>213 Herbert Macaulay Way, Yaba</p></div>
             <button type="button" className="round-btn sm" onClick={() => setMapPick(null)} aria-label="Close">✕</button>
           </header>
-          <div className="me-body"><p className="muted" style={{ margin: 0 }}>The Yaba office opens in a later update.</p></div>
+          <div className="me-body">
+            <div className="stack">
+              {getScene("yaba-lobby")?.building === scene.building ? (
+                <>
+                  <p className="muted" style={{ margin: 0 }}>You are here.</p>
+                  <button type="button" className="primary-wide" onClick={() => setMapPick(null)}>Back to the map</button>
+                </>
+              ) : (
+                <>
+                  <p className="muted" style={{ margin: 0 }}>Travel from {BUILDINGS.find((b) => b.id === scene.building)?.name ?? "here"}. Choose how to go.</p>
+                  <div className="trip-modes" role="radiogroup" aria-label="How to travel">
+                    {(travel?.modes ?? []).map((m) => (
+                      <button key={m.id} type="button" role="radio" aria-checked={tripMode === m.id} className={`trip-mode${tripMode === m.id ? " on" : ""}`} onClick={() => setTripMode(m.id)}>
+                        <span aria-hidden="true">{m.icon}</span> {m.label}
+                        <em>{m.cost === 0 ? "Free" : `${m.cost} pts`}</em>
+                        {m.note ? <small>{m.note}</small> : null}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="primary-wide"
+                    disabled={!tripMode || busy}
+                    onClick={() => {
+                      setBusy(true);
+                      void startTripAction("yaba-lobby", tripMode)
+                        .then((r) => {
+                          if (r.ok && r.trip) {
+                            setTrip(r.trip);
+                            if (typeof r.points === "number") setGame((g) => ({ ...g, points: r.points as number }));
+                            setOverlay(null);
+                            setMapPick(null);
+                          } else if (!r.ok) flash(r.error);
+                        })
+                        .catch(() => flash("Could not start the ride just now."))
+                        .finally(() => setBusy(false));
+                    }}
+                  >
+                    Go to Yaba office
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -630,6 +707,8 @@ export function GameShell(props: GameShellProps) {
       ) : null}
 
       {overlay === "keys" ? <Shortcuts onClose={() => setOverlay(null)} /> : null}
+
+      {trip ? <TripScreen trip={trip} skipAllowed={travel?.skipAllowed ?? true} turnBackAllowed={travel?.turnBackAllowed ?? true} onArrive={arrive_} onError={flash} /> : null}
 
       {overlay === "map" && academyCard ? (
         <div className="me-panel person-card" role="dialog" aria-label={terms.academy}>

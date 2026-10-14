@@ -25,6 +25,13 @@ export const BUILDINGS: Building[] = [
       { id: "ground", label: "Ground floor" },
     ],
   },
+  {
+    id: "yaba-office",
+    name: "Yaba office",
+    city: "Lagos",
+    // 213 Herbert Macaulay Way, Yaba. A sample room until photos of the office are supplied.
+    levels: [{ id: "yaba-ground", label: "Ground floor" }],
+  },
 ];
 
 const look = (skin: string, hair: string, hairStyle: Skin["hairStyle"], top: string, pants = "#1f2a3d", extra: Partial<Skin> = {}): Skin => ({ skin, hair, hairStyle, top, pants, ...extra });
@@ -84,6 +91,34 @@ const lobby: Scene = {
   portals: [{ id: "to-floor", label: "Lifts", x: 10, y: 1, w: 3, d: 1, to: "ikoyi-floor", arrive: { x: 2, y: 11 }, lift: true }],
   hotspots: [{ id: "frontdesk", label: "Front desk", hint: "Sign in and ask about visitors", x: 4, y: 5, kind: "info" }],
   spawn: { x: 11, y: 9 },
+};
+
+const yabaLobby: Scene = {
+  id: "yaba-lobby",
+  building: "yaba-office",
+  level: "yaba-ground",
+  name: "Yaba office",
+  subtitle: "Sample room (photos of the Yaba office to be supplied)",
+  cols: 12,
+  rows: 10,
+  wallHeight: 3.4,
+  floor: "marble",
+  features: [
+    { wall: "x", kind: "slats", from: 0, to: 12 },
+    { wall: "y", kind: "windows", from: 1, to: 9 },
+  ],
+  objects: [
+    { kind: "reception", x: 3, y: 3, w: 1, d: 3 },
+    { kind: "sofa", x: 6, y: 7, w: 3, d: 1, dir: 3 },
+    { kind: "coffeetable", x: 6, y: 5, w: 2, d: 1 },
+    { kind: "plant", x: 1, y: 1 },
+    { kind: "plant", x: 10, y: 1 },
+    { kind: "plant", x: 10, y: 8 },
+  ],
+  npcs: [npc("yrec1", "Kemi", "Front desk", 2, 4, 0, look(SKIN.medium, "#14110f", "bun", "#2d5d41", "#14110f", { body: "woman", outfit: "office" }))],
+  portals: [],
+  hotspots: [{ id: "frontdesk", label: "Front desk", hint: "Sign in and ask about visitors", x: 4, y: 4, kind: "info" }],
+  spawn: { x: 9, y: 4 },
 };
 
 const floor: Scene = {
@@ -254,6 +289,7 @@ export function withDecor(scene: Scene, placed: { item: string; x: number; y: nu
 
 export const SCENES: Record<string, Scene> = {
   [workspace.id]: workspace,
+  [yabaLobby.id]: yabaLobby,
   [lobby.id]: lobby,
   [floor.id]: floor,
   [boardroom.id]: boardroom,

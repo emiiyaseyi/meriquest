@@ -45,6 +45,8 @@ export interface PlayerRecord {
   lead?: { day: string; count: number; run?: { ids: string[]; idx: number; meters: Record<string, number>; seed: number } };
   /** The same for the client simulation. */
   sim?: { day: string; count: number; run?: { ids: string[]; idx: number; meters: Record<string, number>; seed: number } };
+  /** A ride between offices in progress. */
+  trip?: { to: string; from: string; mode: string; label: string; icon: string; startedAt: number; endsAt: number; event?: { label: string; icon: string } };
   /** Running totals for reports: shifts finished and the leadership simulator. */
   stats?: PersonStats;
   /** Today's clue: when it was first shown and whether it has been found. */
@@ -97,6 +99,7 @@ export async function travelByPortal(user: Pick<UserDTO, "staffId" | "unit" | "r
   if (blocked) return { ok: false, error: blocked };
   if (typeof portalId !== "string" || portalId.length > 60) return { ok: false, error: "That door does not exist." };
   const player = await getOrCreatePlayer(user, now);
+  if (player.trip) return { ok: false, error: "You are on a ride. Finish it first." };
   const here = getScene(player.scene);
   const portal = here?.portals.find((p) => p.id === portalId);
   const target = portal ? getScene(portal.to) : undefined;
@@ -117,6 +120,7 @@ export async function travelByMap(user: Pick<UserDTO, "staffId" | "unit" | "role
   if (typeof sceneId !== "string" || sceneId.length > 60) return { ok: false, error: "That room does not exist." };
   const target = getScene(sceneId);
   const player = await getOrCreatePlayer(user, now);
+  if (player.trip) return { ok: false, error: "You are on a ride. Finish it first." };
   const here = getScene(player.scene);
   if (!target || !here) return { ok: false, error: "That room does not exist." };
   if (target.building !== here.building) return { ok: false, error: "That is in another building. Travel between buildings is not open yet." };

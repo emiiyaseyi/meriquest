@@ -317,11 +317,25 @@ export const transportSchema = z
         minutes: z.number().int().min(0).max(600),
         requiresBooking: z.boolean(),
         enabled: z.boolean(),
+        /** The picture shown for it. */
+        icon: z.string().min(1).max(8).default("🚗"),
+        /** How long the ride takes on screen, in seconds. */
+        rideSeconds: z.number().int().min(3).max(600).default(20),
       })
       .strict(),
   )
   .min(1)
   .max(20);
+
+export const travelSchema = z
+  .object({
+    settings: z.object({ skipAllowed: z.boolean(), turnBackAllowed: z.boolean() }).strict(),
+    /** Things that can happen on the road: how likely each is (a percentage) and the seconds it adds (or takes off). */
+    events: z
+      .array(z.object({ id: slug, label: z.string().min(1).max(40), icon: z.string().min(1).max(8), chance: z.number().int().min(0).max(100), extraSeconds: z.number().int().min(-60).max(300) }).strict())
+      .max(20),
+  })
+  .strict();
 
 /* --------------------------------- regulators --------------------------------- */
 
@@ -952,9 +966,9 @@ export const CONFIG = {
     description: "How staff travel between Lagos offices or to client sites. Costs are in Merit points.",
     schema: transportSchema,
     default: [
-      { id: "personal-car", label: "Personal car", costPoints: 150, minutes: 45, requiresBooking: false, enabled: true },
-      { id: "pool-car", label: "Official pool car", costPoints: 0, minutes: 50, requiresBooking: true, enabled: true },
-      { id: "ride-hailing", label: "Ride-hailing (e.g. Uber)", costPoints: 400, minutes: 40, requiresBooking: false, enabled: true },
+      { id: "personal-car", label: "Personal car", costPoints: 3, minutes: 45, requiresBooking: false, enabled: true, icon: "🚗", rideSeconds: 25 },
+      { id: "pool-car", label: "Official pool car", costPoints: 0, minutes: 50, requiresBooking: true, enabled: true, icon: "🚐", rideSeconds: 40 },
+      { id: "ride-hailing", label: "Ride-hailing (e.g. Uber)", costPoints: 6, minutes: 40, requiresBooking: false, enabled: true, icon: "🚕", rideSeconds: 15 },
     ],
   },
   regulators: {
@@ -1117,6 +1131,20 @@ export const CONFIG = {
     description: "Colleague chats: the groups people can join (use * for everyone), whether direct messages are on, message length and speed limits, how many reports hide a message, whether links are blocked, and the list of blocked words. Reported messages are reviewed under Admin → Concerns.",
     schema: chatSchema,
     default: DEFAULT_CHAT,
+  },
+  travel: {
+    label: "Travel",
+    group: "World",
+    description: "Travel between offices: whether people may skip a ride or turn back, and the things that can happen on the road (a go-slow, rain) with how likely they are and how many seconds they add. The vehicles and their costs are under Transport options.",
+    schema: travelSchema,
+    default: {
+      settings: { skipAllowed: true, turnBackAllowed: true },
+      events: [
+        { id: "go-slow", label: "Serious go-slow", icon: "🚦", chance: 30, extraSeconds: 10 },
+        { id: "rain", label: "Rain", icon: "🌧️", chance: 20, extraSeconds: 5 },
+        { id: "clear", label: "Clear roads", icon: "🌤️", chance: 20, extraSeconds: -3 },
+      ],
+    },
   },
   floors: {
     label: "Floor access",

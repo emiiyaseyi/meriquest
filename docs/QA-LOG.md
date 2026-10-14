@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## P4: Travel between offices (14 Oct 2026)
+Scope: priority item 9. A Yaba office room (sample layout until photos are supplied) and rides between offices: on the map, the Yaba pill opens a card with the ways to travel (personal car, official pool car, ride-hailing, with their costs from Settings > Transport options) and a Go button. The ride shows like the reference: vehicle, route, time to go, anything on the road (a go-slow, rain or clear roads, chosen by the server), Skip ride and Turn back (both switchable under Settings > Travel). The cost is paid at the start and not refunded on turning back; no walking about while on a ride; a ride in progress is resumed after a refresh. Lagos offices only.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 549 tests: cost charged, time kept on the server, early arrival refused, skip allowed or refused by setting, turn back, same-building and bad requests refused, not enough points, one ride at a time, no moving about on a ride |
+| 3 | Authorisation and validation | **Pass** | Every action re-checks the signed-in user; destination, mode and cost are decided on the server; floor access and play hours still apply |
+| 4 | Real browser | **Pass** | Throwaway user: Yaba card lists the three ways to travel, a pool-car ride starts and shows the ride card with a road event, Skip ride arrives in the Yaba office, no console errors; user removed |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: Yaba is a sample room until photos arrive; other cities are not enabled; ride art is a card, not the reference's driving view.
+
+---
+
 ## P3: Chats and groups with moderation (14 Oct 2026)
 Scope: priority item 8. The Work Phone Messages app now has working Chats (direct messages, found by name) and Groups (everyone, each pilot unit, a learning corner). Safety: messages are cleaned and checked against an admin-editable word list (look-alike letters and spaced-out letters caught, the blocked word is never repeated back), links are blocked, speed is limited, anyone can report a message with a reason, enough reports hide it until the review team decides, admins can remove a message and pause the sender for a day or a week, and the sender is told. Direct messages are private to the two people; the review team only sees a reported message with a few around it. Admin: Admin > Chat reports (concerns area: admins and reviewers), settings under Settings > Chats and groups.
 

@@ -90,7 +90,7 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] 6. Client simulation: CX, Wealth Advisory and Investment Advisory cases (markets, regulators, control functions)
 - [x] 7. Succession planning (3+ years) and the leadership simulator mandatory for line managers
 - [x] 8. Chats and groups between colleagues, with moderation (filter, report, admin review); extend the word list with HR
-- [ ] 9. Travel and commute (personal car, pool car, Uber) between Lagos offices
+- [x] 9. Travel between Lagos offices (personal car, pool car, ride-hailing) with a ride screen, skip and turn back; Yaba is a sample room until photos arrive
 - [~] 10. Instant actions and reads in parallel done; still to do: fewer database trips per write, mission swap and shift answers
 - [x] 11. Concern evidence files in proper storage (private Supabase bucket) with a virus-scan hook; needs a scanner service and the bucket set up before rollout
 - [ ] 12. Rewrite review, PRD, workplan and README to match the rulebook
