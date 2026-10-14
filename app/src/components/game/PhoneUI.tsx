@@ -1,12 +1,13 @@
 "use client";
 
 import { ChatApp } from "./ChatApp";
+import { DirectoryApp, KudosApp, RoleApp } from "./PeopleApps";
 import { useEffect, useState } from "react";
 import { markNoticesReadAction, messagesAction } from "@/app/actions/notices";
 import type { Announcement, Notice } from "@/lib/server/notices/service";
 import type { PhoneApp } from "./GameShell";
 
-type View = "home" | "messages" | "updates";
+type View = "home" | "messages" | "updates" | "directory" | "kudos" | "my-role";
 
 const TONES = ["#e07a2f", "#2f6fe0", "#8a5cd6", "#e0488a", "#1fa89a", "#d4a62a", "#2d5d41", "#17b2a6", "#c8503c", "#5b6b61"];
 
@@ -30,6 +31,8 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [tab, setTab] = useState<"chats" | "groups">("chats");
+  const [startConv, setStartConv] = useState<string | null>(null);
+  const [kudosTo, setKudosTo] = useState<{ staffId: string; name: string } | null>(null);
 
   // The banner and the Messages screen need the announcements; load them when the phone opens
   useEffect(() => {
@@ -66,7 +69,10 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
   const open = (a: PhoneApp) => {
     if (a.soon) return;
     if (a.id === "messages") setView("messages");
-    else if (a.id === "todays-plan") onGoals();
+    else if (a.id === "directory" || a.id === "kudos" || a.id === "my-role") {
+      setKudosTo(null);
+      setView(a.id);
+    } else if (a.id === "todays-plan") onGoals();
     else if (a.id === "settings") onSettings();
   };
 
@@ -104,7 +110,7 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
         {view === "messages" ? (
           <div className="screen">
             <header className="screen-head">
-              <button type="button" className="back" onClick={() => setView("home")} aria-label="Back">‹</button>
+              <button type="button" className="back" onClick={() => { setStartConv(null); setView("home"); }} aria-label="Back">‹</button>
               <h2>Messages</h2>
               <button type="button" className="bell" onClick={openUpdates} aria-label={`Updates${unread ? `, ${unread} unread` : ""}`}>
                 🔔{unread > 0 ? <span className="badge-dot">{unread > 9 ? "9+" : unread}</span> : null}
@@ -121,7 +127,32 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
               </div>
             ))}
             {announcements.length === 0 ? <p className="phone-note">No announcements right now.</p> : null}
-            <ChatApp key={tab} kind={tab === "chats" ? "direct" : "group"} />
+            <ChatApp key={`${tab}-${startConv ?? ""}`} kind={tab === "chats" ? "direct" : "group"} initialConv={startConv} />
+          </div>
+        ) : null}
+
+        {view === "directory" || view === "kudos" || view === "my-role" ? (
+          <div className="screen">
+            <header className="screen-head">
+              <button type="button" className="back" onClick={() => setView("home")} aria-label="Back">‹</button>
+              <h2>{view === "directory" ? "Directory" : view === "kudos" ? "Kudos" : "My Role"}</h2>
+              <span />
+            </header>
+            {view === "directory" ? (
+              <DirectoryApp
+                onMessage={(conv) => {
+                  setTab("chats");
+                  setStartConv(conv);
+                  setView("messages");
+                }}
+                onKudos={(staffId, name) => {
+                  setKudosTo({ staffId, name });
+                  setView("kudos");
+                }}
+              />
+            ) : null}
+            {view === "kudos" ? <KudosApp key={kudosTo?.staffId ?? "none"} to={kudosTo} /> : null}
+            {view === "my-role" ? <RoleApp /> : null}
           </div>
         ) : null}
 

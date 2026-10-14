@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C1: Work Phone people apps: Directory, Kudos, My Role (14 Oct 2026)
+Scope: first of the "Coming soon" builds. **Directory** (search active colleagues by name, title or unit; shows name, title and unit only, never email; message or send kudos). **Kudos** (thank a colleague with an admin-set kind and an optional note that passes the chat word filter and blocks links; the giver pays nothing, so no points are transferred, in line with RULEBOOK §2.11; the game awards the receiver a small admin-set amount up to a daily cap; limits per day and one per colleague per day, enforced in one atomic update; notice to the receiver; audit entry). **My Role** (own title, unit, tenure, skill levels and unit courses still to do). New settings "Kudos" under Settings > Gameplay, new mission "Thank a colleague". New read route `/api/me/people` (signed-in, own and directory data only) and server action `giveKudosAction` (re-checks the user). 7 new tests (569 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 569 of 569 |
+| 3 | Input validation | **Pass** | ids matched to a strict pattern, kind checked against settings, note cleaned, length-capped and filtered, directory search capped |
+| 4 | Authz, sessions | **Pass** | route and action both need a signed-in user; no email or password data in the directory |
+| 5 | Secrets, audit, security review | **Pass** | no secrets; kudos audited |
+
+Not yet checked in a browser: the new phone screens (types, lint and service tests only). Open item: the direct-message check treats a lowercase staff id as a different id (no impact).
+
+---
+
 ## E6: Online and activity counts in admin Reports (14 Oct 2026)
 Scope: Reports shows people online now (the game heard from them in the last 2 minutes), sign-ins in 24 hours, active in 24 hours / 7 / 30 days, total hours played, shifts finished and leadership runs; the unit table gains "Online now" and the people table shows an online badge. Page views are not recorded by the app, so none are shown. Read-only, still behind the admin "reports" area check on the page; no new route or input. New test for the online count.
 

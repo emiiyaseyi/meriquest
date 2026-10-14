@@ -7,6 +7,7 @@ import { DEFAULT_LOCATIONS } from "./location-content";
 import { DEFAULT_LEADERSHIP } from "./leadership-content";
 import { DEFAULT_HUNT } from "./hunt-content";
 import { DEFAULT_CHAT } from "./chat-content";
+import { DEFAULT_KUDOS } from "./kudos-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 import { DECOR_MODELS } from "@/lib/world/types";
@@ -870,6 +871,25 @@ export const chatSchema = z
   })
   .strict();
 
+export const kudosSchema = z
+  .object({
+    settings: z
+      .object({
+        perDay: z.number().int().min(0).max(20),
+        receiverPoints: z.number().int().min(0).max(20),
+        receiverDailyCap: z.number().int().min(0).max(100),
+        maxNote: z.number().int().min(0).max(300),
+        keep: z.number().int().min(5).max(200),
+      })
+      .strict(),
+    values: z
+      .array(z.object({ id: slug, label: z.string().min(1).max(30), icon: z.string().min(1).max(8) }).strict())
+      .min(1)
+      .max(20)
+      .refine((v) => new Set(v.map((x) => x.id)).size === v.length, "Each kind needs its own id"),
+  })
+  .strict();
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1019,12 +1039,12 @@ export const CONFIG = {
     description: "The apps on the Work Phone: show or hide each one, rename it, or mark it as coming soon.",
     schema: phoneAppsSchema,
     default: [
-      { id: "my-role", label: "My Role", icon: "💼", enabled: true, soon: true },
+      { id: "my-role", label: "My Role", icon: "💼", enabled: true, soon: false },
       { id: "messages", label: "Messages", icon: "💬", enabled: true, soon: false },
       { id: "academy", label: "Academy", icon: "🎓", enabled: true, soon: false },
       { id: "todays-plan", label: "Today's Plan", icon: "🎯", enabled: true, soon: false },
-      { id: "directory", label: "Directory", icon: "📇", enabled: true, soon: true },
-      { id: "kudos", label: "Kudos", icon: "🌟", enabled: true, soon: true },
+      { id: "directory", label: "Directory", icon: "📇", enabled: true, soon: false },
+      { id: "kudos", label: "Kudos", icon: "🌟", enabled: true, soon: false },
       { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: true },
       { id: "clients", label: "Clients", icon: "🤝", enabled: true, soon: true },
       { id: "market", label: "Market", icon: "🏦", enabled: true, soon: true },
@@ -1089,6 +1109,7 @@ export const CONFIG = {
         { id: "two-reads", title: "Read twice", description: "Pick two things to read today.", event: "read", target: 2, rewardPoints: 7 },
         { id: "hydrate-twice", title: "Drink water twice", description: "Stay hydrated through the day.", event: "water", target: 2, rewardPoints: 5 },
         { id: "two-breaks", title: "Take two breaks", description: "Rest twice to stay fresh.", event: "rest", target: 2, rewardPoints: 5 },
+        { id: "give-kudos", title: "Thank a colleague", description: "Send kudos to someone who helped you.", event: "kudos", target: 1, rewardPoints: 4 },
         { id: "two-coffees", title: "Two coffee chats", description: "Have two coffee chats with colleagues.", event: "coffee", target: 2, rewardPoints: 5 },
         { id: "two-shifts", title: "Two shifts in a day", description: "Finish two work shifts.", event: "shift", target: 2, rewardPoints: 10 },
         { id: "two-clients", title: "Serve two clients", description: "Finish two client simulation runs.", event: "sim", target: 2, rewardPoints: 10 },
@@ -1157,6 +1178,13 @@ export const CONFIG = {
     description: "Colleague chats: the groups people can join (use * for everyone), whether direct messages are on, message length and speed limits, how many reports hide a message, whether links are blocked, and the list of blocked words. Reported messages are reviewed under Admin → Concerns.",
     schema: chatSchema,
     default: DEFAULT_CHAT,
+  },
+  kudos: {
+    label: "Kudos",
+    group: "Gameplay",
+    description: "Thank-you notes between colleagues on the Work Phone: the kinds of kudos, how many one person may give a day, the longest note, and the Merit points the game awards the receiver (the giver pays nothing, and points are never sent from one person to another).",
+    schema: kudosSchema,
+    default: DEFAULT_KUDOS,
   },
   travel: {
     label: "Travel",

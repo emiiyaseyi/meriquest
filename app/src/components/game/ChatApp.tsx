@@ -14,9 +14,9 @@ const clock = (t: number) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-
  * Chats and groups on the Work Phone. Groups are for everyone or a unit; chats are direct messages. Messages are
  * checked by the server before they are sent, and anything that upsets you can be reported with the flag button.
  */
-export function ChatApp({ kind }: { kind: "direct" | "group" }) {
+export function ChatApp({ kind, initialConv = null }: { kind: "direct" | "group"; initialConv?: string | null }) {
   const [rows, setRows] = useState<ConversationRow[] | null>(null);
-  const [conv, setConv] = useState<string | null>(null);
+  const [conv, setConv] = useState<string | null>(initialConv);
   const [q, setQ] = useState("");
   const [found, setFound] = useState<Found[]>([]);
 

@@ -606,3 +606,25 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .trip-mode small { flex-basis: 100%; color: #5b6b61; }
 .trip-mode.on { border-color: #1e9a5a; background: #eaf7ee; }
 @media (max-width: 640px) { .trip-screen { padding-top: 76px; } }
+
+/* People apps on the Work Phone */
+.people { display: flex; flex-direction: column; gap: 8px; padding: 4px 2px 14px; }
+.people-unit { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line, #d9e2dc); background: #fff; font: inherit; }
+.people-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 12px; background: #f4f7f5; }
+.people-actions { margin-left: auto; display: flex; gap: 6px; }
+.people-actions button { border: 0; border-radius: 999px; width: 34px; height: 34px; background: #fff; cursor: pointer; font-size: 16px; }
+.people-actions button:hover { background: #e3efe8; }
+.people-h { margin: 10px 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: #5b6b61; }
+.kudos-values { display: flex; flex-wrap: wrap; gap: 6px; }
+.kudos-chip { border: 1px solid #cfdcd3; background: #fff; border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.kudos-chip.on { background: #1f5a3a; border-color: #1f5a3a; color: #fff; }
+.role-skills .kudos-chip { cursor: default; }
+.kudos-send { border: 0; border-radius: 999px; padding: 10px 14px; background: #1f5a3a; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.kudos-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.kudos-to { margin: 0; }
+.linklike { border: 0; background: none; color: #1f5a3a; text-decoration: underline; cursor: pointer; font: inherit; }
+.kudos-card { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 12px; background: #fff8e6; }
+.kudos-card em { display: block; font-style: normal; color: #5b6b61; }
+.kudos-card small { display: block; color: #8a958e; }
+.role-card { display: flex; flex-direction: column; padding: 12px; border-radius: 14px; background: #eaf3ee; }
+.chat-note.ok { color: #1f5a3a; }
