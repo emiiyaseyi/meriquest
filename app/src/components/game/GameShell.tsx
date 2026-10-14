@@ -15,13 +15,14 @@ import { CityMap, type MapPick } from "./CityMap";
 import { BuyMode, type Ghost } from "./BuyMode";
 import { ShiftHud } from "./ShiftHud";
 import { LocationBar } from "./LocationBar";
-import { getDecorAction } from "@/app/actions/decor";
+import { getMine } from "@/lib/client/api";
+import type { DecorView } from "@/lib/server/decor/service";
 import { WORKSPACE_ID, withDecor } from "@/lib/world/scenes";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
 import { playBeatAction, type BeatResult } from "@/app/actions/placement";
-import { claimBonusAction, claimMissionAction, swapMissionAction, completeTourAction, gameStateAction, spotAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
+import { claimBonusAction, claimMissionAction, swapMissionAction, completeTourAction, spotAction, travelMapAction, travelPortalAction } from "@/app/actions/world";
 import type { GameState } from "@/lib/server/game/service";
 import { BUILDINGS, SCENES, getScene } from "@/lib/world/scenes";
 import { NEED_ICON } from "./needs";
@@ -154,7 +155,7 @@ export function GameShell(props: GameShellProps) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [academyCard, setAcademyCard] = useState(false);
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
-  const [decorView, setDecorView] = useState<Awaited<ReturnType<typeof getDecorAction>> | null>(null);
+  const [decorView, setDecorView] = useState<DecorView | null>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null);
   /** Moves to the server are sent one after another, in the order they were made. */
   const travelQueue = useRef<Promise<void>>(Promise.resolve());
@@ -196,7 +197,7 @@ export function GameShell(props: GameShellProps) {
   useEffect(() => {
     const id = setInterval(() => {
       if (document.hidden) return;
-      void gameStateAction().then((g) => {
+      void getMine<GameState>("game").then((g) => {
         setGame(g);
         setGameAt(Date.now());
       }).catch(() => undefined);
@@ -313,7 +314,7 @@ export function GameShell(props: GameShellProps) {
     if (overlay === "buy" || (sceneId !== WORKSPACE_ID && decorFetched.current)) return;
     decorFetched.current = true;
     let live = true;
-    void getDecorAction().then((v) => live && setDecorView(v));
+    getMine<DecorView>("decor").then((v) => live && setDecorView(v)).catch(() => undefined);
     return () => {
       live = false;
     };
@@ -656,7 +657,7 @@ export function GameShell(props: GameShellProps) {
 
       {!touring ? <LocationBar sceneId={sceneId} hidden={clean || overlay !== null || spot !== null || person !== null || walking} onGame={setGame} onToast={flash} /> : null}
 
-      {!touring ? <ShiftHud hidden={clean || (overlay !== null && overlay !== "map")} onPoints={() => void gameStateAction().then((g) => setGame(g))} onUpdate={() => void gameStateAction().then((g) => setGame(g))} /> : null}
+      {!touring ? <ShiftHud hidden={clean || (overlay !== null && overlay !== "map")} onPoints={() => void getMine<GameState>("game").then((g) => setGame(g)).catch(() => undefined)} onUpdate={() => void getMine<GameState>("game").then((g) => setGame(g)).catch(() => undefined)} /> : null}
 
       {overlay === "buy" ? <BuyMode initial={decorView} pointsLabel={terms.points} onPoints={(n) => setGame((g) => ({ ...g, points: n }))} onClose={() => { setGhost(null); setOverlay(null); }} onView={setDecorView} onGhost={setGhost} /> : null}
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { answerShiftAction, finishShiftAction, getShiftAction, leaveShiftAction, startShiftAction } from "@/app/actions/shift";
+import { answerShiftAction, finishShiftAction, leaveShiftAction, startShiftAction } from "@/app/actions/shift";
+import { getMine } from "@/lib/client/api";
 import type { ShiftResult, ShiftView } from "@/lib/server/shift/service";
 
 const mmss = (ms: number) => {
@@ -23,7 +24,7 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
 
   useEffect(() => {
     let live = true;
-    void getShiftAction().then((v) => live && setView(v));
+    getMine<ShiftView>("shift").then((v) => live && setView(v)).catch(() => undefined);
     return () => {
       live = false;
     };
@@ -62,7 +63,7 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
     const t = Date.now();
     if (t - lastFetch.current < 4000) return;
     lastFetch.current = t;
-    void getShiftAction().then(setView);
+    getMine<ShiftView>("shift").then(setView).catch(() => undefined);
   }, [dueLocked, clock]);
 
   if (!view || hidden) return null;

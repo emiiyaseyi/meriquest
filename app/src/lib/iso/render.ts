@@ -106,6 +106,87 @@ function box(ctx: Ctx, x: number, y: number, w: number, d: number, h: number, z0
   poly(ctx, [P(x, y, z1), P(x + w, y, z1), P(x + w, y + d, z1), P(x, y + d, z1)], c.top, edge ? "rgba(0,0,0,0.08)" : undefined);
 }
 
+/**
+ * Furniture and decoration made of a few boxes, so bought items look like objects in the room and not like pictures.
+ * Each shape fits the footprint it is given and takes its main colour from the catalogue.
+ */
+function drawDecorModel(ctx: Ctx, model: string, x: number, y: number, w: number, d: number, color: string): void {
+  const dark = shade(color, 0.55);
+  const light = shade(color, 1.25);
+  const cx = x + w / 2;
+  const cy = y + d / 2;
+  switch (model) {
+    case "desk":
+    case "table": {
+      const h = model === "desk" ? 0.72 : 0.62;
+      for (const [lx, ly] of [[x + 0.08, y + 0.1], [x + w - 0.18, y + 0.1], [x + 0.08, y + d - 0.2], [x + w - 0.18, y + d - 0.2]]) box(ctx, lx, ly, 0.1, 0.1, h, 0, dark, false);
+      box(ctx, x + 0.04, y + 0.06, w - 0.08, d - 0.12, 0.08, h, color);
+      if (model === "desk") {
+        box(ctx, cx - 0.3, cy - 0.04, 0.6, 0.05, 0.38, h + 0.08, "#1b1f23", false);
+        box(ctx, cx - 0.26, cy - 0.02, 0.52, 0.02, 0.3, h + 0.12, "#3c6a96", false);
+      }
+      return;
+    }
+    case "chair": {
+      box(ctx, x + 0.2, y + 0.2, w - 0.4, d - 0.4, 0.08, 0.38, color);
+      box(ctx, x + 0.24, y + 0.24, 0.08, 0.08, 0.38, 0, dark, false);
+      box(ctx, x + w - 0.32, y + d - 0.32, 0.08, 0.08, 0.38, 0, dark, false);
+      box(ctx, x + 0.2, y + 0.2, 0.08, d - 0.4, 0.5, 0.46, light);
+      return;
+    }
+    case "sofa": {
+      box(ctx, x + 0.04, y + 0.08, w - 0.08, d - 0.16, 0.3, 0, dark);
+      box(ctx, x + 0.1, y + 0.12, w - 0.2, d - 0.24, 0.14, 0.3, color);
+      box(ctx, x + 0.04, y + 0.08, w - 0.08, 0.2, 0.34, 0.3, light);
+      box(ctx, x + 0.04, y + 0.08, 0.16, d - 0.16, 0.2, 0.3, light);
+      box(ctx, x + w - 0.2, y + 0.08, 0.16, d - 0.16, 0.2, 0.3, light);
+      return;
+    }
+    case "plant": {
+      box(ctx, cx - 0.2, cy - 0.2, 0.4, 0.4, 0.3, 0, "#e7e2d6");
+      box(ctx, cx - 0.3, cy - 0.3, 0.6, 0.6, 0.35, 0.3, "#3f8f4f");
+      box(ctx, cx - 0.2, cy - 0.2, 0.4, 0.4, 0.3, 0.65, "#56a863");
+      box(ctx, cx - 0.1, cy - 0.1, 0.2, 0.2, 0.25, 0.95, "#6cbf78");
+      return;
+    }
+    case "lamp": {
+      box(ctx, cx - 0.14, cy - 0.14, 0.28, 0.28, 0.05, 0, dark);
+      box(ctx, cx - 0.03, cy - 0.03, 0.06, 0.06, 0.9, 0.05, dark, false);
+      box(ctx, cx - 0.2, cy - 0.2, 0.4, 0.4, 0.28, 0.95, "#f7e7a8");
+      return;
+    }
+    case "screen": {
+      box(ctx, cx - 0.2, cy - 0.12, 0.4, 0.24, 0.05, 0, "#2b2f33");
+      box(ctx, cx - 0.04, cy - 0.04, 0.08, 0.08, 0.3, 0.05, "#2b2f33", false);
+      box(ctx, cx - 0.42, cy - 0.04, 0.84, 0.07, 0.5, 0.33, "#1b1f23");
+      box(ctx, cx - 0.38, cy - 0.01, 0.76, 0.02, 0.42, 0.37, "#3c6a96", false);
+      return;
+    }
+    case "frame": {
+      box(ctx, x + 0.1, cy - 0.04, w - 0.2, 0.08, 1.1, 0.25, "#4b3a2a");
+      box(ctx, x + 0.18, cy - 0.01, w - 0.36, 0.03, 0.94, 0.33, color, false);
+      return;
+    }
+    case "rug": {
+      box(ctx, x + 0.04, y + 0.04, w - 0.08, d - 0.08, 0.03, 0, color, false);
+      box(ctx, x + 0.2, y + 0.2, w - 0.4, d - 0.4, 0.035, 0, light, false);
+      return;
+    }
+    case "shelf": {
+      box(ctx, x + 0.06, y + 0.1, w - 0.12, d - 0.2, 1.5, 0, color);
+      for (const z of [0.4, 0.8, 1.2]) box(ctx, x + 0.1, y + 0.14, w - 0.2, d - 0.28, 0.03, z, dark, false);
+      return;
+    }
+    case "cabinet": {
+      box(ctx, x + 0.06, y + 0.1, w - 0.12, d - 0.2, 0.9, 0, color);
+      box(ctx, x + 0.12, y + 0.08, w - 0.24, 0.03, 0.7, 0.1, light, false);
+      return;
+    }
+    default:
+      box(ctx, x + 0.12, y + 0.12, w - 0.24, d - 0.24, 0.5, 0, color);
+  }
+}
+
 /** A circle or ellipse lying flat in the floor plane (drawn exactly in the isometric projection). */
 function floorEllipse(ctx: Ctx, cx: number, cy: number, rx: number, ry: number, z: number, fill: string, stroke?: string): void {
   const o = P(cx, cy, z);
@@ -549,8 +630,12 @@ function objectDraws(ctx: Ctx, o: SceneObject, time: number): Draw[] {
           key: key(o.x, o.y, w, d) + 0.2,
           draw: () => {
             floorEllipse(ctx, cx, cy, w / 2 - 0.08, d / 2 - 0.08, 0.01, "rgba(0,0,0,0.16)");
+            if (o.model && o.model !== "box") {
+              drawDecorModel(ctx, o.model, o.x, o.y, w, d, o.tint ?? "#c9b99a");
+              return;
+            }
             box(ctx, o.x + 0.12, o.y + 0.12, w - 0.24, d - 0.24, 0.12, 0, o.tint ?? "#d9cfbd", false);
-            if (o.icon) {
+            if (o.icon && !o.model) {
               const p = P(cx, cy, 0.55 + 0.12 * Math.max(w, d));
               ctx.save();
               ctx.font = `${Math.round(TW * 0.62 * (0.8 + 0.35 * Math.max(w, d)))}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;

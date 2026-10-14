@@ -58,5 +58,18 @@ The owner decided (13 Oct 2026) to host on **Vercel**, not Netlify. `netlify.tom
 5. Deploy, sign in as `MS0001` with the bootstrap password, set your own password, add staff under **Admin → Staff & access**.
 6. Use a Meristem subdomain once IT agrees. If pages feel slow, match the Vercel function region to the database region (some plans charge for this).
 
+## Evidence files and virus scanning (before wide rollout)
+Conduct-concern evidence (pictures and PDFs) is private. By default it stays in the database, which is fine for development. For production set:
+
+| Variable | Value | Secret |
+|---|---|---|
+| `SUPABASE_URL` | your Supabase project URL | no |
+| `SUPABASE_SERVICE_KEY` | the service-role key (server only, never in the browser) | **yes** |
+| `EVIDENCE_BUCKET` | a **private** bucket name (default `concern-evidence`; create it first) | no |
+| `EVIDENCE_SCANNER_URL` | HTTPS address of a virus-scan service (for example a small ClamAV wrapper) that accepts the file as the request body and answers `{"infected": true or false}` | no |
+| `EVIDENCE_SCANNER_TOKEN` | optional bearer token for that service | **yes** |
+
+What happens: every file is scanned before it is stored; an infected file is refused and the attempt is logged. If the scanner cannot be reached, or none is set in production, the file is kept as *pending*: the reporter is not blocked, but an admin cannot open it until a later scan says it is clean. Files saved before this change stay readable.
+
 ## Why a single `kv` table?
 Every collection (users, sessions, settings, audit, placements…) is a row keyed by `(col, id)` holding JSON. It kept the app independent of any one database. When reporting and analytics need real tables, we add proper tables beside it with new migrations (`app/db/migrations/`). Row level security is switched on with no policies, so if the database is ever exposed through a public API, anonymous users read nothing.

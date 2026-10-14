@@ -39,7 +39,8 @@ export default async function ConcernPage({ params }: { params: Promise<{ id: st
             <p className="muted small" style={{ margin: 0 }}>
               Received {fmt(e.addedAt)}. File last changed {e.fileModifiedAt ? `${fmt(e.fileModifiedAt)} (reported by the device)` : "at an unknown time"}. SHA-256 {e.sha256.slice(0, 16)}…
             </p>
-            <a className="btn btn-ghost btn-sm" href={`/admin/concerns/${c.id}/evidence/${e.n}`}>Download</a>
+            {e.scan === "infected" ? <span className="msg msg-error">Blocked: may contain a virus</span> : <a className="btn btn-ghost btn-sm" href={`/admin/concerns/${c.id}/evidence/${e.n}`}>Download</a>}
+            {e.scan === "pending" ? <span className="muted small"> Waiting for a virus scan: it opens once the scan is clean.</span> : null}
           </div>
         ))}
       </div>

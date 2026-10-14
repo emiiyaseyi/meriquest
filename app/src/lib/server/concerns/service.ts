@@ -1,3 +1,5 @@
+import { getFileStorage } from "../files/storage";
+import { scanFile } from "../files/scan";
 import { assertArea } from "../auth/permissions";
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
@@ -76,12 +78,18 @@ export async function submitConcern(user: Pick<UserDTO, "staffId" | "name" | "un
     if (f.bytes.length > maxBytes) return { ok: false, error: `Each file must be ${cfg.maxFileMb} MB or smaller.` };
     const type = sniffEvidence(f.bytes);
     if (!type) return { ok: false, error: "Evidence must be a PNG, JPEG or WebP picture, or a PDF." };
+    const scan = await scanFile(Buffer.from(f.bytes));
+    if (scan.status === "infected") {
+      await audit(user.staffId, "concern.file.blocked", "virus", { name: safeFileName(f.name), detail: scan.detail ?? "" }, now);
+      return { ok: false, error: "One of the files was blocked because it may contain a virus. Please remove it and try again." };
+    }
     checked.push({
       meta: {
         name: safeFileName(f.name),
         type,
         size: f.bytes.length,
         sha256: createHash("sha256").update(f.bytes).digest("hex"),
+        scan: scan.status,
         fileModifiedAt: f.lastModified !== null && Number.isFinite(f.lastModified) && f.lastModified > 0 && f.lastModified <= now + DAY ? Math.floor(f.lastModified) : null,
       },
       b64: Buffer.from(f.bytes).toString("base64"),
@@ -114,7 +122,7 @@ export async function submitConcern(user: Pick<UserDTO, "staffId" | "name" | "un
     updatedAt: now,
   };
   for (const [i, c] of checked.entries()) {
-    await store.put("concern_files", `${id}:${i + 1}`, { id: `${id}:${i + 1}`, concernId: id, n: i + 1, type: c.meta.type, data: c.b64 } satisfies FileDoc);
+    await getFileStorage().put(`${id}.${i + 1}`, Buffer.from(c.b64, "base64"), c.meta.type);
   }
   await store.put("concerns", id, record);
   await audit(user.staffId, "concern.submitted", number, { category: category.id, files: evidence.length }, now);
@@ -191,11 +199,24 @@ export async function getEvidenceFile(actor: Pick<UserDTO, "staffId" | "role">, 
   if (!/^c_[0-9a-f]{18}$/.test(id) || !Number.isInteger(n) || n < 1 || n > HARD_MAX_FILES) return null;
   const concern = await getStore().get<ConcernRecord>("concerns", id);
   const meta = concern?.evidence.find((e) => e.n === n);
-  const doc = await getStore().get<FileDoc>("concern_files", `${id}:${n}`);
-  if (!concern || !meta || !doc) return null;
-  const bytes = Buffer.from(doc.data, "base64");
+  if (!concern || !meta) return null;
+  const old = await getStore().get<FileDoc>("concern_files", `${id}:${n}`); // files saved before the storage change
+  const bytes = old ? Buffer.from(old.data, "base64") : await getFileStorage().get(`${id}.${n}`);
+  if (!bytes) return null;
   // Re-check the contents against what was recorded when it arrived
   if (createHash("sha256").update(bytes).digest("hex") !== meta.sha256) return null;
+  // A file that has not been cleared by a scan is scanned again now, and only opened if it comes back clean
+  if (meta.scan === "infected") return null;
+  if (meta.scan === "pending") {
+    const again = await scanFile(bytes);
+    if (again.status === "infected") {
+      await audit(actor.staffId, "concern.file.blocked", concern.number, { file: n, detail: again.detail ?? "" }, now);
+      await getStore().update<ConcernRecord>("concerns", id, (cur) => (cur ? { ...cur, evidence: cur.evidence.map((e) => (e.n === n ? { ...e, scan: "infected" } : e)) } : cur));
+      return null;
+    }
+    if (again.status !== "clean") return null;
+    await getStore().update<ConcernRecord>("concerns", id, (cur) => (cur ? { ...cur, evidence: cur.evidence.map((e) => (e.n === n ? { ...e, scan: "clean" } : e)) } : cur));
+  }
   await audit(actor.staffId, "concern.evidence.viewed", concern.number, { file: n }, now);
   return { type: meta.type, bytes, name: meta.name };
 }

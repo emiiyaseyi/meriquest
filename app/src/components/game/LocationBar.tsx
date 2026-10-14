@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { cancelActivityAction, completeActivityAction, locationAction, startActivityAction } from "@/app/actions/world";
+import { cancelActivityAction, completeActivityAction, startActivityAction } from "@/app/actions/world";
+import { getMine } from "@/lib/client/api";
 import type { ActivityResult, LocationView } from "@/lib/server/game/activities";
 import type { GameState } from "@/lib/server/game/service";
 
@@ -22,7 +23,7 @@ export function LocationBar({ sceneId, hidden, onGame, onToast }: { sceneId: str
 
   useEffect(() => {
     let live = true;
-    void locationAction().then((l) => {
+    getMine<LocationView | null>("location").then((l) => {
       if (!live) return;
       setLoc(l);
       setZone(l?.zones[0]?.id ?? "");
@@ -75,11 +76,11 @@ export function LocationBar({ sceneId, hidden, onGame, onToast }: { sceneId: str
     void completeActivityAction().then((r) => {
       finishing.current = false;
       if (r.ok) apply(r);
-      else void locationAction().then(setLoc);
+      else void getMine<LocationView | null>("location").then(setLoc).catch(() => undefined);
     });
   }, [due, apply]);
 
-  if (!loc || hidden) return null;
+  if (!loc || hidden || loc.scene !== sceneId) return null;
   const current = loc.zones.find((z) => z.id === zone) ?? loc.zones[0];
 
   return (

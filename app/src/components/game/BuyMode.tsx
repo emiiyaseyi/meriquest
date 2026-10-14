@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { buyAndPlaceAction, buyItemAction, getDecorAction, moveItemAction, placeItemAction, removeItemAction, setDecorModeAction } from "@/app/actions/decor";
+import { buyAndPlaceAction, buyItemAction, moveItemAction, placeItemAction, removeItemAction, setDecorModeAction } from "@/app/actions/decor";
+import { getMine } from "@/lib/client/api";
 import type { DecorResult, DecorView } from "@/lib/server/decor/service";
 import { canPlace, firstFree, footprint, type DecorItem } from "@/lib/decor";
 
@@ -40,7 +41,7 @@ export function BuyMode({ initial, pointsLabel, onPoints, onClose, onView, onGho
 
   useEffect(() => {
     let live = true;
-    void getDecorAction().then((v) => {
+    getMine<DecorView>("decor").then((v) => {
       if (!live) return;
       setView(v);
       onView(v);

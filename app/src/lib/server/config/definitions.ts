@@ -8,6 +8,7 @@ import { DEFAULT_LEADERSHIP } from "./leadership-content";
 import { DEFAULT_HUNT } from "./hunt-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
+import { DECOR_MODELS } from "@/lib/world/types";
 
 /**
  * Config registry definitions (RULEBOOK §4: nothing an admin may want to change is hardcoded).
@@ -637,6 +638,10 @@ export const decorSchema = z
             stars: z.number().int().min(0).max(3),
             price: z.number().int().min(0).max(100000),
             effect: z.object({ need: z.enum(NEED_KEYS), cut: z.number().min(0.01).max(0.5) }).strict().optional(),
+            /** The 3D shape shown in the room (box, desk, chair, sofa, plant, lamp, screen, frame, rug, shelf, table, cabinet). Without one the picture is shown. */
+            model: z.enum(DECOR_MODELS).optional(),
+            /** The main colour of the shape, like #8a6b4a. */
+            color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a colour like #8a6b4a").optional(),
           })
           .strict(),
       )

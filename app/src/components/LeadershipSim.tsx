@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { answerLeadAction, getLeadAction, startLeadAction } from "@/app/actions/leadership";
+import { answerLeadAction, startLeadAction } from "@/app/actions/leadership";
+import { getMine } from "@/lib/client/api";
 import type { LeadResult, LeadView } from "@/lib/server/leadership/service";
 
 type Ok = Extract<LeadResult, { ok: true }>;
@@ -19,7 +20,7 @@ export function LeadershipSim({ onBack, kind = "leadership" }: { onBack: () => v
 
   useEffect(() => {
     let live = true;
-    void getLeadAction(kind).then((v) => live && setView(v));
+    getMine<LeadView>("sim", `?kind=${kind}`).then((v) => live && setView(v)).catch(() => undefined);
     return () => {
       live = false;
     };

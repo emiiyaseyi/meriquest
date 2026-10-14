@@ -241,13 +241,13 @@ const workspace: Scene = {
 };
 
 /** The scene with the person's bought things placed in it. Things are walk-through, so nobody can be boxed in. */
-export function withDecor(scene: Scene, placed: { item: string; x: number; y: number; rot?: number; tint?: string }[], items: Map<string, { w: number; d: number; icon: string }>): Scene {
+export function withDecor(scene: Scene, placed: { item: string; x: number; y: number; rot?: number; tint?: string }[], items: Map<string, { w: number; d: number; icon: string; model?: string; color?: string }>): Scene {
   if (scene.id !== WORKSPACE_ID || placed.length === 0) return scene;
   const objects: SceneObject[] = placed.flatMap((p) => {
     const it = items.get(p.item);
     if (!it) return [];
     const swap = p.rot === 1;
-    return [{ kind: "decor" as const, x: p.x + WORKSPACE_OFFSET.x, y: p.y + WORKSPACE_OFFSET.y, w: swap ? it.d : it.w, d: swap ? it.w : it.d, icon: it.icon, solid: false, ...(p.tint ? { tint: p.tint } : {}) }];
+    return [{ kind: "decor" as const, x: p.x + WORKSPACE_OFFSET.x, y: p.y + WORKSPACE_OFFSET.y, w: swap ? it.d : it.w, d: swap ? it.w : it.d, icon: it.icon, solid: false, ...(it.model ? { model: it.model } : {}), ...(p.tint ? { tint: p.tint } : it.color ? { tint: it.color } : {}) }];
   });
   return { ...scene, objects: [...scene.objects, ...objects] };
 }

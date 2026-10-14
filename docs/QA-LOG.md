@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## P2: Evidence storage and scanning, 3D Workspace items, and faster reads (14 Oct 2026)
+Scope: priority items 11, 14 and part of 10. (11) Concern evidence goes through a virus scan before it is stored (a scanner service reached by address; infected files are refused and logged; unreachable scanner or none in production keeps the file "pending" and admins cannot open it until a clean scan) and is stored in a private Supabase bucket when configured (otherwise the database); older files stay readable. (14) Bought items are drawn as 3D shapes (desk with screen, chair, sofa, plant, lamp, screen, frame, rug, shelf, table, cabinet) with a colour set per item in the catalogue, instead of emoji pictures; the shape and colour are admin settings. (10) Server Actions from one browser run one at a time, so a slow move or purchase made other screens wait; the read-only screens (game state, Workspace items, room activities, shift, simulators) now use plain requests that run side by side, each checking who is asking and never cached. A stale room bar no longer shows after moving to another room.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 516 tests: scan clean, skipped, infected, pending then clean or infected; storage keys and calls; read requests refuse signed-out and unready users, answer only about the signed-in person, never cached |
+| 3 | Security | **Pass** | Files are private and only handed to an admin as a download; scanner and storage keys are server-only environment settings; keys are validated; no new public data |
+| 4 | Real browser | **Pass** | Throwaway user with ten items: all shapes drawn in My Workspace, decor appears while a slow move is still being confirmed, no console errors |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Open: a real scanner service and the storage bucket must be set up before rollout (see DATABASE-SETUP); trimming the number of database trips per write is still to do.
+
+---
+
 ## P1: Reports gaps, succession planning and client simulation (14 Oct 2026)
 Scope: priority items 13, 7 and 6. (13) Reports now include play minutes, shifts finished and leadership runs per person (also in the CSV), from running totals kept on each record. (7) Succession: Admin > Succession (admins and the learning team) lists each line manager's role, named successors with how soon they could be ready, suggestions from the same unit with at least 3 years' service ranked by leadership results, certificates and lessons, and who still owes the leadership simulator; line managers see a "Required" banner in the Academy until they have done it within the refresh period (180 days by default; settings). (6) Client simulation: the leadership engine now serves two simulators; the client simulation deals each person cases for their unit (Customer Experience, Wealth Advisory, Investment Advisory, plus ones for everyone) with meters for client trust, compliance, revenue and risk control; admin-editable under Settings.
 

@@ -50,6 +50,8 @@ export interface EvidenceMeta {
   fileModifiedAt: number | null;
   /** When the server received it. */
   addedAt: number;
+  /** What the virus scan said. A file that is not clean cannot be opened. Older records have none and count as clean. */
+  scan?: "clean" | "infected" | "pending" | "skipped";
 }
 
 export interface ConcernNote {

@@ -1,7 +1,17 @@
 /** The starting Workspace catalogue. Admins can rename, add, reprice or remove anything under Settings. */
-type Item = { id: string; category: string; name: string; icon: string; w: number; d: number; stars: number; price: number; effect?: { need: string; cut: number } };
+type Item = { model?: string; color?: string; id: string; category: string; name: string; icon: string; w: number; d: number; stars: number; price: number; effect?: { need: string; cut: number } };
 
 const item = (id: string, category: string, name: string, icon: string, w: number, d: number, stars: number, price: number, effect?: { need: string; cut: number }): Item => ({ id, category, name, icon, w, d, stars, price, ...(effect ? { effect } : {}) });
+
+/** The 3D shape and main colour of each starting item. */
+const LOOK: Record<string, [string, string]> = {
+  "plain-desk": ["desk", "#d9c7a3"], "standing-desk": ["desk", "#e7e2d6"], "corner-desk": ["desk", "#b9926b"], "pen-tray": ["box", "#4a6fa5"], "desk-organiser": ["cabinet", "#8fb8a0"], "filing-cabinet": ["cabinet", "#9aa5ad"],
+  "office-chair": ["chair", "#3d4348"], "ergonomic-chair": ["chair", "#2f6fe0"], "small-sofa": ["sofa", "#6b8e6f"], rug: ["rug", "#c8503c"], "standing-fan": ["lamp", "#cfd6d9"], "water-bottle": ["cabinet", "#9fd0ea"],
+  "small-plant": ["plant", "#56a863"], fern: ["plant", "#4a9a5a"], palm: ["plant", "#3f8f4f"], flowers: ["plant", "#e07a9a"],
+  "laptop-stand": ["screen", "#2b2f33"], "second-screen": ["screen", "#2b2f33"], headset: ["box", "#2b2f33"], "desk-speaker": ["cabinet", "#34383c"],
+  "framed-values": ["frame", "#2d5d41"], whiteboard: ["frame", "#f4f6f4"], "wall-clock": ["frame", "#e9e2d0"], "skyline-print": ["frame", "#5b86b5"],
+  "desk-lamp": ["lamp", "#444a4f"], "floor-lamp": ["lamp", "#6b5a45"], "string-lights": ["rug", "#f2c230"], lantern: ["lamp", "#b7843a"],
+};
 
 export const DEFAULT_DECOR = {
   settings: { gridW: 8, gridD: 6, maxPlaced: 30, maxHelpPerNeed: 0.5 },
@@ -13,7 +23,7 @@ export const DEFAULT_DECOR = {
     { id: "wall", label: "Wall art", icon: "🖼️" },
     { id: "light", label: "Light", icon: "💡" },
   ],
-  items: [
+  items: ([
     item("plain-desk", "desk", "Plain desk", "🗄️", 2, 1, 0, 6),
     item("standing-desk", "desk", "Standing desk", "🧍", 2, 1, 1, 24, { need: "energy", cut: 0.08 }),
     item("corner-desk", "desk", "Corner desk", "📐", 2, 2, 2, 40),
@@ -42,5 +52,5 @@ export const DEFAULT_DECOR = {
     item("floor-lamp", "light", "Floor lamp", "💡", 1, 1, 1, 14),
     item("string-lights", "light", "String lights", "✨", 2, 1, 1, 10, { need: "mood", cut: 0.05 }),
     item("lantern", "light", "Brass lantern", "🏮", 1, 1, 2, 18),
-  ],
+  ]).map((i) => (LOOK[i.id] ? { ...i, model: LOOK[i.id][0], color: LOOK[i.id][1] } : i)),
 };

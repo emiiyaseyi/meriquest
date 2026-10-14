@@ -24,6 +24,12 @@ const EnvSchema = z
     // One-time secret for the bootstrap admin only. Kept separate from DEFAULT_PASSWORD, which every
     // new joiner knows, so an insider cannot take over the first admin account.
     BOOTSTRAP_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).max(128).optional()),
+    // Evidence files: a private Supabase Storage bucket (otherwise the database holds them) and a virus scanner service.
+    SUPABASE_URL: z.preprocess(emptyToUndefined, z.string().url().max(300).optional()),
+    SUPABASE_SERVICE_KEY: z.preprocess(emptyToUndefined, z.string().min(20).max(2000).optional()),
+    EVIDENCE_BUCKET: z.preprocess(emptyToUndefined, z.string().min(3).max(63).default("concern-evidence")),
+    EVIDENCE_SCANNER_URL: z.preprocess(emptyToUndefined, z.string().url().max(300).optional()),
+    EVIDENCE_SCANNER_TOKEN: z.preprocess(emptyToUndefined, z.string().min(8).max(2000).optional()),
     SEED_SAMPLE_STAFF: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).default("false")),
     BOOTSTRAP_ADMIN_STAFF_ID: z.preprocess(emptyToUndefined, z.string().max(20).default("MS0001")),
     BOOTSTRAP_ADMIN_EMAIL: z.preprocess(
@@ -71,6 +77,11 @@ export function getEnv(): Env {
     ALLOW_FILE_STORE: process.env.ALLOW_FILE_STORE,
     DATA_DIR: process.env.DATA_DIR,
     DEFAULT_PASSWORD: process.env.DEFAULT_PASSWORD,
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
+    EVIDENCE_BUCKET: process.env.EVIDENCE_BUCKET,
+    EVIDENCE_SCANNER_URL: process.env.EVIDENCE_SCANNER_URL,
+    EVIDENCE_SCANNER_TOKEN: process.env.EVIDENCE_SCANNER_TOKEN,
     SEED_SAMPLE_STAFF: process.env.SEED_SAMPLE_STAFF,
     BOOTSTRAP_ADMIN_PASSWORD: process.env.BOOTSTRAP_ADMIN_PASSWORD,
     BOOTSTRAP_ADMIN_STAFF_ID: process.env.BOOTSTRAP_ADMIN_STAFF_ID,

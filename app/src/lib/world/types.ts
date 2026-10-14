@@ -36,7 +36,13 @@ export interface SceneObject {
   /** For "decor": the picture shown on it, and a colour for its base. */
   icon?: string;
   tint?: string;
+  /** For "decor": the 3D shape to draw (see DECOR_MODELS). Without one, its picture is shown. */
+  model?: string;
 }
+
+/** The shapes a bought item can take. The admin picks one for each item in the catalogue. */
+export const DECOR_MODELS = ["box", "desk", "chair", "sofa", "plant", "lamp", "screen", "frame", "rug", "shelf", "table", "cabinet"] as const;
+export type DecorModel = (typeof DECOR_MODELS)[number];
 
 export type FloorStyle = "marble" | "office" | "wood";
 

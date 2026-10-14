@@ -18,6 +18,8 @@ export interface DecorItem {
   price: number;
   /** Some items help a need by slowing how fast it falls: a share between 0 and 1. */
   effect?: { need: NeedKey; cut: number };
+  model?: string;
+  color?: string;
 }
 
 export interface PlacedItem {
