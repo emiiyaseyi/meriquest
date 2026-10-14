@@ -645,6 +645,28 @@ export const decorSchema = z
         maxHelpPerNeed: z.number().min(0).max(0.9),
       })
       .strict(),
+    /** Kinds of Workspace (a desk that grows with role and experience, or a private office), checked in order; the last is the fallback. */
+    layouts: z
+      .array(
+        z
+          .object({
+            id: slug,
+            label: z.string().min(1).max(30),
+            kind: z.enum(["desk", "office"]),
+            gridW: z.number().int().min(3).max(12),
+            gridD: z.number().int().min(3).max(10),
+            maxPlaced: z.number().int().min(1).max(100),
+            titles: z.array(z.string().min(1).max(60)).max(20),
+            staffIds: z.array(z.string().regex(/^[A-Za-z0-9]{1,20}$/)).max(200),
+            minTenure: z.number().min(0).max(40),
+            lineManagerOnly: z.boolean(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(10)
+      .refine((l) => new Set(l.map((x) => x.id)).size === l.length, "Each layout needs its own id")
+      .refine((l) => l[l.length - 1].titles.length === 0 && l[l.length - 1].staffIds.length === 0 && l[l.length - 1].minTenure === 0 && !l[l.length - 1].lineManagerOnly, "The last layout is for everyone else, so it cannot have titles, staff ids, a tenure or the line-manager rule"),
     categories: z.array(z.object({ id: slug, label: z.string().min(1).max(20), icon: z.string().min(1).max(8) }).strict()).min(1).max(12),
     items: z
       .array(

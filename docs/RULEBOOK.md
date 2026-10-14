@@ -343,6 +343,7 @@ If two docs disagree, this rulebook wins, then PRD, then the rest.
 | 2026-10-13 | Apply the Meristem brand (logo, palette) from the staff-portal reference | Owner |
 | 2026-10-13 | Owner asked for recommendations on §13 items 2, 4, 7, 8, 9, 10; working defaults recorded | Owner / Claude |
 | 2026-10-13 | The `/game` prototype is retired: password removed, Netlify publishes a "retired" page | Owner / Claude |
+| 2026-10-14 | The Workspace shows the person's **desk**, not the whole room. Desk size grows with role and experience (admin-set layouts). Only chosen people (for example Heads of Business Units, the COO and CFO) have a **private office**, which they set up and which is then their Workspace view. Who gets which is admin-set (job titles, staff ids, years, line-manager flag) | Owner |
 
 ---
 

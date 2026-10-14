@@ -15,6 +15,13 @@ const LOOK: Record<string, [string, string]> = {
 
 export const DEFAULT_DECOR = {
   settings: { gridW: 8, gridD: 6, maxPlaced: 30, maxHelpPerNeed: 0.5 },
+  /** Kinds of Workspace, checked in this order: the first that is for the person is theirs, and the last is for everyone else. */
+  layouts: [
+    { id: "office", label: "Private office", kind: "office" as "desk" | "office", gridW: 10, gridD: 8, maxPlaced: 45, titles: ["Chief", "COO", "CFO", "CEO", "CTO", "Managing Director", "Executive Director", "Head of Business"], staffIds: [] as string[], minTenure: 0, lineManagerOnly: false },
+    { id: "desk-lead", label: "Team lead desk", kind: "desk" as "desk" | "office", gridW: 7, gridD: 5, maxPlaced: 28, titles: [] as string[], staffIds: [] as string[], minTenure: 0, lineManagerOnly: true },
+    { id: "desk-senior", label: "Senior desk", kind: "desk" as "desk" | "office", gridW: 6, gridD: 4, maxPlaced: 22, titles: [] as string[], staffIds: [] as string[], minTenure: 3, lineManagerOnly: false },
+    { id: "desk-standard", label: "Desk", kind: "desk" as "desk" | "office", gridW: 5, gridD: 4, maxPlaced: 16, titles: [] as string[], staffIds: [] as string[], minTenure: 0, lineManagerOnly: false },
+  ],
   categories: [
     { id: "desk", label: "Desk", icon: "🖥️" },
     { id: "comfort", label: "Comfort", icon: "🛋️" },

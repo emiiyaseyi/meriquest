@@ -275,6 +275,53 @@ const workspace: Scene = {
   spawn: { x: 11, y: 7 },
 };
 
+/**
+ * The Workspace sized for one person. A desk is a small pod around a desk surface (the area where things are placed);
+ * a private office is a larger room with a sofa and windows. The decoration area always starts one tile in from the
+ * wall (WORKSPACE_OFFSET), so what is bought is drawn in the same place for every layout. Walls, doors and the way back to the open-plan floor are
+ * kept the same, so travel and the server's checks do not change.
+ */
+export function workspaceLayoutScene(base: Scene, kind: "desk" | "office", gridW: number, gridD: number): Scene {
+  if (base.id !== WORKSPACE_ID) return base;
+  const office = kind === "office";
+  const cols = gridW + (office ? 3 : 2);
+  const rows = gridD + 3;
+  const objects: SceneObject[] = [
+    // The surface where things are placed, drawn flat so what is bought stands on it
+    { kind: "decor", x: WORKSPACE_OFFSET.x, y: WORKSPACE_OFFSET.y, w: gridW, d: gridD, solid: false, model: "rug", tint: office ? "#e6e0d2" : "#e7dcc8" },
+    { kind: "chair", x: WORKSPACE_OFFSET.x + Math.floor(gridW / 2), y: gridD + 1, dir: 3, solid: false },
+    { kind: "plant", x: 0, y: rows - 1 },
+    ...(office
+      ? [
+          { kind: "sofa" as const, x: 2, y: rows - 1, w: 3, d: 1, dir: 3 as const },
+          { kind: "plant" as const, x: cols - 1, y: rows - 1 },
+          { kind: "cabinet" as const, x: cols - 3, y: 0, w: 2, d: 1 },
+        ]
+      : []),
+  ];
+  return {
+    ...base,
+    name: office ? "My Office" : "My Desk",
+    subtitle: office ? "Your private office. Set it up the way you like" : "Your desk. Decorate it with things you buy",
+    cols,
+    rows,
+    floor: office ? "marble" : "office",
+    features: office
+      ? [
+          { wall: "x", kind: "windows", from: 0.5, to: cols - 0.5 },
+          { wall: "y", kind: "slats", from: 0, to: rows },
+        ]
+      : [
+          { wall: "x", kind: "slats", from: 0, to: cols },
+          { wall: "y", kind: "glass", from: 0.5, to: rows - 0.5 },
+        ],
+    objects,
+    portals: base.portals.map((p) => ({ ...p, x: cols - 1, y: 1, w: 1, d: 2 })),
+    hotspots: base.hotspots.map((h) => ({ ...h, x: 0, y: rows - 2 })),
+    spawn: { x: cols - 2, y: rows - 2 },
+  };
+}
+
 /** The scene with the person's bought things placed in it. Things are walk-through, so nobody can be boxed in. */
 export function withDecor(scene: Scene, placed: { item: string; x: number; y: number; rot?: number; tint?: string }[], items: Map<string, { w: number; d: number; icon: string; model?: string; color?: string }>): Scene {
   if (scene.id !== WORKSPACE_ID || placed.length === 0) return scene;

@@ -4,6 +4,20 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## W1: Workspace is a desk, and a private office for chosen people (14 Oct 2026)
+Scope: owner feedback on Buy mode. (1) The Workspace now shows the person's **desk** (a small pod around a desk surface) instead of the whole open floor. (2) **Desk size grows with role and experience**: admin-set layouts in Settings > Workspace decoration (default: standard desk 5 by 4, senior desk 6 by 4 from 3 years, team lead desk 7 by 5 for line managers). (3) **Private office** (10 by 8, windows, sofa, cabinet) only for chosen people: by job title (default: Chief, COO, CFO, CEO, CTO, Managing Director, Executive Director, Head of Business), or by staff id; "Head of Client Service" does not get one. Layouts are checked in order and the last one is for everyone else (the setting refuses a list whose last entry has a rule). The **server** works out each person's layout from their title, years and line-manager flag and checks every buy, place and move against that layout's area and item limit; the browser only draws it. The needs rules, which do not know the person, accept anything inside the largest layout. The room is also centred in the space above the Buy mode catalogue. Decision recorded in RULEBOOK §12. 5 new tests (607 total). **Checked in a real browser** with a throwaway user: a standard desk, and a "Chief Operating Officer" office.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 607 of 607 |
+| 3 | Input validation, authz, economy tampering | **Pass** | placement limits come from the server-side layout, not from the browser; layout list validated by the schema (ids, sizes, staff id pattern, last entry for everyone) |
+| 4 | Secrets, audit, security review | **Pass** | no new routes or secrets |
+
+Known effect: if an admin shrinks a layout, things placed outside the new area are dropped the next time the person opens their Workspace (they stay owned). Open: Workspace art for the office is a first version.
+
+---
+
 ## D1: Vercel deployment preparation (14 Oct 2026)
 Scope: preparing the first (test) deployment to Vercel, which the owner will click through. Added `app/vercel.json` (Next.js, functions in Frankfurt `fra1` to sit next to a Frankfurt database) and a step-by-step "First deployment to Vercel" guide in `docs/DATABASE-SETUP.md`: a new empty database, the one-off migration, the Vercel project settings, the variables and which are secret, first sign-in, and known limits. **Nothing was deployed by me and no secret passed through me.** Production rules checked in `env.ts`: production needs `STORE=postgres`, `DEFAULT_PASSWORD`, a different `BOOTSTRAP_ADMIN_PASSWORD`, no sample staff and no memory store, so a test deployment starts empty and test staff are added in Admin > Staff & access. Finding: Vercel's request limit (about 4.5 MB) is below the app's evidence limit (three 2 MB files), so a concern with more than about two large files would fail there (documented; owner to decide).
 

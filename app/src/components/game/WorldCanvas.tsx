@@ -20,6 +20,8 @@ export interface WorldCanvasProps {
   /** Quarter-turns of the camera (isometric view only). */
   rotation: Quarter;
   paused: boolean;
+  /** Share of the height (0 to 0.6) kept clear at the bottom, for a panel that covers it (Buy mode), so the room is centred in what stays visible. */
+  reserveBottom?: number;
   onPortal: (p: Portal) => void;
   onHotspot: (h: Hotspot) => void;
   onNpc: (n: Npc) => void;
@@ -39,7 +41,7 @@ type Then = { kind: "hotspot"; h: Hotspot } | null;
  * sideways drag) turn the view without moving you. The room's own coordinates never change: the camera turn
  * only affects drawing and picking. Nothing here is trusted by the server: doors are re-checked there.
  */
-export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, skipTick = 0 }: WorldCanvasProps) {
+export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, reserveBottom = 0, onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, skipTick = 0 }: WorldCanvasProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const k: Quarter = mode === "iso" ? rotation : 0;
@@ -323,7 +325,7 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
         const walker: Walker = { x: pos.x, y: pos.y, fx: face.x, fy: face.y, walking: s.walking, look, name };
         const path = s.path.map((t) => tileToView(scene, k, t.x, t.y));
         const hover = s.hover ? tileToViewPoint(s.hover.x, s.hover.y) : null;
-        const base = { mode, width: s.size.w, height: s.size.h, time: now, dpr: s.size.dpr, logo: logo.current, labels: true } as const;
+        const base = { mode, width: s.size.w, height: s.size.h * (1 - reserveBottom), time: now, dpr: s.size.dpr, logo: logo.current, labels: true } as const;
         if (mode === "iso") {
           if (staticDirty) {
             const sctx = staticLayer.getContext("2d");
@@ -361,7 +363,7 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
     };
     // The world is rebuilt when the room, the drawing mode or the camera changes. Appearance is read through the closure on purpose.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, turned, mode, k, start.x, start.y]);
+  }, [scene, turned, mode, k, start.x, start.y, reserveBottom]);
 
   return (
     <div ref={wrap} className="world-wrap">

@@ -20,7 +20,7 @@ import { startTripAction } from "@/app/actions/travel";
 import type { TravelOptions, TripView } from "@/lib/server/travel/service";
 import { getMine } from "@/lib/client/api";
 import type { DecorView } from "@/lib/server/decor/service";
-import { WORKSPACE_ID, withDecor } from "@/lib/world/scenes";
+import { WORKSPACE_ID, withDecor, workspaceLayoutScene } from "@/lib/world/scenes";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -153,7 +153,7 @@ export function GameShell(props: GameShellProps) {
   const { needs, points } = game;
   const [look, setLook] = useState<Skin>(props.look);
   const [sceneId, setSceneId] = useState(props.initialScene);
-  const scene = getScene(sceneId) ?? SCENES[props.initialScene];
+  const baseScene = getScene(sceneId) ?? SCENES[props.initialScene];
   const [arrive, setArrive] = useState<{ x: number; y: number }>(() => (getScene(props.initialScene) ?? SCENES[props.initialScene]).spawn);
   const [mode, setMode] = useViewMode();
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -162,6 +162,10 @@ export function GameShell(props: GameShellProps) {
   const [academyCard, setAcademyCard] = useState(false);
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
   const [decorView, setDecorView] = useState<DecorView | null>(null);
+  /** My Workspace is sized for the person: a desk that grows with role and experience, or a private office. */
+  const scene = useMemo(() => (baseScene.id === WORKSPACE_ID && decorView ? workspaceLayoutScene(baseScene, decorView.layout.kind, decorView.grid.w, decorView.grid.d) : baseScene), [baseScene, decorView]);
+  /** Where you stand when the room opens: the spot the server named, or the room's own entry if that lies outside a smaller room. */
+  const startAt = scene.id === WORKSPACE_ID && (arrive.x >= scene.cols || arrive.y >= scene.rows) ? scene.spawn : arrive;
   const [ghost, setGhost] = useState<Ghost | null>(null);
   /** Moves to the server are sent one after another, in the order they were made. */
   const travelQueue = useRef<Promise<void>>(Promise.resolve());
@@ -428,7 +432,7 @@ export function GameShell(props: GameShellProps) {
 
   return (
     <div className="game">
-      <WorldCanvas scene={drawScene} start={arrive} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
+      <WorldCanvas key={`${scene.id}:${scene.cols}x${scene.rows}`} scene={drawScene} start={startAt} reserveBottom={overlay === "buy" ? 0.42 : 0} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
 
       {anyOpen && !touring && overlay !== "buy" ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || overlay === "lift" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 

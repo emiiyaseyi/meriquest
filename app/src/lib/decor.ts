@@ -101,3 +101,50 @@ export function cleanDecor(raw: unknown, byId: Map<string, DecorItem>, gridW: nu
   }
   return { owned, placed, mode: r.mode === "auto" ? "auto" : "grid" };
 }
+
+/**
+ * A kind of Workspace. Most people have a desk, and its size grows with their role and experience; a few people (for
+ * example the heads of business units and the chief officers) have a private office. The admin sets the list and who gets each.
+ */
+export interface DecorLayout {
+  id: string;
+  label: string;
+  kind: "desk" | "office";
+  /** The area where things can be placed, in tiles. */
+  gridW: number;
+  gridD: number;
+  maxPlaced: number;
+  /** Job titles that get this layout (a part of the title is enough, any letter case). */
+  titles: string[];
+  /** Staff ids that get this layout. */
+  staffIds: string[];
+  /** When there are no titles or staff ids: the years at Meristem needed. */
+  minTenure: number;
+  /** When there are no titles or staff ids: only line managers. */
+  lineManagerOnly: boolean;
+}
+
+export interface LayoutPerson {
+  staffId: string;
+  title: string;
+  tenureYears: number;
+  isLineManager: boolean;
+}
+
+/** Whether a layout is for this person. A layout with names or titles is for exactly those people; otherwise it is by experience. */
+export function layoutMatches(l: DecorLayout, p: LayoutPerson): boolean {
+  const named = l.titles.length > 0 || l.staffIds.length > 0;
+  if (named) {
+    const title = p.title.toLowerCase();
+    return l.staffIds.some((s) => s.toUpperCase() === p.staffId.toUpperCase()) || l.titles.some((t) => t.trim().length > 0 && title.includes(t.trim().toLowerCase()));
+  }
+  return p.tenureYears >= l.minTenure && (!l.lineManagerOnly || p.isLineManager);
+}
+
+/** The first layout in the admin's list that is for this person; the last one is the fallback. */
+export function pickLayout(layouts: DecorLayout[], p: LayoutPerson): DecorLayout {
+  return layouts.find((l) => layoutMatches(l, p)) ?? layouts[layouts.length - 1];
+}
+
+/** The largest area any layout allows, for checks that do not know who the person is. */
+export const largestGrid = (layouts: DecorLayout[]): { gridW: number; gridD: number } => ({ gridW: Math.max(...layouts.map((l) => l.gridW)), gridD: Math.max(...layouts.map((l) => l.gridD)) });
