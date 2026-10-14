@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## D1: Vercel deployment preparation (14 Oct 2026)
+Scope: preparing the first (test) deployment to Vercel, which the owner will click through. Added `app/vercel.json` (Next.js, functions in Frankfurt `fra1` to sit next to a Frankfurt database) and a step-by-step "First deployment to Vercel" guide in `docs/DATABASE-SETUP.md`: a new empty database, the one-off migration, the Vercel project settings, the variables and which are secret, first sign-in, and known limits. **Nothing was deployed by me and no secret passed through me.** Production rules checked in `env.ts`: production needs `STORE=postgres`, `DEFAULT_PASSWORD`, a different `BOOTSTRAP_ADMIN_PASSWORD`, no sample staff and no memory store, so a test deployment starts empty and test staff are added in Admin > Staff & access. Finding: Vercel's request limit (about 4.5 MB) is below the app's evidence limit (three 2 MB files), so a concern with more than about two large files would fail there (documented; owner to decide).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Not re-run** | configuration and documentation only; the last full `npm run qa` (C7) was clean on the same code |
+| 2 | Secret scan | **Pass** | no secret values in the file or the guide, only variable names |
+
+Open items before real staff data: provider and region approval (IT, Risk, DPO), daily backups, production database, virus scanner and private evidence bucket, and a decision on the evidence size limit.
+
+---
+
 ## C7: Real-browser check of the new phone apps, small fixes, client figures in admin Reports (14 Oct 2026)
 Scope: first browser run of the new apps with a throwaway user (removed afterwards; the script was stopped from sending kudos to real accounts). **Checked in the browser:** all eight apps open and fill (Directory, Kudos, My Role, Market, My Portfolio, Clients, Compliance Desk, Reports); a practice buy works and shows in My Portfolio; a client is served through its steps and gives a rating, the client's decision and a breach note; pre-clearance is approved; a gift is declared and recorded; the Kudos form picks a colleague and shows the daily allowance; the Clients list shows 10 clients for customer experience. **Fixed after the run:** success messages were shown on the red error background; the "Pre-clear" tab wrapped onto two lines (now "Dealing"); a negative amount showed as "₦-0.87" (now "-₦0.87"). **Added:** admin Reports now shows clients served, average client rating and conversations with a breach (cards, people table and the spreadsheet download). Sending kudos was not clicked in the browser (it would have sent a real notification and points to a real account); it is covered by the service tests.
 

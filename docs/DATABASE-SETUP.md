@@ -58,6 +58,50 @@ The owner decided (13 Oct 2026) to host on **Vercel**, not Netlify. `netlify.tom
 5. Deploy, sign in as `MS0001` with the bootstrap password, set your own password, add staff under **Admin → Staff & access**.
 6. Use a Meristem subdomain once IT agrees. If pages feel slow, match the Vercel function region to the database region (some plans charge for this).
 
+## First deployment to Vercel: a test deployment (step by step)
+This is a **test** deployment: a private project on a **new, empty database**, with no real staff data. It does not need the IT and data-protection approval above; that is needed before real staff data goes in (see "Before real staff data goes in"). `app/vercel.json` is already in the repo: it sets the framework and runs the functions in **Frankfurt (`fra1`)**, so create the database in **Frankfurt (EU Central)** too. A function and a database in the same region is the biggest speed-up available: from a laptop in Lagos to a far database every query was about half a second.
+
+**Part A: a new database (once)**
+1. Create a new empty Postgres database (for example a new Prisma Postgres or Supabase project) in **Frankfurt / EU Central**. Name it `meriquest-test`. Do not reuse the development database.
+2. Copy its connection string. Keep it in a password manager, not in chat or in the repo.
+3. On your machine, in a terminal, from the `app` folder (PowerShell), run the migration once against the new database:
+   ```
+   $env:DATABASE_URL = "paste the connection string here"
+   node scripts/migrate.mjs
+   Remove-Item Env:DATABASE_URL
+   ```
+   It should say it applied `0001_kv.sql`. (The shared dev database is not touched.)
+
+**Part B: the Vercel project**
+1. Vercel > **Add New > Project > Import** the GitHub repo `emiiyaseyi/meriquest` (the repo stays private).
+2. **Root Directory:** `app`. Framework: Next.js (detected). Leave the build command as `npm run build`.
+3. **Environment Variables** (tick **Sensitive** for the secrets; apply to Production and Preview):
+
+| Variable | Value | Secret |
+|---|---|---|
+| `STORE` | `postgres` | no |
+| `DATABASE_URL` | the new database string from Part A | **yes** |
+| `DEFAULT_PASSWORD` | a new random value, 12+ characters (the shared first-sign-in password) | **yes** |
+| `BOOTSTRAP_ADMIN_PASSWORD` | a different random value, 12+ characters | **yes** |
+| `TOTP_KEY` | 32 random bytes in base64 (needed for two-step sign-in in production) | **yes** |
+| `BOOTSTRAP_ADMIN_STAFF_ID` | `MS0001` | no |
+| `BOOTSTRAP_ADMIN_EMAIL` | the L&D admin mailbox | no |
+
+   Do **not** set `NODE_ENV`, and do **not** set `SEED_SAMPLE_STAFF`: Vercel runs in production mode, where the app refuses to start with sample staff on. Make random values with a password manager, or in PowerShell: `[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))` for `TOTP_KEY`.
+4. Click **Deploy**. When it finishes, open the address Vercel gives you.
+
+**Part C: first sign-in**
+1. Sign in as `MS0001` with `BOOTSTRAP_ADMIN_PASSWORD`, set your own password, then set up two-step sign-in (Account > Two-step sign-in).
+2. Add a few **test staff** under Admin > Staff & access (one per pilot unit: Customer Experience, Wealth Advisory, Investment Advisory). They sign in with `DEFAULT_PASSWORD` and are asked to change it.
+3. The courses load into the new database the first time anyone opens the Academy, so that first open is slower.
+4. Check Settings: open Settings > Phone apps if you want the new apps shown as live.
+
+**Known limits of a test deployment**
+- Vercel accepts a request of about **4.5 MB** at most. A conduct concern with three 2 MB evidence files (up to 6 MB) will fail there; one or two files are fine. Say if you want the app limit lowered to match.
+- Virus scanning and the private evidence bucket are not set up (see below): evidence files are kept as "pending" and an admin cannot open them until a scan is configured.
+- Use the Vercel project's **Deployment Protection** (or keep the address private) so only you and the testers open it.
+- The Vercel plan's single-region and time-out limits apply; a slow first page after a quiet spell is a cold start.
+
 ## Evidence files and virus scanning (before wide rollout)
 Conduct-concern evidence (pictures and PDFs) is private. By default it stays in the database, which is fine for development. For production set:
 
