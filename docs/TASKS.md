@@ -85,3 +85,17 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Admin pages on phones
 
 - [x] Leadership simulator checked in a browser
+
+## Priority list (14 Oct 2026, owner: do 6 to 15 now; Meristem Stories on hold)
+- [ ] 6. Client simulation: CX, Wealth Advisory and Investment Advisory cases (markets, regulators, control functions)
+- [ ] 7. Succession planning (3+ years) and the leadership simulator mandatory for line managers
+- [ ] 8. Chats and groups between colleagues, with moderation (filter, report, admin review)
+- [ ] 9. Travel and commute (personal car, pool car, Uber) between Lagos offices
+- [ ] 10. More instant actions (mission swap, shift answers) and fewer server round trips
+- [ ] 11. Concern evidence files in proper storage with virus scanning
+- [ ] 12. Rewrite review, PRD, workplan and README to match the rulebook
+- [ ] 13. Reports: add play time, shifts and leadership runs per person
+- [ ] 14. Workspace items as real 3D models instead of emoji pictures
+- [ ] 15. Optional: Supabase two-step sign-in; keep adding Academy questions and cases
+- [ ] On hold: Meristem Stories
+- [ ] Waiting on the owner: database region, Ikoyi floor descriptions, Yaba photos, review of drafts, confirm NEO service standards
