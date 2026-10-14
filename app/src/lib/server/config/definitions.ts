@@ -9,6 +9,7 @@ import { DEFAULT_HUNT } from "./hunt-content";
 import { DEFAULT_CHAT } from "./chat-content";
 import { DEFAULT_KUDOS } from "./kudos-content";
 import { DEFAULT_MARKET } from "./market-content";
+import { DEFAULT_CLIENTS } from "./clients-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 import { DECOR_MODELS } from "@/lib/world/types";
@@ -935,6 +936,64 @@ export const marketSchema = z
   .refine((m) => m.states.some((s) => s.id === m.settings.defaultState), "The default state is not in the list of states")
   .refine((m) => m.schedule.every((s) => m.states.some((x) => x.id === s.state) && s.from <= s.to), "Each planned state must exist and end on or after it starts");
 
+const tagWeights = z.record(slug, z.number().min(-40).max(40));
+
+export const clientsSchema = z
+  .object({
+    settings: z.object({ perDay: z.number().int().min(0).max(20), pointsGreat: z.number().int().min(0).max(200), pointsGood: z.number().int().min(0).max(200), pointsLearning: z.number().int().min(0).max(200) }).strict(),
+    rules: z
+      .object({
+        baseScore: z.number().min(0).max(100),
+        tagWeights,
+        suitableBonus: z.number().min(0).max(60),
+        unsuitablePenalty: z.number().min(0).max(60),
+        randomness: z.number().min(0).max(30),
+        greatScore: z.number().min(1).max(100),
+        goodScore: z.number().min(1).max(100),
+        okScore: z.number().min(1).max(100),
+      })
+      .strict()
+      .refine((x) => x.okScore <= x.goodScore && x.goodScore <= x.greatScore, "The scores must rise: ok, then good, then great"),
+    archetypes: z.array(z.object({ id: slug, label: z.string().min(1).max(40), icon: z.string().min(1).max(8), trait: z.string().min(1).max(200), tagWeights }).strict()).min(1).max(30),
+    steps: z
+      .array(
+        z
+          .object({
+            id: slug,
+            prompt: z.string().min(1).max(160),
+            /** The recommend step offers the kinds of product instead of written options. */
+            recommend: z.boolean().default(false),
+            options: z.array(z.object({ id: slug, text: z.string().min(1).max(200), tags: z.array(slug).max(8) }).strict()).max(6),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(8)
+      .refine((s) => s.every((x) => x.recommend || x.options.length >= 2), "A step needs at least two options (except the recommend step)")
+      .refine((s) => s.filter((x) => x.recommend).length === 1, "Exactly one step must be the recommend step"),
+    clients: z
+      .array(
+        z
+          .object({
+            id: slug,
+            units: z.array(z.string().min(1).max(30)).min(1).max(10),
+            name: z.string().min(1).max(60),
+            type: z.enum(["individual", "corporate"]),
+            archetype: slug,
+            story: z.string().min(1).max(400),
+            suitable: z.array(slug).min(1).max(10),
+            kycRequired: z.boolean(),
+            minTenure: z.number().min(0).max(40),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .refine((c) => new Set(c.clients.map((x) => x.id)).size === c.clients.length, "Each client needs its own id")
+  .refine((c) => c.clients.every((x) => c.archetypes.some((a) => a.id === x.archetype)), "A client has a type that is not in the list");
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1091,7 +1150,7 @@ export const CONFIG = {
       { id: "directory", label: "Directory", icon: "📇", enabled: true, soon: false },
       { id: "kudos", label: "Kudos", icon: "🌟", enabled: true, soon: false },
       { id: "portfolio", label: "My Portfolio", icon: "📈", enabled: true, soon: false },
-      { id: "clients", label: "Clients", icon: "🤝", enabled: true, soon: true },
+      { id: "clients", label: "Clients", icon: "🤝", enabled: true, soon: false },
       { id: "market", label: "Market", icon: "🏦", enabled: true, soon: false },
       { id: "compliance", label: "Compliance Desk", icon: "🛡️", enabled: true, soon: true },
       { id: "reports", label: "Reports", icon: "📊", enabled: true, soon: true },
@@ -1156,6 +1215,7 @@ export const CONFIG = {
         { id: "two-breaks", title: "Take two breaks", description: "Rest twice to stay fresh.", event: "rest", target: 2, rewardPoints: 5 },
         { id: "give-kudos", title: "Thank a colleague", description: "Send kudos to someone who helped you.", event: "kudos", target: 1, rewardPoints: 4 },
         { id: "first-trade", title: "Make a practice trade", description: "Buy or sell something in the practice market.", event: "trade", target: 1, rewardPoints: 4 },
+        { id: "serve-client", title: "Serve a client", description: "Look after a fictional client in the Clients app.", event: "client", target: 1, rewardPoints: 5 },
         { id: "two-coffees", title: "Two coffee chats", description: "Have two coffee chats with colleagues.", event: "coffee", target: 2, rewardPoints: 5 },
         { id: "two-shifts", title: "Two shifts in a day", description: "Finish two work shifts.", event: "shift", target: 2, rewardPoints: 10 },
         { id: "two-clients", title: "Serve two clients", description: "Finish two client simulation runs.", event: "sim", target: 2, rewardPoints: 10 },
@@ -1231,6 +1291,13 @@ export const CONFIG = {
     description: "The practice market behind Market and My Portfolio: the fictional instruments and their prices, the market states (calm, rally, sell-off, rate shock) and the calendar that plans them, the practice cash people start with by level, trading fees, the daily trade limit and the holding period. All prices are fictional and are never advice.",
     schema: marketSchema,
     default: DEFAULT_MARKET,
+  },
+  clients: {
+    label: "Client Desk",
+    group: "Gameplay",
+    description: "The Clients app: the fictional clients (individuals and companies, by unit and experience), the behaviour types, the four steps of a client conversation with their choices and tags, and how a run is scored (client rating, NPS and compliance breaches). Everything is fictional and never advice.",
+    schema: clientsSchema,
+    default: DEFAULT_CLIENTS,
   },
   kudos: {
     label: "Kudos",

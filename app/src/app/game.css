@@ -641,3 +641,8 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .trade-head { display: flex; justify-content: space-between; align-items: center; }
 .trade-price, .trade-total { margin: 0; }
 .trade-label { font-size: 12px; color: #5b6b61; }
+
+/* Client Desk */
+.client-option { text-align: left; border: 1px solid #cfdcd3; background: #fff; border-radius: 14px; padding: 10px 12px; font: inherit; cursor: pointer; }
+.client-option:hover:not(:disabled) { background: #eaf3ee; border-color: #1f5a3a; }
+.client-option:disabled { opacity: 0.6; cursor: wait; }

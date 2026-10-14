@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C3: Clients app, the Client Desk (14 Oct 2026)
+Scope: third "Coming soon" build. Each day a person is offered a few fictional clients that match their unit and experience (companies need more years at Meristem). They go through four steps (meet, understand, recommend, close). The **server** scores the run from the choices: tags on each choice, the client's behaviour type (many questions, invests large, price-sensitive, anxious, impatient, first-timer, upset, committee-driven), whether the product suits the client, and a small admin-set amount of chance. It records a client rating (1 to 5), an NPS bucket and any compliance breach (unsuitable product, promising returns, skipping needed document checks), pays Merit points once, updates the person's stats and sends a notice. Settings > Client Desk edits clients, types, steps and scoring. Routes: `/api/me/clients` (own data), actions `startClientAction` and `answerClientAction` (re-check the user). Mission "Serve a client". 8 new tests (586 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean (after clearing a OneDrive-locked `.next`) |
+| 2 | Tests | **Pass** | 586 of 586 |
+| 3 | Input validation | **Pass** | client id and option id strictly checked against today's list and the current step; recommend step checked against the market kinds |
+| 4 | Authz, economy tampering | **Pass** | signed-in only; own queue only; step order enforced in one atomic update, so a repeated answer or client pays nothing twice; score never taken from the browser |
+| 5 | Secrets, audit, security review | **Pass** | no secrets; each served client audited |
+
+Not yet checked in a browser. Fictional clients only (RULEBOOK §3).
+
+---
+
 ## C2: Practice market and My Portfolio (14 Oct 2026)
 Scope: second "Coming soon" build (work apps: Market and My Portfolio). Owner decisions: each person starts with practice cash by growth level (1,000,000 / 5,000,000 / 10,000,000, set in Settings > Practice market), separate from Merit points; prices move by admin-scheduled market states (calm, rally, sell-off, rate shock) and a calendar. **Market**: 14 fictional instruments (shares, bonds, bills, money market, funds), prices worked out from the clock and market state so everyone sees the same price, today's change, a restricted share the Group "advises on". **My Portfolio**: cash, holdings, profit or loss, recent trades. Trading rules teach personal dealing: restricted list (cannot buy), holding period before a sale (30 minutes by default), daily trade limit, fee on every trade. The server sets the price and checks cash, holdings and limits inside one atomic update of the person's portfolio. Trades are allowed only when Work First allows world play. New route `/api/me/market` (own data), action `tradeAction` (re-checks the user), audit entry per trade, mission "Make a practice trade". 9 new tests (578 total), including two simultaneous buys that cannot spend the same cash twice.
 

@@ -3,12 +3,13 @@
 import { ChatApp } from "./ChatApp";
 import { DirectoryApp, KudosApp, RoleApp } from "./PeopleApps";
 import { MarketApp, PortfolioApp } from "./MarketApps";
+import { ClientsApp } from "./ClientsApp";
 import { useEffect, useState } from "react";
 import { markNoticesReadAction, messagesAction } from "@/app/actions/notices";
 import type { Announcement, Notice } from "@/lib/server/notices/service";
 import type { PhoneApp } from "./GameShell";
 
-type View = "home" | "messages" | "updates" | "directory" | "kudos" | "my-role" | "market" | "portfolio";
+type View = "home" | "messages" | "updates" | "directory" | "kudos" | "my-role" | "market" | "portfolio" | "clients";
 
 const TONES = ["#e07a2f", "#2f6fe0", "#8a5cd6", "#e0488a", "#1fa89a", "#d4a62a", "#2d5d41", "#17b2a6", "#c8503c", "#5b6b61"];
 
@@ -70,7 +71,7 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
   const open = (a: PhoneApp) => {
     if (a.soon) return;
     if (a.id === "messages") setView("messages");
-    else if (a.id === "directory" || a.id === "kudos" || a.id === "my-role" || a.id === "market" || a.id === "portfolio") {
+    else if (a.id === "directory" || a.id === "kudos" || a.id === "my-role" || a.id === "market" || a.id === "portfolio" || a.id === "clients") {
       setKudosTo(null);
       setView(a.id);
     } else if (a.id === "todays-plan") onGoals();
@@ -132,11 +133,11 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
           </div>
         ) : null}
 
-        {view === "directory" || view === "kudos" || view === "my-role" || view === "market" || view === "portfolio" ? (
+        {view === "directory" || view === "kudos" || view === "my-role" || view === "market" || view === "portfolio" || view === "clients" ? (
           <div className="screen">
             <header className="screen-head">
               <button type="button" className="back" onClick={() => setView("home")} aria-label="Back">‹</button>
-              <h2>{view === "directory" ? "Directory" : view === "kudos" ? "Kudos" : view === "market" ? "Market" : view === "portfolio" ? "My Portfolio" : "My Role"}</h2>
+              <h2>{view === "directory" ? "Directory" : view === "kudos" ? "Kudos" : view === "market" ? "Market" : view === "portfolio" ? "My Portfolio" : view === "clients" ? "Clients" : "My Role"}</h2>
               <span />
             </header>
             {view === "directory" ? (
@@ -156,6 +157,7 @@ export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGo
             {view === "my-role" ? <RoleApp /> : null}
             {view === "market" ? <MarketApp /> : null}
             {view === "portfolio" ? <PortfolioApp /> : null}
+            {view === "clients" ? <ClientsApp /> : null}
           </div>
         ) : null}
 
