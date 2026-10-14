@@ -12,6 +12,7 @@ import type { Streak } from "@/lib/game";
 import { floorBlock } from "@/lib/world/access";
 import { getConfig } from "../config/registry";
 import { recordEvent } from "../game/missions";
+import { checkHunt } from "../game/hunt";
 import { parseChosenLook } from "@/lib/world/looks";
 import type { Skin } from "@/lib/world/types";
 
@@ -41,6 +42,8 @@ export interface PlayerRecord {
   shiftDay?: { day: string; count: number };
   /** The leadership simulator: runs started today, and the run in progress. */
   lead?: { day: string; count: number; run?: { ids: string[]; idx: number; meters: Record<string, number>; seed: number } };
+  /** Today's clue: when it was first shown and whether it has been found. */
+  hunt?: { day: string; shownAt: number; found: boolean };
   /** Days in a row the person has checked in. */
   streak?: Streak;
   /** A timed activity in the location bar that is running. */
@@ -98,6 +101,7 @@ export async function travelByPortal(user: Pick<UserDTO, "staffId" | "unit" | "r
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, scene: target.id, updatedAt: now } : cur));
   await audit(user.staffId, "world_travel", target.id, { via: "door", from: here.id }, now);
   await recordEvent(user.staffId, "visit", now);
+  await checkHunt(user.staffId, target.id, now);
   return { ok: true, scene: target.id, arrive: portal.arrive };
 }
 
@@ -116,5 +120,6 @@ export async function travelByMap(user: Pick<UserDTO, "staffId" | "unit" | "role
   await getStore().update<PlayerRecord>("players", user.staffId, (cur) => (cur ? { ...cur, scene: target.id, updatedAt: now } : cur));
   await audit(user.staffId, "world_travel", target.id, { via: "map", from: here.id }, now);
   await recordEvent(user.staffId, "visit", now);
+  await checkHunt(user.staffId, target.id, now);
   return { ok: true, scene: target.id, arrive: target.spawn };
 }

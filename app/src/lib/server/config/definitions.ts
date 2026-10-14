@@ -5,6 +5,7 @@ import { DEFAULT_DECOR } from "./decor-content";
 import { DEFAULT_SHIFTS } from "./shift-content";
 import { DEFAULT_LOCATIONS } from "./location-content";
 import { DEFAULT_LEADERSHIP } from "./leadership-content";
+import { DEFAULT_HUNT } from "./hunt-content";
 import { NEED_KEYS } from "@/lib/world/player";
 
 /**
@@ -786,6 +787,33 @@ export const leadershipSchema = z
   .refine((d) => d.scenarios.every((s) => s.choices.every((c) => Object.keys(c.effects).every((k) => d.meters.some((m) => m.id === k)))), "A choice changes a meter that is not in the list")
   .refine((d) => d.settings.goodAverage <= d.settings.greatAverage, "The good average cannot be above the great average");
 
+export const huntSchema = z
+  .object({
+    settings: z
+      .object({
+        /** Minutes after the clue is first shown during which finding it pays the faster reward. */
+        fastMinutes: z.number().int().min(1).max(1440),
+        pointsFast: z.number().int().min(0).max(1000),
+        pointsLater: z.number().int().min(0).max(1000),
+      })
+      .strict(),
+    clues: z
+      .array(
+        z
+          .object({
+            id: slug,
+            clue: z.string().min(5).max(300),
+            /** The id of the room it points to, such as ikoyi-lobby. */
+            scene: slug,
+            hint: z.string().max(80),
+          })
+          .strict(),
+      )
+      .max(100)
+      .refine((c) => new Set(c.map((x) => x.id)).size === c.length, "Each clue needs its own id"),
+  })
+  .strict();
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1030,6 +1058,13 @@ export const CONFIG = {
     description: "The people-management decisions in the leadership simulator: the meters (such as team morale), the scenarios and what each choice does to the meters, how a run is rated, and the Merit points.",
     schema: leadershipSchema,
     default: DEFAULT_LEADERSHIP,
+  },
+  hunt: {
+    label: "Daily clue",
+    group: "Content",
+    description: "The daily clue: a riddle that points to a room. Finding the room earns Merit points, more if found within the first minutes after the clue is shown. Each person gets the same clue all day and a different one each day.",
+    schema: huntSchema,
+    default: DEFAULT_HUNT,
   },
   floors: {
     label: "Floor access",

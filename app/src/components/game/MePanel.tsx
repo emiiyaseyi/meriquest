@@ -132,6 +132,17 @@ export function MePanel(p: MePanelProps) {
 
         {p.tab === "goals" ? (
           <div className="stack">
+            {p.game.hunt ? (
+              <div className={`hunt-card${p.game.hunt.found ? " found" : ""}`}>
+                <p className="eyebrow" style={{ margin: 0 }}>🧭 TODAY&apos;S CLUE</p>
+                <p className="hunt-clue">&ldquo;{p.game.hunt.clue}&rdquo;</p>
+                {p.game.hunt.found ? (
+                  <p className="muted small" style={{ margin: 0 }}>Found. Well done! A new clue tomorrow.</p>
+                ) : (
+                  <p className="muted small" style={{ margin: 0 }}>Work out which room it is and go there: +{p.game.hunt.pointsNow} Merit points{p.game.hunt.hint ? ` · Hint: ${p.game.hunt.hint}` : ""}.</p>
+                )}
+              </div>
+            ) : null}
             <div className="streak-card">
               <div className="streak-top">
                 <strong>🔥 {p.game.streak.count}-day streak</strong>

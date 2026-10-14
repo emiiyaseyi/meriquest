@@ -74,7 +74,8 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Today's Hustle: 7-day streak, mission swap, level tags, new-missions countdown
 - [x] Leadership simulator (Academy), admin-editable
 - [~] Speed: instant room moves and timers in the browser, settings cache. Next: more optimistic actions; database in the same region as Vercel
-- [ ] Daily gem hunt style clue (not built) and Meristem Stories
+- [x] Daily clue (adapted from the daily gem hunt)
+- [ ] Meristem Stories
 
 ## Admin backend (order: reports, friendly editors, manager and L&D roles)
 - [x] Reports and progress dashboard with CSV export
@@ -82,3 +83,5 @@ Everything the owner has asked for, in one place, so nothing goes missing. `[x]`
 - [x] Form editor for Academy courses
 - [x] Manager screen (assign learning time and courses to their unit) and L&D and reviewer roles with per-area access
 - [x] Admin pages on phones
+
+- [x] Leadership simulator checked in a browser

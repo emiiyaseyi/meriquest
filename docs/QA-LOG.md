@@ -4,6 +4,21 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## M8: Daily clue and leadership simulator browser check (13-14 Oct 2026)
+Scope: the daily clue from the reference "Daily gem hunt", adapted: a riddle on the Goals tab that points to a room in the building; arriving in that room pays Merit points once (more if found within the first minutes after the clue is first shown). Same clue all day, different each day; the room is never sent to the browser before it is found; clues, points and the fast window are admin settings. Also: the leadership simulator was driven in a browser (start a run, decisions change the meters).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | Clues valid and pointing to real rooms; same clue all day; room never revealed; fast and later rewards; paid once |
+| 3 | Security | **Pass** | Server decides arrival, time window and points; hidden room; a failure never breaks travel |
+| 4 | Real browser | **Pass** | Goals tab shows the clue, hint and points; leadership run starts and meters change; no console errors; throwaway users removed |
+| 5 | Dependencies | **Pass** | `npm audit --omit=dev`: 0 vulnerabilities |
+
+Notes: there is no ranking among players (the reference ranks by who found it first); the reward depends on how soon after the clue was shown. Not built: Meristem Stories.
+
+---
+
 ## S1: More instant actions (13 Oct 2026)
 Scope: owner request "instant in the browser, server stays the judge", second step. Using a spot (coffee, water, lunch...), greeting or helping a colleague, claiming a mission reward and taking the daily bonus now show their result on screen at once; the server's answer then replaces the screen's numbers, and a refusal puts things back with a message. The server still decides everything and sends the numbers the screen needs (what each action does, what a claim does).
 

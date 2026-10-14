@@ -6,6 +6,7 @@ import type { UserDTO } from "../types";
 import { playStatus } from "../workfirst/service";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { ratesFor } from "../decor/service";
+import { ensureHunt, huntView, type HuntView } from "./hunt";
 import { ensureMissionDay, recordEvent, type MissionDay } from "./missions";
 import { notify, unreadCount } from "../notices/service";
 import { getScene } from "@/lib/world/scenes";
@@ -69,6 +70,8 @@ export interface GameState {
   feelings: Feeling[];
   skills: SkillStanding[];
   plan: { day: string; missions: MissionView[]; allDone: boolean; bonusPoints: number; bonusClaimed: boolean; /** When new missions arrive (epoch ms). */ newAt: number; swapsLeft: number; /** What claiming a mission does to the needs. */ claimEffects: Effects };
+  /** Today's clue, or null when there are none. */
+  hunt: HuntView | null;
   streak: StreakView;
   interactions: InteractionView[];
   /** Places that recharge needs, by the kind of hotspot. */
@@ -126,6 +129,7 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
   const checked = player.streak?.last === today;
   const cycleDay = streak ? streakDay(streak.count) : 0;
   const lt = localTime(now, work.timezone);
+  const huntCfg = await getConfig("hunt");
   const cooldowns = Object.fromEntries(Object.entries(player.cooldowns ?? {}).filter(([, until]) => until > now));
   return {
     needs: player.needs,
@@ -133,6 +137,7 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
     feelings: (player.feelings ?? []).slice(0, MAX_FEELINGS),
     skills,
     plan: { day: mission.day, missions, allDone: missions.length > 0 && missions.every((m) => m.done), bonusPoints: gameplay.dailyBonusPoints, bonusClaimed: mission.bonusClaimed, newAt: now + (1440 - lt.minutes) * 60_000, swapsLeft: Math.max(0, gameplay.swapsPerDay - (mission.swaps ?? 0)), claimEffects: gameplay.claimEffects },
+    hunt: huntView(player, huntCfg, now, today),
     streak: {
       count: streak?.count ?? 0,
       best: player.streak?.best ?? 0,
@@ -168,6 +173,7 @@ async function checkIn(staffId: string, now: number): Promise<void> {
 export async function getGameState(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<GameState> {
   await getOrCreatePlayer(user, now);
   await checkIn(user.staffId, now);
+  await ensureHunt(user.staffId, now);
   const player = await applyDecay(user.staffId, now);
   return view(player, await ensureMissionDay(user.staffId, now), now);
 }

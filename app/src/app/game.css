@@ -548,3 +548,8 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .ac-assigned { background: #fff5e8; border: 1px solid #f6d8ae; border-radius: 18px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .ac-assigned-row { appearance: none; border: 0; background: #fff; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
 .ac-assigned-row:hover { background: var(--brand-soft); }
+
+/* The daily clue */
+.hunt-card { background: linear-gradient(135deg, #efe9ff, #e0ecff); border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.hunt-card.found { background: #e3f5e8; }
+.hunt-clue { margin: 0; font-weight: 700; line-height: 1.35; }
