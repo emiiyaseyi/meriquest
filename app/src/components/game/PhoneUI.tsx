@@ -29,8 +29,8 @@ function ago(ms: number, now: number): string {
  * latest announcement, a grid of coloured app icons, and screens that open inside the phone (Messages with a
  * bell for Updates, Courses). Apps that are not built yet say "soon".
  */
-export function PhoneUI({ apps, clock, timezone, unread, onUnread, onClose, onGoals, onSettings }: { apps: PhoneApp[]; clock: string; timezone: string; unread: number; onUnread: (n: number) => void; onClose: () => void; onGoals: () => void; onSettings: () => void }) {
-  const [view, setView] = useState<View>("home");
+export function PhoneUI({ startView = null, apps, clock, timezone, unread, onUnread, onClose, onGoals, onSettings }: { startView?: View | null; apps: PhoneApp[]; clock: string; timezone: string; unread: number; onUnread: (n: number) => void; onClose: () => void; onGoals: () => void; onSettings: () => void }) {
+  const [view, setView] = useState<View>(startView ?? "home");
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [now, setNow] = useState(() => Date.now());

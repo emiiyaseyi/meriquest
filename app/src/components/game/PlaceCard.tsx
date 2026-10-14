@@ -6,8 +6,8 @@ import type { Building, Scene } from "@/lib/world/types";
 /** What each kind of spot is, when it is not one of the recharge spots from the settings. */
 const OTHER: Record<string, { icon: string; label: string; note: string }> = {
   workspace: { icon: "🏢", label: "My Workspace", note: "Start your day and customise your desk" },
-  meeting: { icon: "🤝", label: "Client meeting", note: "Coming soon" },
-  info: { icon: "💬", label: "Ask a question", note: "Coming soon" },
+  meeting: { icon: "🤝", label: "Client meeting", note: "Meet a client" },
+  info: { icon: "💬", label: "Ask a question", note: "Find a colleague to ask" },
 };
 
 /**

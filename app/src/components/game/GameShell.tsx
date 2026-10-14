@@ -65,6 +65,7 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
+type PhoneStart = "clients" | "directory" | null;
 type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | "buy" | null;
 
 const BEAT_MS = 30_000;
@@ -156,6 +157,8 @@ export function GameShell(props: GameShellProps) {
   const [arrive, setArrive] = useState<{ x: number; y: number }>(() => (getScene(props.initialScene) ?? SCENES[props.initialScene]).spawn);
   const [mode, setMode] = useViewMode();
   const [overlay, setOverlay] = useState<Overlay>(null);
+  /** Which Work Phone screen to open first (for example the Clients app from a meeting room). */
+  const [phoneStart, setPhoneStart] = useState<PhoneStart>(null);
   const [academyCard, setAcademyCard] = useState(false);
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
   const [decorView, setDecorView] = useState<DecorView | null>(null);
@@ -612,12 +615,16 @@ export function GameShell(props: GameShellProps) {
 
       {overlay === "phone" ? (
         <PhoneUI
+          startView={phoneStart}
           apps={apps.filter((a) => a.id !== "academy")}
           clock={clock}
           timezone={props.timezone}
           unread={game.unread}
           onUnread={(n) => setGame((g) => ({ ...g, unread: n }))}
-          onClose={() => setOverlay(null)}
+          onClose={() => {
+            setOverlay(null);
+            setPhoneStart(null);
+          }}
           onGoals={() => openMe("goals")}
           onSettings={() => openMe("settings")}
         />
@@ -645,9 +652,9 @@ export function GameShell(props: GameShellProps) {
                 <span className="muted">{(game.cooldowns[`spot:${spot.kind}`] ?? 0) > gameAt ? `Again in ${Math.max(1, Math.ceil(((game.cooldowns[`spot:${spot.kind}`] ?? 0) - gameAt) / 60_000))} min` : game.spots[spot.kind].tags.join(" · ")}</span>
               </button>
             ) : spot.kind === "meeting" ? (
-              <div className="activity locked"><strong>Join a meeting</strong><span className="muted">Coming soon</span></div>
+              <button type="button" className="activity" onClick={() => { setPhoneStart("clients"); setOverlay("phone"); }}><strong>🤝 Meet a client</strong><span className="muted">Open the Clients app</span></button>
             ) : (
-              <div className="activity locked"><strong>Ask a question</strong><span className="muted">Coming soon</span></div>
+              <button type="button" className="activity" onClick={() => { setPhoneStart("directory"); setOverlay("phone"); }}><strong>💬 Ask a question</strong><span className="muted">Find a colleague to ask</span></button>
             )}
           </div>
         </div>

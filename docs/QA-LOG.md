@@ -4,6 +4,19 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## C6: Room places: Meet a client, Ask a question (14 Oct 2026)
+Scope: last of the "Coming soon" builds. The two spots that said "Coming soon" now work: **Meet a client** opens the Work Phone on the Clients app, and **Ask a question** opens it on the Directory (find a colleague, message them or send kudos). The phone opens on the chosen app and returns to the home screen the next time it is opened normally. UI only: no new route, action or input; both apps keep their own server checks.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean |
+| 2 | Tests | **Pass** | 602 of 602 |
+| 3 | Authz, validation, secrets, audit, security review | **Pass** | no new attack surface |
+
+Not yet checked in a browser. All "Coming soon" items from the owner's list are now built: Directory, Kudos, My Role, Market, My Portfolio, Clients, Compliance Desk, Reports, and the two room places.
+
+---
+
 ## C5: Compliance Desk and Reports app (14 Oct 2026)
 Scope: fourth and fifth "Coming soon" builds. **Compliance Desk** (RULEBOOK §2.9): your compliance standing (compliance courses certified, client breaches, turned-down requests, declined offers); **personal-dealing pre-clearance** (the desk answers at once from rules: restricted share, holding period, the largest deal it will approve; an approval lasts a set number of hours and covers one trade); a **gifts and entertainment register** (record and accept up to a limit, wait for approval above it, decline above the upper limit, never accept cash); the restricted list; the regulators. A new setting under Settings > Compliance Desk can **require a pre-clearance before any practice trade** (off by default); the market then refuses a trade without one and uses it up after one trade. **Reports** app: your own progress (level, points, streak, lessons, certificates, shifts, leadership runs, average client rating, kudos, practice portfolio, strongest skills). New routes `/api/me/compliance` and `/api/me/report` (own data only), actions `requestPreclearanceAction` and `declareGiftAction` (re-check the user), audit entries. 10 new tests (602 total).
 
