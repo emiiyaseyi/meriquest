@@ -4,6 +4,11 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## E5: Needs tab shows where to recharge (14 Oct 2026)
+Scope: the "How to recharge" list in the Needs tab now also lists the room activities (dispenser, fridge with its price, pantry, wellness nook and so on), grouped by room. Read-only text built on the server from settings; no new input or route. Types, lint and the game, hunt, streak and notice tests pass (38 of 38); the full `npm run qa` ran for E4 just before.
+
+---
+
 ## E4: Dispenser and fridge on every floor (14 Oct 2026)
 Scope: each room's location bar gets a free Dispenser (cool water, hot drink) and a Fridge whose items cost Merit points (juice 3, fruit 3, snack 4, meal box 8). Activities gain an optional `cost` (default 0, editable in Settings > Room activities). The server refuses a costed activity when the person lacks the points, and takes the points when it is finished. Yaba lobby now has a bar too. New test covers free dispenser and refused fridge item.
 

@@ -93,12 +93,22 @@ const MAX_FEELINGS = 12;
 type Gameplay = Awaited<ReturnType<typeof getConfig<"gameplay">>>;
 
 /** Where each need can be recharged, worked out from the settings and the rooms (so it never goes out of date). */
-function rechargeHints(gameplay: Gameplay): Record<NeedKey, string[]> {
+function rechargeHints(gameplay: Gameplay, locations: Awaited<ReturnType<typeof getConfig<"locations">>>): Record<NeedKey, string[]> {
   const out = Object.fromEntries(NEED_KEYS.map((k) => [k, [] as string[]])) as Record<NeedKey, string[]>;
   for (const spot of gameplay.spots) {
     const places = Object.values(SCENES).flatMap((s) => s.hotspots.filter((h) => h.kind === spot.kind).map((h) => `${h.label} · ${s.name}`));
     if (places.length === 0) continue;
     for (const k of NEED_KEYS) if ((spot.effects[k] ?? 0) > 0) out[k].push(places.join(", "));
+  }
+  // The activities in each room's location bar (dispenser, fridge, pantry and so on), grouped by place
+  for (const room of locations.rooms) {
+    const sceneName = getScene(room.scene)?.name ?? room.scene;
+    for (const z of room.zones) {
+      for (const k of NEED_KEYS) {
+        const names = z.activities.filter((a) => (a.effects[k] ?? 0) > 0).map((a) => (a.cost > 0 ? `${a.label} (${a.cost} pts)` : a.label));
+        if (names.length > 0) out[k].push(`${z.label} · ${sceneName}: ${names.join(", ")}`);
+      }
+    }
   }
   for (const i of gameplay.interactions) for (const k of NEED_KEYS) if ((i.effects[k] ?? 0) > 0) out[k].push(`${i.label} with a colleague`);
   for (const k of NEED_KEYS) if ((gameplay.claimEffects[k] ?? 0) > 0) out[k].push("Claim a mission reward");
@@ -118,7 +128,7 @@ async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
 
 async function view(player: PlayerRecord, mission: MissionDay, now: number): Promise<GameState> {
   const unread = await unreadCount(player);
-  const [gameplay, work] = await Promise.all([getConfig("gameplay"), getConfig("workFirst")]);
+  const [gameplay, work, locations] = await Promise.all([getConfig("gameplay"), getConfig("workFirst"), getConfig("locations")]);
   const skills = gameplay.skills.map((s) => skillStanding(s, player.skillXp?.[s.id] ?? 0));
   const missions: MissionView[] = mission.picks.flatMap((id) => {
     const m = gameplay.missions.find((x) => x.id === id);
@@ -151,7 +161,7 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
     },
     interactions: gameplay.interactions.map((i) => ({ id: i.id, label: i.label, icon: i.icon, tags: effectTags(i.effects), cost: i.cost, cooldownMinutes: i.cooldownMinutes, effects: i.effects })),
     spots: Object.fromEntries(gameplay.spots.map((s) => [s.kind, { label: s.label, icon: s.icon, tags: effectTags(s.effects), cooldownMinutes: s.cooldownMinutes, effects: s.effects }])),
-    recharge: rechargeHints(gameplay),
+    recharge: rechargeHints(gameplay, locations),
     unread,
     cooldowns,
   };
