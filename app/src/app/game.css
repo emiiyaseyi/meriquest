@@ -666,3 +666,29 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .only-wide { display: none; }
 @media (min-width: 900px) { .only-wide { display: flex; } .only-narrow { display: none; } }
 @media (max-height: 640px) { .cam-card { display: none; } }
+
+/* Shift card, laid out like the reference: top left, with the pay so far, a performance ring, the tasks, a story line and the work styles */
+.shift-card { right: auto; left: 12px; top: 64px; width: min(310px, calc(100% - 24px)); }
+body:has(.shift-card) .venue { display: none; }
+.shift-stats { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.shift-so-far { display: flex; flex-direction: column; }
+.shift-so-far strong { font-size: 1.15rem; }
+.shift-so-far small { color: #cfdcd2; }
+.perf-ring { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; position: relative; flex: none; }
+.perf-ring::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(27, 42, 33, .96); }
+.perf-ring span { position: relative; font-size: .78rem; font-weight: 700; }
+.shift-tasks-line { margin: 0; font-size: .85rem; color: #e6efe8; }
+.shift-story { margin: 0; font-size: .9rem; line-height: 1.3; }
+.shift-segs { display: flex; gap: 4px; }
+.shift-segs .seg { flex: 1; height: 6px; border-radius: 4px; background: rgba(255, 255, 255, .22); display: block; }
+.shift-segs .seg.open { background: #f4c542; }
+.shift-segs .seg.best { background: #46d17f; }
+.shift-segs .seg.partly { background: #f4c542; }
+.shift-segs .seg.wrong { background: #e5675a; }
+.style-row { display: flex; gap: 8px; justify-content: space-between; }
+.style-btn { appearance: none; border: 0; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .16); font-size: 1.3rem; cursor: pointer; line-height: 1; }
+.style-btn.on { background: #fff; box-shadow: 0 0 0 3px #46d17f; }
+.style-btn:disabled:not(.on) { opacity: .5; cursor: not-allowed; }
+.style-name { margin: 0; font-size: .82rem; display: flex; flex-direction: column; }
+.style-name em { font-style: normal; color: #cfdcd2; }
+.hud-left .status { margin-top: auto; }

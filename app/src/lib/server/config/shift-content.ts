@@ -8,6 +8,14 @@ import { MORE_SHIFT_TASKS } from "./shift-content-more";
 
 export const DEFAULT_SHIFTS = {
   settings: { minutes: 8, tasksPerShift: 3, shiftsPerDay: 2, pointsBest: 4, pointsPartly: 2, completionBonus: 5, skillXpBest: 2 },
+  /** The first one is used when nobody picks. Pay is a share of the normal pay; the effects are applied to the needs when the shift is finished. */
+  workStyles: [
+    { id: "steady", label: "Do the work properly", icon: "⚙️", description: "Steady and careful. Normal pay, a normal amount of tiredness.", payPercent: 100, effects: { energy: -8, focus: -8 } },
+    { id: "push", label: "Push hard", icon: "🔥", description: "Fast and focused. Pays more, but tires you out.", payPercent: 120, effects: { energy: -18, focus: -12, mood: -4 } },
+    { id: "team", label: "Work with the team", icon: "🗣️", description: "Share the load and talk things through. A little less pay, more social.", payPercent: 90, effects: { social: 10, focus: -4, energy: -6 } },
+    { id: "visible", label: "Be seen by your manager", icon: "🙋", description: "Ask for feedback and show your work. Lifts recognition.", payPercent: 95, effects: { recognition: 8, social: 3, energy: -8 } },
+    { id: "easy", label: "Take it easy", icon: "😌", description: "A calm pace. Lower pay, and you finish fresher.", payPercent: 75, effects: { energy: -3, focus: -3, mood: 6 } },
+  ],
   tasks: [
     ...MORE_SHIFT_TASKS,
     t("cx-delayed-transfer", ["cx"], "A client is angry about a delayed transfer", "A client walks up to the desk and says his transfer has been pending for two days. People are watching.", "client-care", [

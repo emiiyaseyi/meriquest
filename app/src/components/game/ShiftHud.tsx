@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { answerShiftAction, finishShiftAction, leaveShiftAction, startShiftAction } from "@/app/actions/shift";
+import { answerShiftAction, finishShiftAction, leaveShiftAction, setShiftStyleAction, startShiftAction } from "@/app/actions/shift";
 import { getMine } from "@/lib/client/api";
 import type { ShiftResult, ShiftView } from "@/lib/server/shift/service";
 
@@ -84,6 +84,8 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
   const next = a.tasks.find((t) => t.state === "locked");
   const active = a.tasks.find((t) => t.state === "open");
   const total = a.endsAt - a.startedAt;
+  const style = view.styles.find((s) => s.id === a.style) ?? view.styles[0];
+  const story = active ? active.title : next ? `Quiet for now. The next situation comes up in ${mmss(next.opensAt - clock)}.` : "Everything is handled. Stay until the time is up to be paid.";
 
   return (
     <>
@@ -95,8 +97,24 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
         {open ? (
           <div className="shift-body">
             <div className="shift-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, ((clock - a.startedAt) / total) * 100))}%` }} /></div>
-            <p className="muted small" style={{ margin: 0 }}>{a.answered} of {a.tasks.length} situations handled{next ? ` · next in ${mmss(next.opensAt - clock)}` : ""}</p>
-            {left > 0 ? <p className="shift-pay">No pay yet · stay {Math.ceil(left / 60_000)} min</p> : <p className="shift-pay ok">Shift time is up. You can finish and be paid.</p>}
+            <div className="shift-stats">
+              <div className="shift-so-far"><strong>✨ {a.pointsSoFar} pts</strong><small>so far{style && style.payPercent !== 100 ? ` · ${style.payPercent}% pay` : ""}</small></div>
+              <div className="perf-ring" style={{ background: `conic-gradient(#46d17f ${a.performance * 3.6}deg, rgba(255,255,255,.18) 0deg)` }} role="img" aria-label={`Performance ${a.performance} percent`}><span>{a.performance}%</span></div>
+            </div>
+            <p className="shift-tasks-line">⭐ {a.answered}/{a.tasks.length} · +{a.completionBonus} pts when all are handled</p>
+            <p className="shift-story">{story}</p>
+            <div className="shift-segs" aria-hidden="true">
+              {a.tasks.map((t) => <i key={t.id} className={`seg ${t.state === "done" ? t.result?.verdict ?? "done" : t.state}`} />)}
+            </div>
+            <div className="style-row" role="radiogroup" aria-label="How you work this shift">
+              {view.styles.map((s) => (
+                <button key={s.id} type="button" role="radio" aria-checked={s.id === a.style} className={`style-btn${s.id === a.style ? " on" : ""}`} disabled={busy || !a.canChangeStyle} title={`${s.label}: ${s.description}${a.canChangeStyle ? "" : " (locked after your first answer)"}`} onClick={() => s.id !== a.style && run(() => setShiftStyleAction(s.id))}>
+                  <span aria-hidden="true">{s.icon}</span>
+                </button>
+              ))}
+            </div>
+            <p className="style-name"><strong>{style?.label}</strong>{style && style.tags.length > 0 ? <em>{style.tags.join(" · ")}</em> : null}</p>
+            {left > 0 ? <p className="shift-pay">Paid when the time is up · {Math.ceil(left / 60_000)} min to go</p> : <p className="shift-pay ok">Shift time is up. You can finish and be paid.</p>}
             {msg ? <p className="muted small" role="status" style={{ margin: 0 }}>{msg}</p> : null}
             {left <= 0 ? (
               <button type="button" className="primary-wide" disabled={busy} onClick={() => run(finishShiftAction, () => onPoints())}>Finish shift and get paid</button>

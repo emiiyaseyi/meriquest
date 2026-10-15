@@ -731,6 +731,28 @@ export const shiftsSchema = z
       .min(1)
       .max(200)
       .refine((t) => new Set(t.map((x) => x.id)).size === t.length, "Each situation needs its own id"),
+    /**
+     * How a person chooses to work during a shift. A style changes the pay (as a percentage) and how the needs move when the
+     * shift is finished. It never changes whether a decision counts as good, so development scores stay about the quality of decisions.
+     */
+    workStyles: z
+      .array(
+        z
+          .object({
+            id: slug,
+            label: z.string().min(1).max(30),
+            icon: z.string().min(1).max(8),
+            description: z.string().min(1).max(160),
+            /** Pay for a finished shift, as a percentage of the normal pay. */
+            payPercent: z.number().int().min(0).max(200),
+            /** Change to the needs when the shift is finished (negative means it tires you). */
+            effects: effectsSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(8)
+      .refine((s) => new Set(s.map((x) => x.id)).size === s.length, "Each work style needs its own id"),
   })
   .strict();
 

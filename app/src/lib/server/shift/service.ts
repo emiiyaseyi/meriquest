@@ -5,9 +5,10 @@ import type { UserDTO } from "../types";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { notify } from "../notices/service";
 import { recordEvent } from "../game/missions";
-import { dayKey } from "@/lib/game";
+import { dayKey, effectTags } from "@/lib/game";
 import { withStats } from "@/lib/stats";
-import { choiceOrder, drawTasks, opensAt, shiftPay, type ShiftRecord, type ShiftSettings, type ShiftTaskDef, type Verdict } from "@/lib/shift";
+import { perform } from "../game/service";
+import { choiceOrder, drawTasks, opensAt, shiftPay, shiftPerformance, type ShiftRecord, type ShiftSettings, type ShiftTaskDef, type Verdict } from "@/lib/shift";
 
 type Cfg = Awaited<ReturnType<typeof getConfig<"shifts">>>;
 
@@ -24,10 +25,30 @@ export interface ShiftTaskView {
   result?: { verdict: Verdict; chosen: string; feedback: string };
 }
 
+export interface WorkStyleView {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  payPercent: number;
+  /** Short tags for what it does to the needs, for example "+Social". */
+  tags: string[];
+}
+
 export interface ShiftView {
   minutes: number;
   today: { count: number; max: number };
+  /** The work styles to choose from (the first is used when nobody picks). */
+  styles: WorkStyleView[];
   active: null | {
+    /** The work style in use, and whether it can still be changed (until the first situation is answered). */
+    style: string;
+    canChangeStyle: boolean;
+    /** How well the situations answered so far were handled, 0 to 100. */
+    performance: number;
+    /** What the shift would pay right now, and the bonus for answering every situation. */
+    pointsSoFar: number;
+    completionBonus: number;
     startedAt: number;
     endsAt: number;
     tasks: ShiftTaskView[];
@@ -39,12 +60,16 @@ export interface ShiftView {
 
 export type ShiftResult = { ok: true; view: ShiftView; message: string; verdict?: Verdict; feedback?: string } | { ok: false; error: string };
 
+/** The work style a shift uses: the one picked if it still exists, otherwise the first in the list. */
+const styleOf = (cfg: Cfg, id: string | undefined) => cfg.workStyles.find((s) => s.id === id) ?? cfg.workStyles[0];
+
 const byIdOf = (cfg: Cfg) => new Map<string, ShiftTaskDef>((cfg.tasks as ShiftTaskDef[]).map((t) => [t.id, t]));
 
 function viewOf(p: PlayerRecord, cfg: Cfg, tz: string, now: number): ShiftView {
   const today = dayKey(now, tz);
   const count = p.shiftDay?.day === today ? p.shiftDay.count : 0;
-  const base: ShiftView = { minutes: cfg.settings.minutes, today: { count, max: cfg.settings.shiftsPerDay }, active: null };
+  const styles: WorkStyleView[] = cfg.workStyles.map((s) => ({ id: s.id, label: s.label, icon: s.icon, description: s.description, payPercent: s.payPercent, tags: effectTags(s.effects) }));
+  const base: ShiftView = { minutes: cfg.settings.minutes, today: { count, max: cfg.settings.shiftsPerDay }, styles, active: null };
   const rec = p.shift;
   if (!rec) return base;
   const byId = byIdOf(cfg);
@@ -61,7 +86,9 @@ function viewOf(p: PlayerRecord, cfg: Cfg, tz: string, now: number): ShiftView {
     if (at > now) return [{ index: i, id, title: def.title, opensAt: at, state: "locked" }];
     return [{ index: i, id, title: def.title, opensAt: at, state: "open", story: def.story, choices: order.map((k) => def.choices[k].text) }];
   });
-  return { ...base, active: { startedAt: rec.startedAt, endsAt: rec.endsAt, tasks, answered: tasks.filter((t) => t.state === "done").length, canFinish: now >= rec.endsAt } };
+  const style = styleOf(cfg, rec.style);
+  const answered = tasks.filter((t) => t.state === "done").length;
+  return { ...base, active: { style: style.id, canChangeStyle: answered === 0, performance: shiftPerformance(rec), pointsSoFar: shiftPay(rec, cfg.settings as ShiftSettings, style.payPercent).points, completionBonus: Math.round((cfg.settings.completionBonus * style.payPercent) / 100), startedAt: rec.startedAt, endsAt: rec.endsAt, tasks, answered: tasks.filter((t) => t.state === "done").length, canFinish: now >= rec.endsAt } };
 }
 
 async function ctx() {
@@ -95,7 +122,7 @@ async function change(user: Pick<UserDTO, "staffId">, now: number, fn: Change): 
   return { ok: true, view: viewOf(saved as PlayerRecord, cfg, tz, now), ...out };
 }
 
-export function startShift(user: Pick<UserDTO, "staffId" | "unit">, now: number = Date.now()): Promise<ShiftResult> {
+export function startShift(user: Pick<UserDTO, "staffId" | "unit">, now: number = Date.now(), styleId?: unknown): Promise<ShiftResult> {
   return change(user, now, (p, cfg, tz) => {
     if (p.shift) return "You are already on a shift.";
     const today = dayKey(now, tz);
@@ -103,8 +130,20 @@ export function startShift(user: Pick<UserDTO, "staffId" | "unit">, now: number 
     if (count >= cfg.settings.shiftsPerDay) return `You have done ${cfg.settings.shiftsPerDay} shift${cfg.settings.shiftsPerDay === 1 ? "" : "s"} today. Come back tomorrow.`;
     const ids = drawTasks(cfg.tasks as ShiftTaskDef[], user.unit, cfg.settings.tasksPerShift, `${user.staffId}|${today}|${count}`);
     if (ids.length === 0) return "There are no situations set up for your shift yet.";
-    const rec: ShiftRecord = { startedAt: now, endsAt: now + cfg.settings.minutes * 60_000, minutes: cfg.settings.minutes, taskIds: ids, answers: {} };
+    if (styleId !== undefined && (typeof styleId !== "string" || !cfg.workStyles.some((s) => s.id === styleId))) return "Choose one of the work styles.";
+    const rec: ShiftRecord = { style: styleOf(cfg, styleId as string | undefined).id, startedAt: now, endsAt: now + cfg.settings.minutes * 60_000, minutes: cfg.settings.minutes, taskIds: ids, answers: {} };
     return { next: { shift: rec, shiftDay: { day: today, count: count + 1 } }, message: `Your shift has started. Stay ${cfg.settings.minutes} minute${cfg.settings.minutes === 1 ? "" : "s"} to be paid.` };
+  });
+}
+
+/** Change the work style, only until the first situation has been answered. */
+export function setShiftStyle(user: Pick<UserDTO, "staffId">, styleId: unknown, now: number = Date.now()): Promise<ShiftResult> {
+  return change(user, now, (p, cfg) => {
+    const rec = p.shift;
+    if (!rec) return "You are not on a shift.";
+    if (typeof styleId !== "string" || !cfg.workStyles.some((s) => s.id === styleId)) return "Choose one of the work styles.";
+    if (Object.keys(rec.answers).length > 0) return "You can only change your work style before you answer the first situation.";
+    return { next: { shift: { ...rec, style: styleId } }, message: `Working style: ${styleOf(cfg, styleId).label}.` };
   });
 }
 
@@ -126,11 +165,14 @@ export function answerShiftTask(user: Pick<UserDTO, "staffId">, taskId: unknown,
 
 /** Finish the shift. It pays only when the shift time is up; leaving early ends it with no pay. */
 export async function finishShift(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<ShiftResult> {
+  let usedStyle: string | undefined;
   const r = await change(user, now, (p, cfg) => {
     const rec = p.shift;
     if (!rec) return "You are not on a shift.";
     if (now < rec.endsAt) return `Stay ${Math.max(1, Math.ceil((rec.endsAt - now) / 60_000))} more minute${rec.endsAt - now > 60_000 ? "s" : ""} to be paid, or leave now with no pay.`;
-    const pay = shiftPay(rec, cfg.settings as ShiftSettings);
+    const style = styleOf(cfg, rec.style);
+    usedStyle = style.id;
+    const pay = shiftPay(rec, cfg.settings as ShiftSettings, style.payPercent);
     const byId = byIdOf(cfg);
     const skillXp = { ...(p.skillXp ?? {}) };
     for (const id of rec.taskIds) {
@@ -143,6 +185,10 @@ export async function finishShift(user: Pick<UserDTO, "staffId">, now: number = 
   if (r.ok) {
     await notify(user.staffId, { icon: "💼", text: r.message, tone: "good" }, now);
     await recordEvent(user.staffId, "shift", now);
+    // How the person chose to work shows in their needs (never in whether their decisions count as good)
+    const cfg = await getConfig("shifts");
+    const style = styleOf(cfg, usedStyle);
+    await perform(user, { key: "shift-style", effects: style.effects, cost: 0, cooldownMinutes: 0, feeling: { label: style.label, text: `You worked: ${style.label.toLowerCase()}.` }, event: "shift-style" }, now);
   }
   return r;
 }

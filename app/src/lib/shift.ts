@@ -28,6 +28,8 @@ export interface ShiftSettings {
 }
 
 export interface ShiftRecord {
+  /** The work style picked for this shift (see the "shifts" setting). */
+  style?: string;
   startedAt: number;
   endsAt: number;
   minutes: number;
@@ -73,11 +75,23 @@ export function choiceOrder(staffId: string, taskId: string, n: number): number[
   return a;
 }
 
-/** What a finished shift pays: points for each answer, and a bonus when every situation was answered. */
-export function shiftPay(rec: ShiftRecord, s: ShiftSettings): { points: number; best: number; answered: number } {
+/**
+ * What a shift pays: points for each answer, and a bonus when every situation was answered, scaled by the work style's pay
+ * percentage (100 is normal). Used both for the "so far" figure during the shift and for the final pay.
+ */
+export function shiftPay(rec: ShiftRecord, s: ShiftSettings, payPercent = 100): { points: number; best: number; answered: number } {
   const verdicts = rec.taskIds.map((id) => rec.answers[id]?.verdict).filter((v): v is Verdict => !!v);
   const best = verdicts.filter((v) => v === "best").length;
   const partly = verdicts.filter((v) => v === "partly").length;
   const bonus = verdicts.length === rec.taskIds.length ? s.completionBonus : 0;
-  return { points: best * s.pointsBest + partly * s.pointsPartly + bonus, best, answered: verdicts.length };
+  const base = best * s.pointsBest + partly * s.pointsPartly + bonus;
+  return { points: Math.round((base * payPercent) / 100), best, answered: verdicts.length };
+}
+
+/** How well the situations answered so far were handled, 0 to 100 (100 before the first answer). Best counts fully, partly counts half. */
+export function shiftPerformance(rec: Pick<ShiftRecord, "taskIds" | "answers">): number {
+  const verdicts = rec.taskIds.map((id) => rec.answers[id]?.verdict).filter((v): v is Verdict => !!v);
+  if (verdicts.length === 0) return 100;
+  const score = verdicts.reduce((n, v) => n + (v === "best" ? 1 : v === "partly" ? 0.5 : 0), 0);
+  return Math.round((score / verdicts.length) * 100);
 }

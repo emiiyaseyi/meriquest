@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## U3: Shift card like the reference, with work styles (15 Oct 2026)
+Scope: owner's comparison with the reference. The shift card moved to the **top left** (the venue card hides during a shift) and now shows: Merit points so far, a **performance ring** (best answers count fully, partly half), "answered / total and the bonus when all are handled", a story line (the situation now, or when the next comes), a coloured bar of the situations, and the **five work styles** (RULEBOOK §2.6 step 4). Styles are admin-editable (Settings > Work shifts): each sets **pay as a percentage** and **what it does to the needs** when the shift is finished (for example Push hard pays 120% and tires you; Take it easy pays 75% and lifts mood). A style never changes whether a decision counts as good or the skill points, so development scores stay about decision quality. It can be picked at the start or changed until the first situation is answered, then it is locked (server-enforced); leaving early applies nothing. New action `setShiftStyleAction`. 6 new tests (621 total). **Checked in a real browser**: card layout, points so far after an answer, locked styles; also fixed the needs panel jumping to the top when the venue card hides.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 621 of 621 tests, lint, build, audit |
+| 2 | Input validation, authz, economy tampering | **Pass** | the style id is checked against the settings; the change is refused after the first answer; pay and needs effects come from the server's settings, never from the browser |
+| 3 | Secrets, security review | **Pass** | no new secrets or routes |
+
+---
+
 ## U2: Reference-style HUD: online count, camera presets, inbox, clean screen, keyboard (15 Oct 2026)
 Scope: owner's comparison with the Lagos Life reference screen. (1) **Online count** in the top bar: colleagues the game has heard from in the last two minutes (a real count from the existing heartbeats, kept for 15 seconds so it adds no load); the person looking always counts, so it never shows 0. (2) **Camera presets** card on the right: **My desk** (zooms in on where you stand), **Floor** (the whole room) and **Overview** (top-down); they reset when you change room, and "My desk" lets the player's own position decide the focus. (3) **Inbox button** (bell with unread badge) opens the phone on Updates. (4) **Clean screen** is now a labelled pill at the bottom right, next to a **keyboard shortcuts** button (on narrow screens the old picture button stays). Not built on purpose: a **sound toggle**, because the game has no audio yet (a switch with nothing to mute would be misleading); no money "+" (no real money, RULEBOOK §3). 6 new tests (615 total). **Checked in a real browser**: all pieces appear, My desk zooms, Overview is top-down, Clean screen hides the panels, the shortcuts open.
 

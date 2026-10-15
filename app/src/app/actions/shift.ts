@@ -1,7 +1,7 @@
 "use server";
 
 import { requireUser } from "@/lib/server/auth/dal";
-import { answerShiftTask, finishShift, getShift, leaveShift, startShift, type ShiftResult, type ShiftView } from "@/lib/server/shift/service";
+import { answerShiftTask, finishShift, getShift, leaveShift, setShiftStyle, startShift, type ShiftResult, type ShiftView } from "@/lib/server/shift/service";
 
 /* Every action re-checks the signed-in user: Server Actions can be called directly. */
 
@@ -13,6 +13,11 @@ export async function getShiftAction(): Promise<ShiftView> {
 export async function startShiftAction(): Promise<ShiftResult> {
   const user = await requireUser();
   return startShift(user);
+}
+
+export async function setShiftStyleAction(styleId: string): Promise<ShiftResult> {
+  const user = await requireUser();
+  return setShiftStyle(user, styleId);
 }
 
 export async function answerShiftAction(taskId: string, shown: number): Promise<ShiftResult> {
