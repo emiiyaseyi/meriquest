@@ -9,7 +9,7 @@ Scope: while comparing our game screen with the Lagos Life reference (owner requ
 
 | # | Gate | Result | Evidence |
 |---|---|---|---|
-| 1 | Build, types, lint, tests | **Pass** | `npm run qa` clean |
+| 1 | Build, types, lint, tests | **Pass (on re-run)** | The first `npm run qa` stopped on the known flaky database test (a 10-second start-up timeout under load) and the commit was made before the gate was re-run: that was a mistake in the process. The full gate was then re-run and was clean: 609 of 609 tests, lint, build and audit |
 | 2 | Security | **Pass** | style change only |
 
 ---
