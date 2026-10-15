@@ -21,7 +21,7 @@ export async function beginTwoStepAction(): Promise<TwoStepState> {
   const user = await requireUser();
   const r = await beginSetup(user.staffId);
   if (!r.ok) return { error: r.error };
-  const qr = await QRCode.toString(r.url, { type: "svg", margin: 2, width: 224, errorCorrectionLevel: "M" });
+  const qr = await QRCode.toString(r.url, { type: "svg", margin: 4, width: 288, errorCorrectionLevel: "M" });
   return { secret: r.secret, url: r.url, qr };
 }
 

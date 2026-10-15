@@ -30,8 +30,14 @@ export function SetupTwoStep() {
     <form action={confirm} className="stack" autoComplete="off">
       <p>1. On your phone, open an authenticator app (such as Microsoft Authenticator or Google Authenticator) and add an account. <strong>Scan this QR code</strong>:</p>
       {/* A picture made on the server and passed in as data, so there is nothing to optimise or fetch */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {begin.qr ? <img src={`data:image/svg+xml;utf8,${encodeURIComponent(begin.qr)}`} width={224} height={224} alt="QR code to add this account to your authenticator app" style={{ background: "#fff", borderRadius: 12 }} /> : null}
+      {begin.qr ? (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ background: "#fff", padding: 12, borderRadius: 16, lineHeight: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`data:image/svg+xml;utf8,${encodeURIComponent(begin.qr)}`} width={288} height={288} alt="QR code to add this account to your authenticator app" style={{ display: "block", maxWidth: "100%", height: "auto" }} />
+          </div>
+        </div>
+      ) : null}
       <p>Cannot scan? Choose <strong>Enter a setup key</strong> in the app (type: time-based) and type this key. It works on a computer too:</p>
       <pre className="pre" aria-label="Setup key">{begin.secret}</pre>
       <p className="muted small">On a phone you can also <a href={begin.url}>open the setup link</a> directly.</p>

@@ -4,6 +4,20 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## T2: Scannable QR code and an account page (15 Oct 2026)
+Scope: owner feedback on T1. (1) The QR code did not scan on the owner's phone. Cause found by testing: the old code (49 squares across, 4.6 pixels each, a two-square blank border, rounded corners close to the corner marks) decoded in software but is hard for a phone camera. The setup link is now shorter (the default algorithm, digits and period are dropped; the app reads defaults), so the code is 41 squares across, drawn 288 pixels wide with a **four-square blank border** inside a white frame, **centred** on the page. Checked by rendering it in a real browser at three screen sharpnesses and decoding it with a QR reader library: decodes every time and returns the exact link. The typed setup key remains as the fallback. (2) **/account** gave "page not found": it is now an account page with links to two-step sign-in (showing on or set up) and change password. 1 new test (609 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean; `/account` listed in the build |
+| 2 | Tests | **Pass** | 609 of 609 |
+| 3 | Authz | **Pass** | `/account` needs a signed-in user (same check as the security page) |
+| 4 | Secrets | **Pass** | the QR still carries the person's own setup secret to the person only |
+
+Not tested on a real phone camera (none available here); the typed key is the fallback. The dev database was not reachable from this machine at the time (a DNS refusal), so the full-page test was replaced by an exact render of the same code and frame.
+
+---
+
 ## T1: Two-step setup: QR code and visible links (14-15 Oct 2026)
 Scope: first use on the Vercel test site. (1) The setup page offered only an `otpauth://` link, which a desktop browser cannot open; it now shows a **QR code** (drawn on the server by the `qrcode` package and passed as an SVG picture, so no outside service sees the secret) above the typed **setup key** for people who cannot scan. (2) The two-step page was only linked from the old dashboard page; it is now in the **admin menu** and in the game's **Me panel > Account**. (3) Correction to earlier guidance: "Admin areas need it" is only true when Settings > Sign-in rules > require two-step for admin areas is on; it is **off by default**. New dependency: `qrcode` (and its types). **Checked in a real browser** with a throwaway user: the QR image loads at 224 by 224 and the key is shown. 0 new tests (browser check; the setup logic is covered by the existing two-step tests).
 

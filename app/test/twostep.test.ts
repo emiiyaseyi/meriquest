@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { base32Decode, base32Encode, codeFor, newRecoveryCodes, openSecret, sealSecret, stepAt, consumeRecoveryCode, verifyCode } from "@/lib/server/auth/totp";
+import { base32Decode, base32Encode, codeFor, newRecoveryCodes, openSecret, otpauthUrl, sealSecret, stepAt, consumeRecoveryCode, verifyCode } from "@/lib/server/auth/totp";
 import { authenticate, changePassword } from "@/lib/server/auth/service";
 import { beginSetup, confirmSetup, disableTwoStep, adminResetTwoStep } from "@/lib/server/auth/twostep";
 import { getUser } from "@/lib/server/auth/users";
@@ -14,6 +14,15 @@ describe("authenticator codes", () => {
     expect(codeFor(secret, Math.floor(59 / 30), 8)).toBe("94287082");
     expect(codeFor(secret, Math.floor(1111111109 / 30), 8)).toBe("07081804");
     expect(codeFor(secret, Math.floor(1234567890 / 30), 8)).toBe("89005924");
+  });
+
+  it("builds a short setup link, so the QR code is simple enough for any phone camera to scan", () => {
+    const secret = base32Encode(Buffer.from("12345678901234567890"));
+    const url = otpauthUrl(secret, "someone@meristemng.com");
+    expect(url).toContain(`secret=${secret}`);
+    expect(url).toContain("issuer=MeriQuest");
+    expect(url.startsWith("otpauth://totp/MeriQuest:")).toBe(true);
+    expect(url.length).toBeLessThan(125); // fits a small QR code (41 squares across)
   });
 
   it("encodes and decodes the secret both ways", () => {

@@ -74,7 +74,7 @@ export function verifyCode(secretBase32: string, code: unknown, now: number, las
 }
 
 export function otpauthUrl(secretBase32: string, account: string, issuer = "MeriQuest"): string {
-  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secretBase32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${DIGITS}&period=${STEP_SECONDS}`;
+  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secretBase32}&issuer=${encodeURIComponent(issuer)}`;
 }
 
 /* ------------------------------ secret at rest ------------------------------ */
