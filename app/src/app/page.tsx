@@ -45,7 +45,7 @@ export default async function HomePage() {
     );
   }
 
-  const [player, terms, workFirst, apps, levels, concerns, floors] = await Promise.all([
+  const [player, terms, workFirst, apps, levels, concerns, floors, locations] = await Promise.all([
     getOrCreatePlayer(user),
     getConfig("terminology"),
     getConfig("workFirst"),
@@ -53,6 +53,7 @@ export default async function HomePage() {
     getConfig("levels"),
     getConfig("concerns"),
     getConfig("floors"),
+    getConfig("locations"),
   ]);
   const game = await getGameState(user);
   const path = placement ? placementCfg.paths.find((p) => p.id === placement.pathId) : undefined;
@@ -66,6 +67,7 @@ export default async function HomePage() {
       concernRules={{ categories: concerns.categories, maxFiles: concerns.maxFiles, maxFileMb: concerns.maxFileMb }}
       role={user.role}
       initialScene={player.scene}
+      signs={Object.fromEntries(locations.rooms.map((r) => [r.scene, r.signs]))}
       look={player.look}
       game={game}
       floorStatus={floorStatuses(floors, BUILDINGS.flatMap((b) => b.levels), user)}

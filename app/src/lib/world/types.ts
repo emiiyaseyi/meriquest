@@ -52,7 +52,8 @@ export type WallFeature =
   | { wall: "x" | "y"; kind: "windows"; from: number; to: number } // tall glass windows
   | { wall: "x" | "y"; kind: "liftdoors"; from: number; to: number } // two steel lift doors
   | { wall: "x" | "y"; kind: "screen"; from: number; to: number } // wall display
-  | { wall: "x" | "y"; kind: "glass"; from: number; to: number }; // glass-fronted offices
+  | { wall: "x" | "y"; kind: "glass"; from: number; to: number } // glass-fronted offices
+  | { wall: "x" | "y"; kind: "sign"; from: number; to: number; text: string }; // a dark signboard with white letters, set by the admin per room
 
 export type HairStyle = "lowcut" | "bald" | "curls" | "afro" | "locs" | "braids" | "classic" | "short" | "bun";
 export type Outfit = "casual" | "hoodie" | "office" | "chill" | "sitework";

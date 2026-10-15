@@ -322,6 +322,24 @@ export function workspaceLayoutScene(base: Scene, kind: "desk" | "office", gridW
   };
 }
 
+/** A sign on a back wall of a room: the words, which wall, where along it, and how wide (in tiles). Set by the admin per room. */
+export interface RoomSign {
+  text: string;
+  wall: "x" | "y";
+  at: number;
+  width: number;
+}
+
+/** The scene with the admin's wall signs added. The room's own list of features is never changed. */
+export function withSigns(scene: Scene, signs: RoomSign[] | undefined): Scene {
+  if (!signs || signs.length === 0) return scene;
+  const limit = (wall: "x" | "y") => (wall === "x" ? scene.rows : scene.cols);
+  const added = signs
+    .filter((s) => s.at >= 0 && s.at + s.width <= limit(s.wall) + 0.001)
+    .map((s) => ({ wall: s.wall, kind: "sign" as const, from: s.at, to: s.at + s.width, text: s.text.toUpperCase() }));
+  return added.length === 0 ? scene : { ...scene, features: [...scene.features, ...added] };
+}
+
 /** The scene with the person's bought things placed in it. Things are walk-through, so nobody can be boxed in. */
 export function withDecor(scene: Scene, placed: { item: string; x: number; y: number; rot?: number; tint?: string }[], items: Map<string, { w: number; d: number; icon: string; model?: string; color?: string }>): Scene {
   if (scene.id !== WORKSPACE_ID || placed.length === 0) return scene;

@@ -414,6 +414,38 @@ function drawFeature(ctx: Ctx, scene: Scene, f: WallFeature, logo: CanvasImageSo
       ctx.restore();
       break;
     }
+    case "sign": {
+      // A dark signboard with bold white letters, laid on the wall plane so the text follows the wall's slant
+      const z0 = 2.5;
+      const z1 = 3.3;
+      poly(ctx, q(f.from, f.to, z0, z1), "#14171a", "#07090a", 1.4);
+      poly(ctx, q(f.from + 0.05, f.to - 0.05, z0 + 0.05, z1 - 0.05), "#1d2226");
+      // On the left wall the text must run away from the corner to read left to right
+      const rev = f.wall === "x";
+      const start = rev ? f.to : f.from;
+      const o = wp(f.wall, start, z1);
+      const along = wp(f.wall, start + (rev ? -1 : 1), z1);
+      const down = wp(f.wall, start, z1 - 1);
+      ctx.save();
+      ctx.transform(along.x - o.x, along.y - o.y, down.x - o.x, down.y - o.y, o.x, o.y);
+      ctx.scale(0.01, 0.01);
+      const W = (f.to - f.from) * 100;
+      const H = (z1 - z0) * 100;
+      let size = H * 0.56;
+      const font = (s: number) => `800 ${s}px "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif`;
+      ctx.font = font(size);
+      const wide = ctx.measureText(f.text).width;
+      if (wide > W * 0.88) {
+        size *= (W * 0.88) / wide;
+        ctx.font = font(size);
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(f.text, W / 2, H / 2 + size * 0.04);
+      ctx.restore();
+      break;
+    }
     case "glass": {
       // Glass-fronted offices: pale tinted glass in white frames, with a door
       const z1 = 2.7;

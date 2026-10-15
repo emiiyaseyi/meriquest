@@ -20,7 +20,7 @@ import { startTripAction } from "@/app/actions/travel";
 import type { TravelOptions, TripView } from "@/lib/server/travel/service";
 import { getMine } from "@/lib/client/api";
 import type { DecorView } from "@/lib/server/decor/service";
-import { WORKSPACE_ID, withDecor, workspaceLayoutScene } from "@/lib/world/scenes";
+import { WORKSPACE_ID, withDecor, withSigns, workspaceLayoutScene, type RoomSign } from "@/lib/world/scenes";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -44,6 +44,8 @@ export interface PhoneApp {
 }
 
 export interface GameShellProps {
+  /** The wall signs the admin set for each room. */
+  signs: Record<string, RoomSign[]>;
   name: string;
   staffId: string;
   title: string;
@@ -154,7 +156,8 @@ export function GameShell(props: GameShellProps) {
   const { needs, points } = game;
   const [look, setLook] = useState<Skin>(props.look);
   const [sceneId, setSceneId] = useState(props.initialScene);
-  const baseScene = getScene(sceneId) ?? SCENES[props.initialScene];
+  const plainScene = getScene(sceneId) ?? SCENES[props.initialScene];
+  const baseScene = useMemo(() => withSigns(plainScene, props.signs[plainScene.id]), [plainScene, props.signs]);
   const [arrive, setArrive] = useState<{ x: number; y: number }>(() => (getScene(props.initialScene) ?? SCENES[props.initialScene]).spawn);
   const [mode, setMode] = useViewMode();
   const [overlay, setOverlay] = useState<Overlay>(null);

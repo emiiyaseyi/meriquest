@@ -765,6 +765,11 @@ export const locationsSchema = z
             /** The id of a room in the world. */
             scene: slug,
             status: z.string().max(100),
+            /** Signs on the two back walls (the left wall is "x", the right wall is "y"): the words, how far along the wall, and how wide in tiles. */
+            signs: z
+              .array(z.object({ text: z.string().min(1).max(24), wall: z.enum(["x", "y"]), at: z.number().min(0).max(40), width: z.number().min(1).max(8) }).strict())
+              .max(10)
+              .default([]),
             zones: z
               .array(
                 z

@@ -558,12 +558,25 @@ const fridge = (r: string) => ({
 
 const ROOMS_WITH_FRIDGE: Record<string, string> = { "ikoyi-floor": "floor", "ikoyi-lobby": "lobby", "ikoyi-boardroom": "board", "ikoyi-lounge": "lounge", "yaba-lobby": "yaba" };
 
+/** Signs on the back walls (the left wall is "x", the right wall is "y"), set high so they sit above doors and screens. Admins can change them. */
+type Sign = { text: string; wall: "x" | "y"; at: number; width: number };
+const SIGNS: Record<string, Sign[]> = {
+  "ikoyi-lobby": [{ text: "Ikoyi HQ", wall: "y", at: 2, width: 4.5 }],
+  "ikoyi-floor": [
+    { text: "Reading corner", wall: "x", at: 5.5, width: 4 },
+    { text: "Open-plan floor", wall: "y", at: 6, width: 5 },
+  ],
+  "ikoyi-boardroom": [{ text: "Boardroom", wall: "x", at: 3, width: 4 }],
+  "ikoyi-lounge": [{ text: "Executive lounge", wall: "x", at: 2, width: 5.5 }],
+  "yaba-lobby": [{ text: "Yaba office", wall: "x", at: 3, width: 4 }],
+};
+
 export const DEFAULT_LOCATIONS = {
   rooms: [
-    ...BASE.rooms,
-    { scene: "yaba-lobby", status: "A quiet morning at the Yaba office", zones: [] as (typeof BASE.rooms)[number]["zones"] },
+    ...BASE.rooms.map((r) => ({ ...r, signs: [] as Sign[] })),
+    { scene: "yaba-lobby", status: "A quiet morning at the Yaba office", zones: [] as (typeof BASE.rooms)[number]["zones"], signs: [] as Sign[] },
   ].map((room) => {
     const r = ROOMS_WITH_FRIDGE[room.scene];
-    return r ? { ...room, zones: [...room.zones, dispenser(r), fridge(r)] } : room;
+    return { ...(r ? { ...room, zones: [...room.zones, dispenser(r), fridge(r)] } : room), signs: SIGNS[room.scene] ?? [] };
   }),
 };

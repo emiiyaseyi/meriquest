@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { computeView } from "@/lib/iso/render";
 import { project } from "@/lib/iso/geometry";
-import { SCENES } from "@/lib/world/scenes";
+import { SCENES, withSigns } from "@/lib/world/scenes";
+import { DEFAULT_LOCATIONS } from "@/lib/server/config/location-content";
+import { locationsSchema } from "@/lib/server/config/definitions";
 import { onlineNow, resetOnlineCache } from "@/lib/server/game/presence";
 import { getGameState } from "@/lib/server/game/service";
 import { getStore } from "@/lib/server/store";
@@ -63,5 +65,37 @@ describe("online now", () => {
     await getStore().put("play_sessions", "MS1002", { staffId: "MS1002", used: 0, lastPlayAt: null, lastBeat: NOW - 1000, lastActivity: "world" });
     const s = await getGameState(await dto("MS1001"), NOW);
     expect(s.online).toBe(1);
+  });
+});
+
+describe("wall signs", () => {
+  const room = SCENES["ikoyi-boardroom"];
+
+  it("adds a sign as a wall feature in capitals and leaves the room's own list alone", () => {
+    const out = withSigns(room, [{ text: "Boardroom", wall: "x", at: 3, width: 4 }]);
+    const sign = out.features.find((f) => f.kind === "sign");
+    expect(sign).toMatchObject({ wall: "x", from: 3, to: 7, text: "BOARDROOM" });
+    expect(room.features.some((f) => f.kind === "sign")).toBe(false);
+    expect(withSigns(room, [])).toBe(room);
+    expect(withSigns(room, undefined)).toBe(room);
+  });
+
+  it("ignores a sign that would run off the wall", () => {
+    const out = withSigns(room, [{ text: "Too far", wall: "x", at: room.rows - 1, width: 4 }, { text: "Negative", wall: "y", at: -2, width: 2 }]);
+    expect(out).toBe(room);
+  });
+
+  it("ships valid default signs that sit inside their rooms", () => {
+    expect(locationsSchema.safeParse(DEFAULT_LOCATIONS).success).toBe(true);
+    let count = 0;
+    for (const r of DEFAULT_LOCATIONS.rooms) {
+      const sc = SCENES[r.scene];
+      for (const s of r.signs) {
+        count++;
+        expect(s.at).toBeGreaterThanOrEqual(0);
+        expect(s.at + s.width).toBeLessThanOrEqual(s.wall === "x" ? sc.rows : sc.cols);
+      }
+    }
+    expect(count).toBeGreaterThanOrEqual(4);
   });
 });

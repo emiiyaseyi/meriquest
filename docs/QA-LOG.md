@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## U4: Wall signs (15 Oct 2026)
+Scope: owner's comparison with the reference (signs such as COFFEE on the walls). Rooms can now have **signboards** on the two back walls: dark boards with bold white capitals that follow the slant of the wall (on the left wall the text runs away from the corner so it reads left to right), set high above doors and screens. They are **admin-editable per room** under Settings > Room activities (words, which wall, how far along, how wide); the room's own wall features are never changed. Default signs: Ikoyi HQ (lobby), Reading corner and Open-plan floor (floor), Boardroom, Executive lounge, Yaba office. A sign that would run off its wall is ignored. 3 new tests (624 total). **Checked in a real browser** in the boardroom and the open-plan floor. Not done: signs for the Coffee point, water cooler and pantry, because those spots stand away from the back walls; they need the spots moved to a wall, or free-standing signs (owner to decide).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 624 of 624 tests, lint, build, audit |
+| 2 | Input validation | **Pass** | sign words 1 to 24 characters, wall x or y, position and width bounded by the schema; drawn as canvas text, never as HTML |
+| 3 | Secrets, security review | **Pass** | no new routes or secrets |
+
+---
+
 ## U3: Shift card like the reference, with work styles (15 Oct 2026)
 Scope: owner's comparison with the reference. The shift card moved to the **top left** (the venue card hides during a shift) and now shows: Merit points so far, a **performance ring** (best answers count fully, partly half), "answered / total and the bonus when all are handled", a story line (the situation now, or when the next comes), a coloured bar of the situations, and the **five work styles** (RULEBOOK §2.6 step 4). Styles are admin-editable (Settings > Work shifts): each sets **pay as a percentage** and **what it does to the needs** when the shift is finished (for example Push hard pays 120% and tires you; Take it easy pays 75% and lifts mood). A style never changes whether a decision counts as good or the skill points, so development scores stay about decision quality. It can be picked at the start or changed until the first situation is answered, then it is locked (server-enforced); leaving early applies nothing. New action `setShiftStyleAction`. 6 new tests (621 total). **Checked in a real browser**: card layout, points so far after an answer, locked styles; also fixed the needs panel jumping to the top when the venue card hides.
 
