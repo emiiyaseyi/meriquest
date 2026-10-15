@@ -322,6 +322,14 @@ export function workspaceLayoutScene(base: Scene, kind: "desk" | "office", gridW
   };
 }
 
+/** A person's own space (their desk or office) is reached with the Workspace button, never by the lifts or as "the floor". */
+export const isPersonalRoom = (sceneId: string): boolean => sceneId === WORKSPACE_ID;
+
+/** The shared rooms on a level of a building, in the order they are built: what the lift offers and where it takes you. */
+export function liftRooms(scenes: Scene[], buildingId: string, levelId: string): Scene[] {
+  return scenes.filter((s) => s.building === buildingId && s.level === levelId && !isPersonalRoom(s.id));
+}
+
 /** A sign on a back wall of a room: the words, which wall, where along it, and how wide (in tiles). Set by the admin per room. */
 export interface RoomSign {
   text: string;

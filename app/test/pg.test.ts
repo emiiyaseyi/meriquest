@@ -17,10 +17,11 @@ const makeDb = (): Db => ({
   tx: (fn) => pg.transaction((tx) => fn({ query: (t, p) => tx.query(t, p as unknown[]) as never })),
 });
 
+// Starting the in-memory database can take a while when the whole suite runs at once, so give it a generous limit
 beforeAll(async () => {
   pg = new PGlite();
   await pg.exec(MIGRATION);
-});
+}, 60_000);
 afterAll(async () => {
   await pg.close();
 });

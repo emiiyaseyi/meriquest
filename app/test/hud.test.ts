@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { computeView } from "@/lib/iso/render";
 import { project } from "@/lib/iso/geometry";
-import { SCENES, withSigns } from "@/lib/world/scenes";
+import { SCENES, WORKSPACE_ID, isPersonalRoom, liftRooms, withSigns } from "@/lib/world/scenes";
 import { DEFAULT_LOCATIONS } from "@/lib/server/config/location-content";
 import { locationsSchema } from "@/lib/server/config/definitions";
 import { onlineNow, resetOnlineCache } from "@/lib/server/game/presence";
@@ -97,5 +97,24 @@ describe("wall signs", () => {
       }
     }
     expect(count).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("lifts", () => {
+  const all = Object.values(SCENES);
+
+  it("never take you to a personal room: Floor 1 offers the open-plan floor, not the Workspace", () => {
+    const floor1 = liftRooms(all, "ikoyi-hq", "floor-1");
+    expect(floor1.map((s) => s.id)).toContain("ikoyi-floor");
+    expect(floor1.map((s) => s.id)).not.toContain(WORKSPACE_ID);
+    expect(floor1[0].id).toBe("ikoyi-floor");
+    // the Workspace sits on Floor 1, so without the rule it would have come first
+    expect(all.filter((s) => s.building === "ikoyi-hq" && s.level === "floor-1")[0].id).toBe(WORKSPACE_ID);
+  });
+
+  it("only treats the Workspace as personal", () => {
+    expect(isPersonalRoom(WORKSPACE_ID)).toBe(true);
+    expect(all.filter((s) => isPersonalRoom(s.id)).map((s) => s.id)).toEqual([WORKSPACE_ID]);
+    for (const s of all) if (!isPersonalRoom(s.id)) expect(liftRooms(all, s.building, s.level).map((r) => r.id)).toContain(s.id);
   });
 });

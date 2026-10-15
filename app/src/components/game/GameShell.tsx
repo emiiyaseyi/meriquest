@@ -20,7 +20,7 @@ import { startTripAction } from "@/app/actions/travel";
 import type { TravelOptions, TripView } from "@/lib/server/travel/service";
 import { getMine } from "@/lib/client/api";
 import type { DecorView } from "@/lib/server/decor/service";
-import { WORKSPACE_ID, withDecor, withSigns, workspaceLayoutScene, type RoomSign } from "@/lib/world/scenes";
+import { WORKSPACE_ID, isPersonalRoom, withDecor, withSigns, workspaceLayoutScene, type RoomSign } from "@/lib/world/scenes";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -819,7 +819,7 @@ export function GameShell(props: GameShellProps) {
       ) : null}
 
       {overlay === "lift" && building ? (
-        <LiftPanel building={building} scenes={Object.values(SCENES)} hereLevel={scene.level} status={props.floorStatus} busy={busy} onPick={(id) => void goTo(() => travelMapAction(id), spawnOf(id))} onClose={() => setOverlay(null)} />
+        <LiftPanel building={building} scenes={Object.values(SCENES)} hereLevel={isPersonalRoom(scene.id) ? "" : scene.level} status={props.floorStatus} busy={busy} onPick={(id) => void goTo(() => travelMapAction(id), spawnOf(id))} onClose={() => setOverlay(null)} />
       ) : null}
 
       {touring ? <Tour firstName={name.split(" ")[0] || "there"} path={props.path} session={props.session} onDone={finishTour} /> : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { FloorStatus } from "@/lib/world/access";
+import { liftRooms } from "@/lib/world/scenes";
 import type { Building, Scene } from "@/lib/world/types";
 
 /**
@@ -22,7 +23,7 @@ export function LiftPanel({ building, scenes, hereLevel, status, busy, onPick, o
       <div className="me-body">
         <div className="stack" style={{ gap: 8 }}>
           {building.levels.map((lv) => {
-            const rooms = scenes.filter((s) => s.building === building.id && s.level === lv.id);
+            const rooms = liftRooms(scenes, building.id, lv.id);
             const st = status[lv.id];
             const here = lv.id === hereLevel;
             const locked = st?.blocked === true;

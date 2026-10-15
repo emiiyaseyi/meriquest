@@ -647,8 +647,8 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .client-option:hover:not(:disabled) { background: #eaf3ee; border-color: #1f5a3a; }
 .client-option:disabled { opacity: 0.6; cursor: wait; }
 .chat-note.ok { background: #e6f4ec; color: #1f5a3a; }
-/* Keep the location bar clear of the needs panel (bottom left) on mid-width screens */
-@media (min-width: 1000px) { .locbar { width: clamp(460px, calc(100% - 840px), 640px); } }
+/* The location bar sits between the needs panel (left, 12 to 434 px, then a 32 px gap) and the Go to work button, with a clear gap on both sides at any width */
+@media (min-width: 900px) { .locbar { left: 466px; right: 190px; width: auto; max-width: 640px; margin-inline: auto; transform: none; } }
 
 /* Reference-style HUD pieces: online count, camera presets, inbox badge, clean screen and keyboard buttons */
 .chip-online { display: inline-flex; align-items: center; gap: 6px; }

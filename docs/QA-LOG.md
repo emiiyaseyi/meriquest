@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## U5: Lift took people to their desk; location bar spacing; test limits (15 Oct 2026)
+Scope: three owner reports. (1) **The lift to Floor 1 showed the person's own desk instead of the floor.** Cause: Floor 1 holds two rooms (the personal Workspace, listed first, and the open-plan floor) and the lift went to the first room of the level. A new rule (`liftRooms`, `isPersonalRoom`) keeps personal rooms out of the lift list, so Floor 1 offers the open-plan floor; and when someone is in their Workspace the lift no longer says "You are here" for Floor 1. 2 new tests. (2) **The needs panel and the location bar were too close.** Measured in a real browser at seven widths (900 to 1920 px): the needs panel is a fixed 12 to 434 px, but the bar was centred on the screen, so it came within 14 px or overlapped on mid-width screens. The bar now starts 32 px to the right of the needs panel and stops 190 px short of the right edge (clear of the Go to work button) at 900 px and wider, so there is always a clear gap on both sides. (3) **Test limits.** The full suite timed out again on a busy machine (a database start-up hook at 10 s, then a whole-app test at 5 s): the project now allows 30 s per test and 60 s per start-up hook (`vitest.config.mts`), and the database suite's own start-up hook also gets 60 s. Before this the log recorded two runs that stopped on that timeout.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 626 of 626 tests, lint, build, audit (two earlier attempts failed on the timeouts above and were not committed) |
+| 2 | Authz | **Pass** | the server still checks the chosen level and room; this only changes what the lift offers |
+| 3 | Security | **Pass** | no new routes or secrets |
+
+---
+
 ## U4: Wall signs (15 Oct 2026)
 Scope: owner's comparison with the reference (signs such as COFFEE on the walls). Rooms can now have **signboards** on the two back walls: dark boards with bold white capitals that follow the slant of the wall (on the left wall the text runs away from the corner so it reads left to right), set high above doors and screens. They are **admin-editable per room** under Settings > Room activities (words, which wall, how far along, how wide); the room's own wall features are never changed. Default signs: Ikoyi HQ (lobby), Reading corner and Open-plan floor (floor), Boardroom, Executive lounge, Yaba office. A sign that would run off its wall is ignored. 3 new tests (624 total). **Checked in a real browser** in the boardroom and the open-plan floor. Not done: signs for the Coffee point, water cooler and pantry, because those spots stand away from the back walls; they need the spots moved to a wall, or free-standing signs (owner to decide).
 
