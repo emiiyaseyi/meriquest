@@ -647,3 +647,5 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .client-option:hover:not(:disabled) { background: #eaf3ee; border-color: #1f5a3a; }
 .client-option:disabled { opacity: 0.6; cursor: wait; }
 .chat-note.ok { background: #e6f4ec; color: #1f5a3a; }
+/* Keep the location bar clear of the needs panel (bottom left) on mid-width screens */
+@media (min-width: 1000px) { .locbar { width: clamp(460px, calc(100% - 840px), 640px); } }

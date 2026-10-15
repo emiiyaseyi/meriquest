@@ -4,6 +4,16 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## U1: Location bar no longer covers the needs panel (15 Oct 2026)
+Scope: while comparing our game screen with the Lagos Life reference (owner request), a layout bug showed at 1366 pixels wide: the location bar (centre, bottom) overlapped the right end of the needs panel (bottom left) by about 37 pixels, hiding part of two needs. On screens 1000 pixels and wider the bar is now narrower (460 to 640 pixels) so it stays clear. CSS only. **Checked in a real browser** before and after.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` clean |
+| 2 | Security | **Pass** | style change only |
+
+---
+
 ## T2: Scannable QR code and an account page (15 Oct 2026)
 Scope: owner feedback on T1. (1) The QR code did not scan on the owner's phone. Cause found by testing: the old code (49 squares across, 4.6 pixels each, a two-square blank border, rounded corners close to the corner marks) decoded in software but is hard for a phone camera. The setup link is now shorter (the default algorithm, digits and period are dropped; the app reads defaults), so the code is 41 squares across, drawn 288 pixels wide with a **four-square blank border** inside a white frame, **centred** on the page. Checked by rendering it in a real browser at three screen sharpnesses and decoding it with a QR reader library: decodes every time and returns the exact link. The typed setup key remains as the fallback. (2) **/account** gave "page not found": it is now an account page with links to two-step sign-in (showing on or set up) and change password. 1 new test (609 total).
 
