@@ -253,6 +253,7 @@ export function MePanel(p: MePanelProps) {
             <p className="me-label">ACCOUNT</p>
             {p.role === "admin" ? <Link href="/admin" className="me-wide">🛠️ Admin</Link> : null}
             <Link href="/change-password" className="me-wide">🔑 Change password</Link>
+            <Link href="/account/security" className="me-wide">🔐 Two-step sign-in</Link>
             <form action={logoutAction}><button type="submit" className="me-wide">🚪 Sign out</button></form>
           </div>
         ) : null}

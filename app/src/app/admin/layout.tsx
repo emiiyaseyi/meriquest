@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {can(user.role, "concerns") ? <NavLink href="/admin/concerns">Concerns</NavLink> : null}
           {can(user.role, "concerns") ? <NavLink href="/admin/chat">Chat reports</NavLink> : null}
           {can(user.role, "audit") ? <NavLink href="/admin/audit">Audit log</NavLink> : null}
+          <NavLink href="/account/security">Two-step sign-in</NavLink>
           <NavLink href="/" exact>Back to game</NavLink>
         </nav>
         <form action={logoutAction} className="row">

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import QRCode from "qrcode";
 import { requireUser } from "@/lib/server/auth/dal";
 import { beginSetup, confirmSetup, disableTwoStep } from "@/lib/server/auth/twostep";
 
@@ -9,6 +10,8 @@ export interface TwoStepState {
   ok?: string;
   secret?: string;
   url?: string;
+  /** The setup link drawn as a QR code (an SVG picture), made on the server so nothing is sent to an outside service. */
+  qr?: string;
   recoveryCodes?: string[];
 }
 
@@ -17,7 +20,9 @@ export interface TwoStepState {
 export async function beginTwoStepAction(): Promise<TwoStepState> {
   const user = await requireUser();
   const r = await beginSetup(user.staffId);
-  return r.ok ? { secret: r.secret, url: r.url } : { error: r.error };
+  if (!r.ok) return { error: r.error };
+  const qr = await QRCode.toString(r.url, { type: "svg", margin: 2, width: 224, errorCorrectionLevel: "M" });
+  return { secret: r.secret, url: r.url, qr };
 }
 
 export async function confirmTwoStepAction(_p: TwoStepState, fd: FormData): Promise<TwoStepState> {

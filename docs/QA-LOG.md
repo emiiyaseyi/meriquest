@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## T1: Two-step setup: QR code and visible links (14-15 Oct 2026)
+Scope: first use on the Vercel test site. (1) The setup page offered only an `otpauth://` link, which a desktop browser cannot open; it now shows a **QR code** (drawn on the server by the `qrcode` package and passed as an SVG picture, so no outside service sees the secret) above the typed **setup key** for people who cannot scan. (2) The two-step page was only linked from the old dashboard page; it is now in the **admin menu** and in the game's **Me panel > Account**. (3) Correction to earlier guidance: "Admin areas need it" is only true when Settings > Sign-in rules > require two-step for admin areas is on; it is **off by default**. New dependency: `qrcode` (and its types). **Checked in a real browser** with a throwaway user: the QR image loads at 224 by 224 and the key is shown. 0 new tests (browser check; the setup logic is covered by the existing two-step tests).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint | **Pass** | `npm run qa` clean (one img warning silenced on purpose: a data picture made on the server) |
+| 2 | Tests | **Pass** | 608 of 608 |
+| 3 | Secrets, crypto | **Pass** | the secret is only drawn into a picture sent to the person who asked, the same data the page already showed; nothing leaves the server for a third party |
+| 4 | `npm audit` | **Pass** | clean in `npm run qa` |
+
+---
+
 ## D2: Supabase certificate option and database walk-through (14 Oct 2026)
 Scope: the owner created a Supabase project for the test deployment. Supabase signs database certificates with its own authority, which Node does not trust by default; the app verifies TLS strictly and refuses to skip it in production, so the connection would fail. Added an optional `DATABASE_CA_CERT` setting (the authority's certificate, PEM): the connection is **still fully verified**, it just trusts that authority. Accepts a pasted value with literal backslash-n, and refuses text that is not a certificate. The migration script reads it too. `docs/DATABASE-SETUP.md` Part A now walks through Supabase (Frankfurt region, pooler string, certificate download, one-off migration, optional Data API off). 1 new test (608 total).
 
