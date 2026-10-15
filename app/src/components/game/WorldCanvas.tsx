@@ -22,6 +22,9 @@ export interface WorldCanvasProps {
   paused: boolean;
   /** Share of the height (0 to 0.6) kept clear at the bottom, for a panel that covers it (Buy mode), so the room is centred in what stays visible. */
   reserveBottom?: number;
+  /** Camera preset "My desk": zoom in on where the player stands when `focusKey` last changed. 1 shows the whole room. */
+  zoom?: number;
+  focusKey?: number;
   onPortal: (p: Portal) => void;
   onHotspot: (h: Hotspot) => void;
   onNpc: (n: Npc) => void;
@@ -41,7 +44,7 @@ type Then = { kind: "hotspot"; h: Hotspot } | null;
  * sideways drag) turn the view without moving you. The room's own coordinates never change: the camera turn
  * only affects drawing and picking. Nothing here is trusted by the server: doors are re-checked there.
  */
-export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, reserveBottom = 0, onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, skipTick = 0 }: WorldCanvasProps) {
+export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, reserveBottom = 0, zoom = 1, focusKey = 0, onPortal, onHotspot, onNpc, onRotate, onHover, onWalking, skipTick = 0 }: WorldCanvasProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const k: Quarter = mode === "iso" ? rotation : 0;
@@ -77,6 +80,8 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
     if (!ctx) return;
     const grid = buildGrid(scene);
     const s = sim.current;
+    // The camera preset looks at where the player stands now (as it appears in the turned view) and stays there until the preset changes
+    const lookAt = tileToView(scene, k, Math.floor(s.x), Math.floor(s.y));
     // Put the player at the arrival point only when entering a room, not when the view or mode changes.
     const placeKey = `${scene.id}:${start.x},${start.y}`;
     if (placedFor.current !== placeKey) {
@@ -325,7 +330,7 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
         const walker: Walker = { x: pos.x, y: pos.y, fx: face.x, fy: face.y, walking: s.walking, look, name };
         const path = s.path.map((t) => tileToView(scene, k, t.x, t.y));
         const hover = s.hover ? tileToViewPoint(s.hover.x, s.hover.y) : null;
-        const base = { mode, width: s.size.w, height: s.size.h * (1 - reserveBottom), time: now, dpr: s.size.dpr, logo: logo.current, labels: true } as const;
+        const base = { mode, width: s.size.w, height: s.size.h * (1 - reserveBottom), time: now, dpr: s.size.dpr, logo: logo.current, labels: true, zoom, focus: zoom > 1 ? lookAt : null } as const;
         if (mode === "iso") {
           if (staticDirty) {
             const sctx = staticLayer.getContext("2d");
@@ -363,7 +368,7 @@ export function WorldCanvas({ scene, start, look, name, mode, rotation, paused, 
     };
     // The world is rebuilt when the room, the drawing mode or the camera changes. Appearance is read through the closure on purpose.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, turned, mode, k, start.x, start.y, reserveBottom]);
+  }, [scene, turned, mode, k, start.x, start.y, reserveBottom, zoom, focusKey]);
 
   return (
     <div ref={wrap} className="world-wrap">

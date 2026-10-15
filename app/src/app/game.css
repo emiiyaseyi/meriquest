@@ -649,3 +649,20 @@ button.activity:disabled { opacity: .7; cursor: default; }
 .chat-note.ok { background: #e6f4ec; color: #1f5a3a; }
 /* Keep the location bar clear of the needs panel (bottom left) on mid-width screens */
 @media (min-width: 1000px) { .locbar { width: clamp(460px, calc(100% - 840px), 640px); } }
+
+/* Reference-style HUD pieces: online count, camera presets, inbox badge, clean screen and keyboard buttons */
+.chip-online { display: inline-flex; align-items: center; gap: 6px; }
+.online-dot { width: 9px; height: 9px; border-radius: 50%; background: #1fa05a; display: inline-block; }
+.hud-right .round-btn { position: relative; }
+.hud-right .nav-badge { top: -4px; right: -4px; }
+.cam-card { display: flex; flex-direction: column; gap: 2px; padding: 6px; border-radius: 22px; background: rgba(255, 255, 255, .96); box-shadow: 0 8px 22px rgba(23, 38, 28, .2); width: 84px; }
+.cam-btn { appearance: none; border: 0; background: transparent; font: inherit; font-size: .72rem; font-weight: 600; color: #3a4a40; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 16px; cursor: pointer; }
+.cam-btn span { font-size: 1.25rem; line-height: 1; }
+.cam-btn:hover { background: #eef2ef; }
+.cam-btn.on { background: var(--brand, #1f5a3a); color: #fff; }
+.hud-br { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px; z-index: 3; }
+.clean-pill { appearance: none; border: 0; font: inherit; font-weight: 600; font-size: .85rem; padding: 10px 16px; border-radius: 999px; background: rgba(255, 255, 255, .96); color: #1b2a21; box-shadow: 0 6px 18px rgba(23, 38, 28, .22); cursor: pointer; }
+.clean-pill:hover { background: #eef2ef; }
+.only-wide { display: none; }
+@media (min-width: 900px) { .only-wide { display: flex; } .only-narrow { display: none; } }
+@media (max-height: 640px) { .cam-card { display: none; } }

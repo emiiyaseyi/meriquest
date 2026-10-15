@@ -35,6 +35,9 @@ export interface RenderOptions {
   labels?: boolean;
   /** Device pixel ratio, for sharp drawing on high-resolution screens. */
   dpr?: number;
+  /** Camera preset: zoom in (above 1) and look at this tile, as it appears in the turned view. */
+  zoom?: number;
+  focus?: { x: number; y: number } | null;
   /**
    * all: everything. static: only the background, floor and walls (cache this). dynamic: everything else,
    * drawn on top of a cached static layer.
@@ -44,17 +47,31 @@ export interface RenderOptions {
 
 /* --------------------------------- view and picking --------------------------------- */
 
-export function computeView(scene: Scene, mode: "iso" | "flat", width: number, height: number): View {
+/**
+ * How the room fits the canvas. A camera preset can zoom in (zoom above 1) and look at one tile of the room as it
+ * appears in the turned view (focus), so that tile sits in the middle of the canvas.
+ */
+export function computeView(scene: Scene, mode: "iso" | "flat", width: number, height: number, zoom = 1, focus?: { x: number; y: number } | null): View {
   if (mode === "flat") {
     const pad = 12;
-    const tile = Math.min((width - pad * 2) / scene.cols, (height - pad * 2) / scene.rows);
-    return { mode, scale: tile, ox: (width - scene.cols * tile) / 2, oy: (height - scene.rows * tile) / 2 };
+    const fit = Math.min((width - pad * 2) / scene.cols, (height - pad * 2) / scene.rows);
+    if (zoom > 1 && focus) {
+      const tile = fit * zoom;
+      return { mode, scale: tile, ox: width / 2 - (focus.x + 0.5) * tile, oy: height / 2 - (focus.y + 0.5) * tile };
+    }
+    return { mode, scale: fit, ox: (width - scene.cols * fit) / 2, oy: (height - scene.rows * fit) / 2 };
   }
   const b = sceneBounds(scene.cols, scene.rows, scene.wallHeight);
   const pad = 28;
   const bw = b.maxX - b.minX + pad * 2;
   const bh = b.maxY - b.minY + pad * 2 + 20;
-  const scale = Math.min(width / bw, height / bh, 1.7);
+  const base = Math.min(width / bw, height / bh, 1.7);
+  if (zoom > 1 && focus) {
+    const scale = base * zoom;
+    const p = project(focus.x + 0.5, focus.y + 0.5);
+    return { mode, scale, ox: width / 2 - p.x * scale, oy: height / 2 - p.y * scale };
+  }
+  const scale = base;
   return { mode, scale, ox: (width - (b.maxX - b.minX) * scale) / 2 - b.minX * scale, oy: (height - (b.maxY - b.minY) * scale) / 2 - b.minY * scale + 8 * scale };
 }
 
@@ -735,7 +752,7 @@ function drawPath(ctx: Ctx, path: { x: number; y: number }[], time: number): voi
 /* ----------------------------------------- main ----------------------------------------- */
 
 export function renderScene(ctx: Ctx, scene: Scene, opts: RenderOptions): View {
-  const view = computeView(scene, opts.mode, opts.width, opts.height);
+  const view = computeView(scene, opts.mode, opts.width, opts.height, opts.zoom, opts.focus);
   const dpr = opts.dpr ?? 1;
   const layer = opts.layer ?? "all";
   ctx.save();

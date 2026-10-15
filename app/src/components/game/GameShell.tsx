@@ -65,7 +65,8 @@ export interface GameShellProps {
   session: { enabled: boolean; maxMinutes: number; pauseMinutes: number };
 }
 
-type PhoneStart = "clients" | "directory" | null;
+type PhoneStart = "clients" | "directory" | "updates" | null;
+type Camera = "floor" | "desk" | "boss";
 type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | "buy" | null;
 
 const BEAT_MS = 30_000;
@@ -159,6 +160,10 @@ export function GameShell(props: GameShellProps) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   /** Which Work Phone screen to open first (for example the Clients app from a meeting room). */
   const [phoneStart, setPhoneStart] = useState<PhoneStart>(null);
+  /** Camera presets, like the reference: the whole floor, close on where you stand, or a top-down overview. They reset when you change room. */
+  const [camState, setCamState] = useState<{ scene: string; cam: Camera; key: number }>({ scene: props.initialScene, cam: "floor", key: 0 });
+  const camera: Camera = camState.scene === sceneId ? camState.cam : "floor";
+  const pickCamera = (cam: Camera) => setCamState((c) => ({ scene: sceneId, cam, key: c.key + 1 }));
   const [academyCard, setAcademyCard] = useState(false);
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
   const [decorView, setDecorView] = useState<DecorView | null>(null);
@@ -432,7 +437,7 @@ export function GameShell(props: GameShellProps) {
 
   return (
     <div className="game">
-      <WorldCanvas key={`${scene.id}:${scene.cols}x${scene.rows}`} scene={drawScene} start={startAt} reserveBottom={overlay === "buy" ? 0.42 : 0} look={look} name={name.split(" ")[0] || "You"} mode={mode} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
+      <WorldCanvas key={`${scene.id}:${scene.cols}x${scene.rows}`} scene={drawScene} start={startAt} reserveBottom={overlay === "buy" ? 0.42 : 0} look={look} name={name.split(" ")[0] || "You"} mode={camera === "boss" ? "flat" : mode} zoom={camera === "desk" ? 1.9 : 1} focusKey={camState.key} rotation={rotation} paused={busy || closed || touring || anyOpen} onPortal={onPortal} onHotspot={onHotspot} onNpc={onNpc} onRotate={onRotate} onHover={setHover} onWalking={setWalking} skipTick={skipTick} />
 
       {anyOpen && !touring && overlay !== "buy" ? <div className={`scrim${overlay === "me" || overlay === "keys" || overlay === "report" || overlay === "lift" || person ? " scrim-blur" : ""}`} onClick={closeAll} aria-hidden="true" /> : null}
 
@@ -451,6 +456,7 @@ export function GameShell(props: GameShellProps) {
           <header className="hud-top" aria-label="Status">
             <span className="chip">🕒 {clock || "…"}</span>
             <span className="chip chip-mood">😊 {mood}</span>
+            <span className="chip chip-online" title="Colleagues online now"><i className="online-dot" aria-hidden="true" /> {game.online.toLocaleString("en-GB")} online</span>
             {adminPreview ? (
               <>
                 <span className="chip chip-preview" title="Work First is not applied to admins">Admin preview</span>
@@ -478,15 +484,31 @@ export function GameShell(props: GameShellProps) {
 
           <aside className="hud-right">
             <button type="button" className="round-btn" onClick={() => (overlay === "me" ? setOverlay(null) : openMe("profile"))} title="Menu" aria-label="Menu">☰</button>
+            <button type="button" className="round-btn" onClick={() => { setPhoneStart("updates"); setOverlay("phone"); }} title="Updates and messages" aria-label={`Updates${game.unread > 0 ? `, ${game.unread} unread` : ""}`}>
+              🔔{game.unread > 0 ? <span className="badge-dot nav-badge">{game.unread > 9 ? "9+" : game.unread}</span> : null}
+            </button>
             <button type="button" className="round-btn" onClick={toggleMode} title={mode === "iso" ? "Switch to the lighter 2D view" : "Switch to the full isometric view"} aria-label="Switch view">{mode === "iso" ? "2D" : "3D"}</button>
-            {mode === "iso" ? (
+            {mode === "iso" && camera !== "boss" ? (
               <div className="turn-pair" role="group" aria-label="Turn the view">
                 <button type="button" className="round-btn" onClick={() => onRotate(-1)} title="Turn the view left (Q)" aria-label="Turn the view left">↶</button>
                 <button type="button" className="round-btn" onClick={() => onRotate(1)} title="Turn the view right (E)" aria-label="Turn the view right">↷</button>
               </div>
             ) : null}
-            <button type="button" className="round-btn" onClick={() => setClean(true)} title="Hide the screen furniture" aria-label="Clean screen">🖼️</button>
+            <button type="button" className="round-btn only-narrow" onClick={() => setClean(true)} title="Hide the screen furniture" aria-label="Clean screen">🖼️</button>
+            <div className="cam-card" role="group" aria-label="Camera">
+              {([["desk", "🖥️", "My desk"], ["floor", "🏢", "Floor"], ["boss", "🔭", "Overview"]] as const).map(([id, icon, label]) => (
+                <button key={id} type="button" className={`cam-btn${camera === id ? " on" : ""}`} aria-pressed={camera === id} onClick={() => pickCamera(id)} title={id === "desk" ? "Zoom in on where you stand" : id === "floor" ? "See the whole room" : "A top-down overview"}>
+                  <span aria-hidden="true">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
           </aside>
+
+          <div className="hud-br only-wide">
+            <button type="button" className="clean-pill" onClick={() => setClean(true)} title="Hide the panels for a clear view">🖼️ Clean screen</button>
+            <button type="button" className="round-btn" onClick={() => setOverlay("keys")} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">⌨️</button>
+          </div>
 
           <nav className="hud-nav" aria-label="Game menu">
             <button type="button" className="nav-btn nav-active" onClick={() => void goTo(() => travelMapAction(WORKSPACE_ID), spawnOf(WORKSPACE_ID))}>

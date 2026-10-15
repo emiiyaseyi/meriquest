@@ -7,6 +7,7 @@ import { playStatus } from "../workfirst/service";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { ratesFor } from "../decor/service";
 import { ensureHunt, huntView, type HuntView } from "./hunt";
+import { onlineNow } from "./presence";
 import { ensureMissionDay, recordEvent, type MissionDay } from "./missions";
 import { notify, unreadCount } from "../notices/service";
 import { getScene } from "@/lib/world/scenes";
@@ -67,6 +68,8 @@ export interface InteractionView {
 }
 
 export interface GameState {
+  /** Colleagues online now (heard from in the last two minutes). */
+  online: number;
   needs: Needs;
   points: number;
   feelings: Feeling[];
@@ -127,7 +130,7 @@ async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
 }
 
 async function view(player: PlayerRecord, mission: MissionDay, now: number): Promise<GameState> {
-  const unread = await unreadCount(player);
+  const [unread, online] = await Promise.all([unreadCount(player), onlineNow(now)]);
   const [gameplay, work, locations] = await Promise.all([getConfig("gameplay"), getConfig("workFirst"), getConfig("locations")]);
   const skills = gameplay.skills.map((s) => skillStanding(s, player.skillXp?.[s.id] ?? 0));
   const missions: MissionView[] = mission.picks.flatMap((id) => {
@@ -146,6 +149,8 @@ async function view(player: PlayerRecord, mission: MissionDay, now: number): Pro
   const huntCfg = await getConfig("hunt");
   const cooldowns = Object.fromEntries(Object.entries(player.cooldowns ?? {}).filter(([, until]) => until > now));
   return {
+    // The person looking at the screen is online, even before their first heartbeat has been counted
+    online: Math.max(1, online),
     needs: player.needs,
     points: player.points,
     feelings: (player.feelings ?? []).slice(0, MAX_FEELINGS),

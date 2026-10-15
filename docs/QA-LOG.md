@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## U2: Reference-style HUD: online count, camera presets, inbox, clean screen, keyboard (15 Oct 2026)
+Scope: owner's comparison with the Lagos Life reference screen. (1) **Online count** in the top bar: colleagues the game has heard from in the last two minutes (a real count from the existing heartbeats, kept for 15 seconds so it adds no load); the person looking always counts, so it never shows 0. (2) **Camera presets** card on the right: **My desk** (zooms in on where you stand), **Floor** (the whole room) and **Overview** (top-down); they reset when you change room, and "My desk" lets the player's own position decide the focus. (3) **Inbox button** (bell with unread badge) opens the phone on Updates. (4) **Clean screen** is now a labelled pill at the bottom right, next to a **keyboard shortcuts** button (on narrow screens the old picture button stays). Not built on purpose: a **sound toggle**, because the game has no audio yet (a switch with nothing to mute would be misleading); no money "+" (no real money, RULEBOOK §3). 6 new tests (615 total). **Checked in a real browser**: all pieces appear, My desk zooms, Overview is top-down, Clean screen hides the panels, the shortcuts open.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 615 of 615 tests, lint, build, audit |
+| 2 | Privacy | **Pass** | the online figure is a single number; no names or other people's data |
+| 3 | Authz | **Pass** | the count is part of the signed-in person's own game state |
+
+---
+
 ## U1: Location bar no longer covers the needs panel (15 Oct 2026)
 Scope: while comparing our game screen with the Lagos Life reference (owner request), a layout bug showed at 1366 pixels wide: the location bar (centre, bottom) overlapped the right end of the needs panel (bottom left) by about 37 pixels, hiding part of two needs. On screens 1000 pixels and wider the bar is now narrower (460 to 640 pixels) so it stays clear. CSS only. **Checked in a real browser** before and after.
 
