@@ -4,6 +4,19 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## X1: Customer Experience scenarios with real-life consequences, 28 written (16 Oct 2026)
+Scope: first of the four tracks (owner request: people should see the consequences of their actions as if the scenario happened to them). **28 situations** for Customer Experience, each choice with a story of what happens next (a timeline and who is affected), serious ones sending a **follow-up to Updates later**, and **6 chains** (a poor choice leads to the next situation: a denied statement error becomes a written complaint; a failed identity check becomes an account takeover; a missed data request becomes a regulator's letter; a wrong-account transfer; a public complaint online; an unlogged instruction becomes a recording dispute). **7 are requests a colleague brings** (a manager asks a VIP to skip the queue, a colleague wants the client list for a side business, Compliance asks for call notes, a new joiner wants your login, complaints to be closed on paper, Operations asks you to hide an error, an angry client handed over) and arrive as **visitors** during the day. Written with a small kit (`scenario-kit.ts`), as **drafts for Group Compliance** to check: they describe how things typically unfold and never state a specific fine, penalty or timeframe. A new content test holds every scenario to the same standard (a consequence with a timeline for every choice; the best choice hurts nobody and the wrong choice hurts someone; at least half the wrong choices come back later; every chain leads to a real chain-only situation and every chain-only situation can be reached; no numbers for fines or deadlines). 9 new tests (670 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 670 of 670 tests, no lint warnings, build, audit |
+| 2 | Content standard | **Pass** | enforced by `scenario-content.test.ts` for every scenario |
+| 3 | Security | **Pass** | content only |
+
+Open: Compliance and a subject expert to review each scenario and mark it reviewed (they start as drafts).
+
+---
+
 ## V2: Clients remember the person; waiting clients stand in the lobby (16 Oct 2026)
 Scope: second half of the visitors work. (1) **Account-officer relationships:** each person has a client book (their regulars). What a client remembers is kept per client: a good visit warms them, a poor visit or a breach cools them, and **giving up waiting** counts against the person. It changes the next conversation: a client who trusts the person starts up to 10 points ahead and one who does not starts up to 10 behind, and the person reads a line before the visit ("Seen 2 times. Last visit: ★★★★★. They trust you.") and after it. A decision today is felt on a later day. (2) **Waiting clients stand in the lobby** in front of reception (up to four, each with a stable look and a name tag), and clicking one opens Reception. 8 new tests (661 total). **Checked in a real browser**: a waiting client stands in the lobby and the waiting count pulses at the top.
 
