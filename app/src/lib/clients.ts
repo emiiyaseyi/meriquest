@@ -112,7 +112,7 @@ const NOTES: Record<string, string> = {
   prepared: "A tailored presentation showed you listened.",
 };
 
-export function scoreRun(rules: ClientRules, client: ClientCase, archetype: ClientArchetype | undefined, picks: Picks, noise: number, hasRecommend = true): RunResult {
+export function scoreRun(rules: ClientRules, client: ClientCase, archetype: ClientArchetype | undefined, picks: Picks, noise: number, hasRecommend = true, bonus = 0): RunResult {
   let score = rules.baseScore;
   const notes: string[] = [];
   const breaches: string[] = [];
@@ -142,7 +142,8 @@ export function scoreRun(rules: ClientRules, client: ClientCase, archetype: Clie
   }
   for (const [tag, text] of Object.entries(NOTES)) if (has(tag)) notes.push(text);
   if (has("discover") && has("suitability")) notes.push("Good questions showed what the client really needed.");
-  score = Math.max(0, Math.min(100, Math.round(score + noise * rules.randomness)));
+  // How the client feels about the person from earlier visits (-10 to +10) gives a head start or a handicap
+  score = Math.max(0, Math.min(100, Math.round(score + bonus + noise * rules.randomness)));
   let csat = score >= rules.greatScore ? 5 : score >= rules.goodScore ? 4 : score >= rules.okScore ? 3 : score >= rules.okScore / 2 ? 2 : 1;
   if (breaches.length > 0) csat = Math.min(csat, 2);
   const nps = csat >= 5 ? "promoter" : csat >= 4 ? "passive" : "detractor";

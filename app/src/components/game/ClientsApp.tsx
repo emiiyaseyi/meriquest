@@ -63,6 +63,7 @@ export function ClientsApp({ onChange }: { onChange?: () => void } = {}) {
           <span>{c.client.archetype}</span>
           <small>{c.client.story}</small>
           <small><em>{c.client.trait}</em></small>
+          <small>📒 {c.client.history}</small>
         </div>
         <h3 className="people-h">Step {c.step} of {c.total}</h3>
         <p><strong>{c.prompt}</strong></p>
@@ -81,6 +82,7 @@ export function ClientsApp({ onChange }: { onChange?: () => void } = {}) {
           <span>{done.nps === "promoter" ? "Would recommend us" : done.nps === "passive" ? "Satisfied" : "Unlikely to recommend us"}{done.points > 0 ? ` · +${done.points} Merit points` : ""}</span>
           {done.breaches.map((b) => <small key={b} className="chg down">⚠️ {b}</small>)}
           {done.notes.map((n) => <small key={n}>• {n}</small>)}
+          <small>📒 Now: {done.relationship}</small>
           {done.aftermath.map((a) => <ConsequencePanel key={a.headline} consequence={a} />)}
         </div>
       ) : null}
@@ -93,7 +95,7 @@ export function ClientsApp({ onChange }: { onChange?: () => void } = {}) {
       {v.queue.map((q) => (
         <button key={q.id} type="button" className={`chat-row quote${q.status === "left" ? " gone" : ""}`} disabled={busy || q.status === "served" || q.status === "left" || q.done !== null} onClick={() => begin(q.id)}>
           <span className="chat-ico" aria-hidden="true">{q.icon}</span>
-          <span className="chat-main"><strong>{q.name}</strong><small>{q.kind === "appointment" ? "📅 Appointment with you" : "🚪 Walk-in"}{q.type === "corporate" ? " · Company" : ""} · {q.archetype}</small></span>
+          <span className="chat-main"><strong>{q.name}</strong><small>{q.kind === "appointment" ? "📅 Appointment with you" : "🚪 Walk-in"}{q.type === "corporate" ? " · Company" : ""} · {q.archetype}</small><small>{q.history}</small></span>
           <span className="quote-price">{q.done ? <strong>{stars(q.done.csat)}</strong> : q.status === "left" ? <small>Left</small> : q.status === "serving" ? <strong>Continue</strong> : <strong>Serve</strong>}</span>
         </button>
       ))}

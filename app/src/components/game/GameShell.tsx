@@ -22,7 +22,7 @@ import { startTripAction } from "@/app/actions/travel";
 import type { TravelOptions, TripView } from "@/lib/server/travel/service";
 import { getMine } from "@/lib/client/api";
 import type { DecorView } from "@/lib/server/decor/service";
-import { WORKSPACE_ID, isPersonalRoom, withDecor, withSigns, workspaceLayoutScene, type RoomSign } from "@/lib/world/scenes";
+import { WORKSPACE_ID, isPersonalRoom, withDecor, withSigns, withVisitors, workspaceLayoutScene, type RoomSign } from "@/lib/world/scenes";
 import type { FloorStatus } from "@/lib/world/access";
 import { ReportForm, type ConcernRules } from "./ReportForm";
 import { useViewMode } from "./viewMode";
@@ -158,8 +158,13 @@ export function GameShell(props: GameShellProps) {
   const { needs, points } = game;
   const [look, setLook] = useState<Skin>(props.look);
   const [sceneId, setSceneId] = useState(props.initialScene);
+  /** Visitors through the day (clients and colleagues), refreshed every few seconds while the person is in the game. */
+  const [arrivals, setArrivals] = useState<ArrivalsView | null>(null);
+  const seenWaiting = useRef<number | null>(null);
   const plainScene = getScene(sceneId) ?? SCENES[props.initialScene];
   const baseScene = useMemo(() => withSigns(plainScene, props.signs[plainScene.id]), [plainScene, props.signs]);
+  /** The clients waiting at reception stand in the lobby. */
+  const clientsWaiting = useMemo(() => (arrivals?.waiting ?? []).filter((w) => w.kind !== "internal").map((w) => ({ id: w.id, name: w.name, kind: w.label })), [arrivals]);
   const [arrive, setArrive] = useState<{ x: number; y: number }>(() => (getScene(props.initialScene) ?? SCENES[props.initialScene]).spawn);
   const [mode, setMode] = useViewMode();
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -173,7 +178,7 @@ export function GameShell(props: GameShellProps) {
   const [mapPick, setMapPick] = useState<MapPick | null>(null);
   const [decorView, setDecorView] = useState<DecorView | null>(null);
   /** My Workspace is sized for the person: a desk that grows with role and experience, or a private office. */
-  const scene = useMemo(() => (baseScene.id === WORKSPACE_ID && decorView ? workspaceLayoutScene(baseScene, decorView.layout.kind, decorView.grid.w, decorView.grid.d) : baseScene), [baseScene, decorView]);
+  const scene = useMemo(() => (baseScene.id === WORKSPACE_ID && decorView ? workspaceLayoutScene(baseScene, decorView.layout.kind, decorView.grid.w, decorView.grid.d) : withVisitors(baseScene, clientsWaiting)), [baseScene, decorView, clientsWaiting]);
   /** Where you stand when the room opens: the spot the server named, or the room's own entry if that lies outside a smaller room. */
   const startAt = scene.id === WORKSPACE_ID && (arrive.x >= scene.cols || arrive.y >= scene.rows) ? scene.spawn : arrive;
   const [ghost, setGhost] = useState<Ghost | null>(null);
@@ -207,8 +212,6 @@ export function GameShell(props: GameShellProps) {
     window.setTimeout(() => setToast((t) => (t === m ? null : t)), 3500);
   }, []);
   /** Visitors through the day. Asking also counts the time in the game, so clients arrive while the person plays. */
-  const [arrivals, setArrivals] = useState<ArrivalsView | null>(null);
-  const seenWaiting = useRef<number | null>(null);
   const refreshArrivals = useCallback(() => {
     getMine<ArrivalsView>("arrivals")
       .then((v) => {
@@ -343,6 +346,12 @@ export function GameShell(props: GameShellProps) {
   );
   const onHotspot = useCallback((h: Hotspot) => setSpot(h), []);
   const onNpc = useCallback((n: Npc) => {
+    // A waiting client opens Reception; anyone else opens their card
+    if (n.id.startsWith("visitor:")) {
+      setPerson(null);
+      setOverlay("reception");
+      return;
+    }
     setOverlay(null);
     setPerson(n);
   }, []);

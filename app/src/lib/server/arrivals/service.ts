@@ -6,6 +6,7 @@ import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { notify, scheduleNotice } from "../notices/service";
 import { recordEvent } from "../game/missions";
 import { audit } from "../audit";
+import { recordNoShow } from "./book";
 import { dayKey } from "@/lib/game";
 import { hashString } from "@/lib/iso/geometry";
 import { advance, bookFor, planDay, type Arrival, type ArrivalDoc, type ArrivalSettings } from "@/lib/arrivals";
@@ -102,6 +103,7 @@ export async function syncArrivals(user: User, now: number = Date.now()): Promis
   });
   // Someone who gave up and left becomes a follow-up in Updates, a little later
   for (const it of left) {
+    if (it.kind !== "internal") await recordNoShow(user.staffId, it.ref, day);
     if (it.kind === "internal") await scheduleNotice(user.staffId, { icon: "😕", text: `${it.name} gave up waiting and left. Whatever they needed is still not done.`, tone: "bad" }, now + 2 * 60_000);
     else await scheduleNotice(user.staffId, { icon: "😠", text: `${it.name} left without being seen after waiting a long time at reception. Expect a complaint if nobody follows up.`, tone: "bad" }, now + 3 * 60_000);
   }

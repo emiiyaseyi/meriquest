@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { advance, bookFor, planDay, type ArrivalDoc, type ArrivalSettings } from "@/lib/arrivals";
+import { advance, afterNoShow, afterVisit, bookFor, planDay, relationshipBonus, relationshipText, type ArrivalDoc, type ArrivalSettings } from "@/lib/arrivals";
 import { getArrivals, serveInternal, syncArrivals } from "@/lib/server/arrivals/service";
+import { getBook } from "@/lib/server/arrivals/book";
 import { answerClient, getClients, startClient } from "@/lib/server/clients/service";
 import { listNotices, unreadCount } from "@/lib/server/notices/service";
 import { getOrCreatePlayer } from "@/lib/server/world/service";
@@ -223,3 +224,64 @@ describe("settings can switch the pacing", () => {
     expect(v.waiting.some((w) => w.kind === "internal")).toBe(false);
   });
 });
+
+describe("what a client remembers about the person", () => {
+  it("warms after a good visit, cools after a poor one or a no-show, and never leaves 0 to 100", () => {
+    const good = afterVisit(undefined, 5, "d1", false);
+    expect(good.score).toBe(75);
+    expect(good.met).toBe(1);
+    expect(afterVisit(good, 5, "d2", false).score).toBe(88);
+    const poor = afterVisit(undefined, 1, "d1", true); // a poor visit with a breach
+    expect(poor.score).toBeLessThan(40);
+    expect(afterNoShow(good, "d2").score).toBe(60);
+    let r = afterVisit(undefined, 1, "d", true);
+    for (let i = 0; i < 20; i++) r = afterVisit(r, 1, "d", true);
+    expect(r.score).toBeGreaterThanOrEqual(0);
+    let h = afterVisit(undefined, 5, "d", false);
+    for (let i = 0; i < 20; i++) h = afterVisit(h, 5, "d", false);
+    expect(h.score).toBeLessThanOrEqual(100);
+  });
+
+  it("gives a head start to a client who trusts the person and a handicap to one who does not", () => {
+    expect(relationshipBonus(undefined)).toBe(0);
+    expect(relationshipBonus({ score: 100, met: 3, last: 5, lastDay: "d" })).toBe(10);
+    expect(relationshipBonus({ score: 0, met: 3, last: 1, lastDay: "d" })).toBe(-10);
+  });
+
+  it("tells the person what the client remembers", () => {
+    expect(relationshipText(undefined, "appointment")).toContain("Booked to see you");
+    expect(relationshipText(undefined, "walkin")).toBe("A new face.");
+    expect(relationshipText({ score: 90, met: 3, last: 5, lastDay: "d" }, "walkin")).toContain("trust you");
+    expect(relationshipText({ score: 20, met: 2, last: 1, lastDay: "d" }, "walkin")).toContain("elsewhere");
+    expect(relationshipText({ score: 35, met: 1, last: 0, lastDay: "d" }, "walkin")).toContain("gave up waiting");
+  });
+});
+
+describe("the same client on a later day", () => {
+  beforeEach(async () => {
+    await freshWorld();
+    const r = await setConfig("arrivals", JSON.stringify({ ...DEFAULT_ARRIVALS, settings: { ...DEFAULT_ARRIVALS.settings, enabled: false } }), "MS0001", NOW);
+    if (!r.ok) throw new Error(r.errors.join(", "));
+  });
+
+  it("is remembered: a good visit warms them for next time, and the person is told", async () => {
+    const u = await dto("MS1001");
+    const first = (await getClients(u, NOW)).queue[0];
+    const client = DEFAULT_CLIENTS.clients.find((c) => c.id === first.id)!;
+    expect(first.history).toMatch(/new face|Booked/);
+    await startClient(u, first.id, NOW);
+    let last;
+    for (const stepId of client.flow) {
+      const st = DEFAULT_CLIENTS.steps.find((x) => x.id === stepId)!;
+      const w = (tags: string[]) => tags.reduce((n, g) => n + ((DEFAULT_CLIENTS.rules.tagWeights as Record<string, number>)[g] ?? 0), 0);
+      last = await answerClient(u, st.recommend ? client.suitable[0] : [...st.options].sort((a, b) => w(b.tags) - w(a.tags))[0].id, NOW);
+    }
+    expect(last?.ok && last.finished?.relationship).toContain("Seen 1 time");
+    // the next day, the same client (if they come) is remembered
+    const book = await getBook("MS1001");
+    expect(book[first.id]).toMatchObject({ met: 1 });
+    expect(book[first.id].score).toBeGreaterThan(50);
+    expect(relationshipText(book[first.id], "walkin")).toContain("Seen 1 time");
+  });
+});
+

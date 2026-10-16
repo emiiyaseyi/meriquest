@@ -12,6 +12,8 @@ import { dayKey } from "@/lib/game";
 import { hashString } from "@/lib/iso/geometry";
 import { withStats } from "@/lib/stats";
 import { clientArrival, setArrivalStatus, syncArrivals } from "../arrivals/service";
+import { getBook, recordVisit } from "../arrivals/book";
+import { afterVisit, relationshipBonus, relationshipText } from "@/lib/arrivals";
 import { fill, scoreRun, type Outcome, type Picks, type Rating } from "@/lib/clients";
 
 /**
@@ -34,13 +36,15 @@ export interface ClientCard {
   archetype: string;
   icon: string;
   story: string;
+  /** What this client remembers from earlier visits. */
+  history: string;
   /** An appointment with the person as their account officer, or a walk-in. */
   kind: "appointment" | "walkin";
   status: "waiting" | "serving" | "served" | "left";
   done: { csat: number; rating: Rating } | null;
 }
 export interface StepView {
-  client: { id: string; name: string; story: string; archetype: string; icon: string; trait: string };
+  client: { id: string; name: string; story: string; archetype: string; icon: string; trait: string; history: string };
   step: number;
   total: number;
   prompt: string;
@@ -68,6 +72,8 @@ export interface ClientFinish {
   points: number;
   /** What happens next in real life: how the client decided first, then one story for each breach. */
   aftermath: Consequence[];
+  /** How the client feels about the person now, after this visit. */
+  relationship: string;
 }
 export type ClientResult = { ok: true; view: ClientsView; finished?: ClientFinish } | { ok: false; error: string };
 
@@ -90,7 +96,7 @@ async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> 
   const [cfg, player] = await Promise.all([getConfig("clients"), getOrCreatePlayer(user, now)]);
   const byArche = new Map(cfg.archetypes.map((a) => [a.id, a]));
   // Only clients who have arrived are shown: they come through the day while the person is in the game
-  const arrivals = await syncArrivals(user, now);
+  const [arrivals, book] = await Promise.all([syncArrivals(user, now), getBook(user.staffId)]);
   const here = arrivals.items.filter((i) => i.kind !== "internal" && i.status !== "planned");
   const order = { serving: 0, waiting: 1, served: 2, left: 3 } as const;
   const queue: ClientCard[] = here
@@ -103,6 +109,7 @@ async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> 
       archetype: byArche.get(c.archetype)?.label ?? c.archetype,
       icon: byArche.get(c.archetype)?.icon ?? "🙂",
       story: c.story,
+      history: relationshipText(book[c.id], i.kind),
       kind: i.kind as "appointment" | "walkin",
       status: i.status as "waiting" | "serving" | "served" | "left",
       done: doc.done[c.id] ? { csat: doc.done[c.id].csat, rating: doc.done[c.id].rating } : null,
@@ -116,7 +123,7 @@ async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> 
       const a = byArche.get(c.archetype);
       const kinds = (await getConfig("market")).kinds;
       current = {
-        client: { id: c.id, name: c.name, story: c.story, archetype: a?.label ?? c.archetype, icon: a?.icon ?? "🙂", trait: a?.trait ?? "" },
+        client: { id: c.id, name: c.name, story: c.story, archetype: a?.label ?? c.archetype, icon: a?.icon ?? "🙂", trait: a?.trait ?? "", history: relationshipText(book[c.id], arrivals.items.find((x) => x.ref === c.id)?.kind ?? "walkin") },
         step: doc.current.step + 1,
         total: c.flow.length,
         prompt: fill(st.prompt, c),
@@ -195,7 +202,8 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
 
   const noise = (hashString(`${user.staffId}:${client.id}:${day}`) / 4294967295) * 2 - 1;
   const hasRecommend = client.flow.some((f) => cfg.steps.find((s) => s.id === f)?.recommend);
-  const res = scoreRun(cfg.rules, client, cfg.archetypes.find((a) => a.id === client.archetype), picks, noise, hasRecommend);
+  const rel = (await getBook(user.staffId))[client.id];
+  const res = scoreRun(cfg.rules, client, cfg.archetypes.find((a) => a.id === client.archetype), picks, noise, hasRecommend, relationshipBonus(rel));
   const points = (res.rating === "great" ? cfg.settings.pointsGreat : res.rating === "good" ? cfg.settings.pointsGood : cfg.settings.pointsLearning) + (res.outcome === "invests" ? cfg.settings.pointsInvest : 0);
   await getStore().update<RunDoc>("client_runs", user.staffId, (c) => (c ? { ...c, done: { ...c.done, [client.id]: { csat: res.csat, rating: res.rating, breaches: res.breaches.length } } } : c));
   await getOrCreatePlayer(user, now);
@@ -206,6 +214,7 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
   });
   await notify(user.staffId, { icon: res.breaches.length > 0 ? "⚠️" : "🤝", text: `${client.name}: rating ${res.csat} of 5${res.breaches.length > 0 ? ", with a compliance breach recorded" : ""}.${points > 0 ? ` +${points} Merit points.` : ""}`, tone: res.breaches.length > 0 ? "bad" : "good" }, now);
   await setArrivalStatus(user.staffId, client.id, "serving", "served");
+  await recordVisit(user.staffId, client.id, res.csat, day, res.breaches.length > 0);
   await audit(user.staffId, "clients.served", client.id, { csat: res.csat, breaches: res.breaches.length }, now);
   await recordEvent(user.staffId, "client", now);
   // What happens next: the client's decision, then each breach. The most serious thing to come back later arrives in Updates after a while.
@@ -215,5 +224,5 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
     const fu = s.followUp as FollowUp;
     await scheduleNotice(user.staffId, { icon: fu.icon, text: fu.text, tone: fu.tone }, now + fu.afterMinutes * 60_000);
   }
-  return { ok: true, view: await getClients(user, now), finished: { csat: res.csat, nps: res.nps, outcome: res.outcome, rating: res.rating, breaches: res.breaches, notes: res.notes, points, aftermath } };
+  return { ok: true, view: await getClients(user, now), finished: { csat: res.csat, nps: res.nps, outcome: res.outcome, rating: res.rating, breaches: res.breaches, notes: res.notes, points, aftermath, relationship: relationshipText(afterVisit(rel, res.csat, day, res.breaches.length > 0), "walkin") } };
 }

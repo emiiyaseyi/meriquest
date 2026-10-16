@@ -4,6 +4,17 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## V2: Clients remember the person; waiting clients stand in the lobby (16 Oct 2026)
+Scope: second half of the visitors work. (1) **Account-officer relationships:** each person has a client book (their regulars). What a client remembers is kept per client: a good visit warms them, a poor visit or a breach cools them, and **giving up waiting** counts against the person. It changes the next conversation: a client who trusts the person starts up to 10 points ahead and one who does not starts up to 10 behind, and the person reads a line before the visit ("Seen 2 times. Last visit: ★★★★★. They trust you.") and after it. A decision today is felt on a later day. (2) **Waiting clients stand in the lobby** in front of reception (up to four, each with a stable look and a name tag), and clicking one opens Reception. 8 new tests (661 total). **Checked in a real browser**: a waiting client stands in the lobby and the waiting count pulses at the top.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 661 of 661 tests, no lint warnings, build, audit |
+| 2 | Fairness | **Pass** | the head start is capped at 10 points either way, and the score is still decided mostly by the quality of the decisions; nothing changes while the person is away |
+| 3 | Authz, validation, security | **Pass** | the book is read and written only for the signed-in person; visitors in the lobby are drawn from that person's own list; no new routes |
+
+---
+
 ## V1: Visitors through the day: clients and colleagues arrive (16 Oct 2026)
 Scope: owner request to weave scenarios into the game: clients come to the office (some with an appointment to see their account officer, some walking in), most people attend to more than 10 a day, and colleagues also bring requests. **Pacing:** each person's day list is made from their unit's number of clients (10 for Customer Experience, 15 for advisors, from the Client Desk settings) plus a few colleagues' requests; visitors **arrive while the person is in the game**, about one a minute or two, and are counted by time in the game, **never by the clock**, so nothing piles up or goes wrong while someone is away (RULEBOOK §2.1: nothing may pressure people to play). A visitor left waiting too long **while the person is playing** gives up and leaves, and a follow-up reaches Updates later. **Appointments** are clients from the person's steady **client book** (the same regulars each day); the rest are walk-ins. **Colleagues** bring requests that are marked "internal" (the situations that start "all-"), answered at reception for a few Merit points, with the same consequences, follow-ups and chains as shifts. **In the game:** a pulsing "waiting" count at the top, a Reception sheet (Clients and Colleagues), and a mission for helping a colleague. The Client Desk now lists only clients who have arrived. All of it is editable under Settings > Visitors through the day (pace, appointment share, patience, how many wait at once, book size, colleagues' names and departments); switching pacing off brings the whole day at once. 18 new tests (653 total). **Checked in a real browser**: after about two minutes of play two clients were waiting, the chip pulsed and Reception opened.
 

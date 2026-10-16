@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { computeView } from "@/lib/iso/render";
 import { project } from "@/lib/iso/geometry";
-import { SCENES, WORKSPACE_ID, isPersonalRoom, liftRooms, withSigns } from "@/lib/world/scenes";
+import { LOBBY_WAITING_SPOTS, SCENES, WORKSPACE_ID, isPersonalRoom, liftRooms, withSigns, withVisitors } from "@/lib/world/scenes";
+import { buildGrid, walkable } from "@/lib/iso/path";
 import { DEFAULT_LOCATIONS } from "@/lib/server/config/location-content";
 import { locationsSchema } from "@/lib/server/config/definitions";
 import { onlineNow, resetOnlineCache } from "@/lib/server/game/presence";
@@ -118,3 +119,36 @@ describe("lifts", () => {
     for (const s of all) if (!isPersonalRoom(s.id)) expect(liftRooms(all, s.building, s.level).map((r) => r.id)).toContain(s.id);
   });
 });
+
+describe("clients waiting in the lobby", () => {
+  const lobby = SCENES["ikoyi-lobby"];
+  const waiting = [
+    { id: "a1", name: "Mrs Esther Adeyemi", kind: "Walk-in" },
+    { id: "a2", name: "Mr Kunle Bakare", kind: "Appointment" },
+    { id: "a3", name: "Ms Amaka Obi", kind: "Walk-in" },
+    { id: "a4", name: "Mr Femi Lawal", kind: "Walk-in" },
+    { id: "a5", name: "Dr Bisi Coker", kind: "Walk-in" },
+  ];
+
+  it("stand in the lobby, at most four, each with their own look that never changes", () => {
+    const out = withVisitors(lobby, waiting);
+    const added = out.npcs.filter((n) => n.id.startsWith("visitor:"));
+    expect(added).toHaveLength(4);
+    expect(added[0]).toMatchObject({ id: "visitor:a1", name: "Adeyemi", role: "Walk-in" });
+    expect(withVisitors(lobby, waiting).npcs).toEqual(out.npcs);
+    expect(new Set(added.map((n) => JSON.stringify(n.look))).size).toBeGreaterThan(1);
+    expect(lobby.npcs.some((n) => n.id.startsWith("visitor:"))).toBe(false); // the room itself is unchanged
+  });
+
+  it("only appear in the lobby, and nothing is added when nobody waits", () => {
+    expect(withVisitors(SCENES["ikoyi-floor"], waiting)).toBe(SCENES["ikoyi-floor"]);
+    expect(withVisitors(lobby, [])).toBe(lobby);
+    expect(withVisitors(lobby, undefined)).toBe(lobby);
+  });
+
+  it("stand where a person can stand: every waiting spot is free floor in the lobby", () => {
+    const grid = buildGrid(lobby);
+    for (const s of LOBBY_WAITING_SPOTS) expect(walkable(grid, s.x, s.y)).toBe(true);
+  });
+});
+

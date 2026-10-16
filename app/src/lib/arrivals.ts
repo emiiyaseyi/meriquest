@@ -117,3 +117,45 @@ export function bookFor(staffId: string, eligible: { id: string }[], size: numbe
     .slice(0, Math.max(0, size))
     .map((c) => c.id);
 }
+
+/**
+ * What a client remembers about the person, from earlier visits. A new client starts neutral. A good visit warms them and a poor visit, or being left
+ * waiting, cools them. It changes how the next conversation goes, so a decision today is felt on a later day.
+ */
+export interface Relationship {
+  /** 0 to 100; 50 is neutral. */
+  score: number;
+  met: number;
+  /** The rating (1 to 5) of the last visit, or 0 if they gave up waiting. */
+  last: number;
+  lastDay: string;
+}
+
+export const NEUTRAL: Relationship = { score: 50, met: 0, last: 0, lastDay: "" };
+
+const clampRel = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+
+/** After a visit, the relationship moves halfway towards how the visit went (a rating of 5 is 100, a rating of 1 is 20). */
+export function afterVisit(rel: Relationship | undefined, csat: number, day: string, breached: boolean): Relationship {
+  const cur = rel ?? NEUTRAL;
+  const target = csat * 20 - (breached ? 15 : 0);
+  return { score: clampRel(cur.score + (target - cur.score) / 2), met: cur.met + 1, last: csat, lastDay: day };
+}
+
+/** A client who gave up waiting remembers it. */
+export function afterNoShow(rel: Relationship | undefined, day: string): Relationship {
+  const cur = rel ?? NEUTRAL;
+  return { ...cur, score: clampRel(cur.score - 15), last: 0, lastDay: day };
+}
+
+/** Extra points (or fewer) at the start of the next conversation, from how the client feels about the person: from -10 to +10. */
+export const relationshipBonus = (rel: Relationship | undefined): number => Math.round(((rel ?? NEUTRAL).score - 50) / 5);
+
+/** A line the person reads before the conversation starts. */
+export function relationshipText(rel: Relationship | undefined, kind: ArrivalKind): string {
+  if (!rel || rel.met === 0) return kind === "appointment" ? "Booked to see you. You have not met before." : "A new face.";
+  const seen = `Seen ${rel.met} time${rel.met === 1 ? "" : "s"}.`;
+  const last = rel.last > 0 ? ` Last visit: ${"★".repeat(rel.last)}${"☆".repeat(5 - rel.last)}.` : " They once gave up waiting to see you.";
+  const feel = rel.score >= 75 ? " They trust you." : rel.score >= 55 ? " A good working relationship." : rel.score >= 40 ? " Still making up their mind about you." : rel.score >= 25 ? " Wary after a poor experience." : " Close to taking their business elsewhere.";
+  return `${seen}${last}${feel}`;
+}

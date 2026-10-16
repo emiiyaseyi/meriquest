@@ -322,6 +322,34 @@ export function workspaceLayoutScene(base: Scene, kind: "desk" | "office", gridW
   };
 }
 
+/** Where clients wait in the lobby, in the order they arrive: in front of the reception desk, clear of the planter and the sofa. */
+export const LOBBY_WAITING_SPOTS: { x: number; y: number }[] = [
+  { x: 5, y: 5 },
+  { x: 6, y: 5 },
+  { x: 5, y: 6 },
+  { x: 6, y: 6 },
+];
+
+/**
+ * The clients waiting to be seen, standing in the lobby so the person can see them arrive. They look different from each other but are
+ * always the same for the same client (their look comes from their name). Clicking one opens Reception. At most four are drawn.
+ */
+export function withVisitors(scene: Scene, visitors: { id: string; name: string; kind: string }[] | undefined): Scene {
+  if (scene.id !== "ikoyi-lobby" || !visitors || visitors.length === 0) return scene;
+  const hair: Skin["hairStyle"][] = ["lowcut", "curls", "afro", "locs", "braids", "classic", "short", "bun", "bald"];
+  const tops = ["#2b4a7a", "#7c5cf0", "#d4a62a", "#17b2a6", "#c8503c", "#3d6b4f", "#5b6b61", "#a64d79"];
+  const skins = [SKIN.deep, SKIN.brown, SKIN.medium, SKIN.light];
+  const h = (s: string, n: number) => {
+    let v = 2166136261;
+    for (let i = 0; i < s.length; i++) v = Math.imul(v ^ s.charCodeAt(i), 16777619);
+    return (v >>> 0) % n;
+  };
+  const added = visitors.slice(0, LOBBY_WAITING_SPOTS.length).map((v, i) =>
+    npc(`visitor:${v.id}`, v.name.split(" ").slice(-1)[0] ?? v.name, v.kind, LOBBY_WAITING_SPOTS[i].x, LOBBY_WAITING_SPOTS[i].y, 3, look(skins[h(v.name, skins.length)], "#14110f", hair[h(`${v.name}h`, hair.length)], tops[h(`${v.name}t`, tops.length)], "#2a2f36", { body: h(`${v.name}b`, 2) === 0 ? "man" : "woman", outfit: "casual" })),
+  );
+  return { ...scene, npcs: [...scene.npcs, ...added] };
+}
+
 /** A person's own space (their desk or office) is reached with the Workspace button, never by the lifts or as "the floor". */
 export const isPersonalRoom = (sceneId: string): boolean => sceneId === WORKSPACE_ID;
 

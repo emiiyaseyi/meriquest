@@ -41,6 +41,13 @@ describe("client desk scoring", () => {
     expect(r.rating).toBe("learning");
   });
 
+  it("starts a client who trusts the person ahead, and one who does not behind, by the same number of points", () => {
+    const picks = { tags: ["rapport", "discover"], kind: "money" };
+    const base = scoreRun(rules, esther, arche(esther.archetype), picks, 0).score;
+    expect(scoreRun(rules, esther, arche(esther.archetype), picks, 0, true, 10).score).toBe(Math.min(100, base + 10));
+    expect(scoreRun(rules, esther, arche(esther.archetype), picks, 0, true, -10).score).toBe(base - 10);
+  });
+
   it("lets chance colour the result only a little", () => {
     const picks = { tags: ["rapport", "discover", "suitability"], kind: "money" };
     const a = scoreRun(rules, esther, arche(esther.archetype), picks, -1).score;
