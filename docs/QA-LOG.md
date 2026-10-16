@@ -4,6 +4,16 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## S3: Consequences for client conversations (16 Oct 2026)
+Scope: the Client Desk now shows what happens next after every client, in real life. One written story per **outcome** (invests, wants time, declines, stays, leaves) and one per **kind of breach** (unsuitable product, documents not checked, promising returns, an improper favour, an off-schedule discount, opening before documents, a guessed or rigged risk profile, bypassing the checker, bluffing): a timeline (today, this week, this month) and who is affected. The most serious ones also send a **follow-up to Updates later** (a complaint arrives, Compliance asks to review a recommendation). The stories are general descriptions of how things typically unfold, not specific rules or penalties, and are drafts for Group Compliance to check (RULEBOOK §2.9). Editable under Settings > Client Desk. 2 new tests (637 total): every outcome and every breach kind has a story, and the result carries them.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 637 of 637 tests, lint, build, audit |
+| 2 | Input validation, authz, security review | **Pass** | new settings validated by the schema; nothing new on the wire from the browser |
+
+---
+
 ## S2: Consequences engine for scenarios (16 Oct 2026)
 Scope: owner request to make the scenarios show **the consequences of a choice as in real life**, in Customer Experience, Wealth Advisory, Investment Advisory and Leadership. This is the engine; the content follows in batches. Every choice in a shift situation, client-simulation case and leadership scenario can now carry: (1) a **consequence**: a headline, a timeline (Today / This week / This month) and who is affected (Client, Firm, You, Team), shown after the choice; (2) a **follow-up** that arrives in **Updates later** (real minutes standing in for days), held in the person's notice box and moved in when due; (3) a **next situation**, so a choice can lead to a chained one (at most 3 per shift or run, never added too late to answer, chain-only situations are never dealt at random). Settings gained `consequence`, `followUp`, `next`, `chainOnly` and `reviewed` (new situations start as drafts for Compliance review); the form editor shows them. New shared panel for the results in the shift card and the leadership and client simulation screens. 9 new tests (635 total).
 

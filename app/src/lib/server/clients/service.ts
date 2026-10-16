@@ -4,7 +4,8 @@ import { getStore } from "../store";
 import type { UserDTO } from "../types";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
 import { playStatus } from "../workfirst/service";
-import { notify } from "../notices/service";
+import { notify, scheduleNotice } from "../notices/service";
+import type { Consequence, FollowUp } from "@/lib/consequence";
 import { recordEvent } from "../game/missions";
 import { audit } from "../audit";
 import { dayKey } from "@/lib/game";
@@ -56,6 +57,8 @@ export interface ClientFinish {
   breaches: string[];
   notes: string[];
   points: number;
+  /** What happens next in real life: how the client decided first, then one story for each breach. */
+  aftermath: Consequence[];
 }
 export type ClientResult = { ok: true; view: ClientsView; finished?: ClientFinish } | { ok: false; error: string };
 
@@ -193,5 +196,12 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
   await notify(user.staffId, { icon: res.breaches.length > 0 ? "⚠️" : "🤝", text: `${client.name}: rating ${res.csat} of 5${res.breaches.length > 0 ? ", with a compliance breach recorded" : ""}.${points > 0 ? ` +${points} Merit points.` : ""}`, tone: res.breaches.length > 0 ? "bad" : "good" }, now);
   await audit(user.staffId, "clients.served", client.id, { csat: res.csat, breaches: res.breaches.length }, now);
   await recordEvent(user.staffId, "client", now);
-  return { ok: true, view: await getClients(user, now), finished: { csat: res.csat, nps: res.nps, outcome: res.outcome, rating: res.rating, breaches: res.breaches, notes: res.notes, points } };
+  // What happens next: the client's decision, then each breach. The most serious thing to come back later arrives in Updates after a while.
+  const stories = [cfg.aftermath.outcomes[res.outcome], ...res.breachKeys.map((k) => cfg.aftermath.breaches[k])].filter((s): s is NonNullable<typeof s> => !!s);
+  const aftermath = stories.map((s) => s.consequence as Consequence);
+  for (const s of stories.filter((x) => x.followUp).slice(0, 2)) {
+    const fu = s.followUp as FollowUp;
+    await scheduleNotice(user.staffId, { icon: fu.icon, text: fu.text, tone: fu.tone }, now + fu.afterMinutes * 60_000);
+  }
+  return { ok: true, view: await getClients(user, now), finished: { csat: res.csat, nps: res.nps, outcome: res.outcome, rating: res.rating, breaches: res.breaches, notes: res.notes, points, aftermath } };
 }

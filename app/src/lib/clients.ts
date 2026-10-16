@@ -71,6 +71,8 @@ export interface RunResult {
   nps: "promoter" | "passive" | "detractor";
   outcome: Outcome;
   breaches: string[];
+  /** The kind of each breach, to look up what happens next: a breach tag, "unsuitable" or "kyc". */
+  breachKeys: string[];
   notes: string[];
   rating: Rating;
 }
@@ -99,10 +101,14 @@ export function scoreRun(rules: ClientRules, client: ClientCase, archetype: Clie
   let score = rules.baseScore;
   const notes: string[] = [];
   const breaches: string[] = [];
+  const breachKeys: string[] = [];
   for (const tag of picks.tags) {
     score += (rules.tagWeights[tag] ?? 0) + (archetype?.tagWeights[tag] ?? 0);
     const b = rules.breachTags[tag];
-    if (b && !breaches.includes(b)) breaches.push(b);
+    if (b && !breaches.includes(b)) {
+      breaches.push(b);
+      breachKeys.push(tag);
+    }
   }
   const has = (t: string) => picks.tags.includes(t);
   if (hasRecommend) {
@@ -112,9 +118,13 @@ export function scoreRun(rules: ClientRules, client: ClientCase, archetype: Clie
     } else {
       score -= rules.unsuitablePenalty;
       breaches.push("Recommended a product that did not suit the client.");
+      breachKeys.push("unsuitable");
     }
   }
-  if (client.kycRequired && !has("kyc")) breaches.push("Did not check the client's documents first.");
+  if (client.kycRequired && !has("kyc")) {
+    breaches.push("Did not check the client's documents first.");
+    breachKeys.push("kyc");
+  }
   for (const [tag, text] of Object.entries(NOTES)) if (has(tag)) notes.push(text);
   if (has("discover") && has("suitability")) notes.push("Good questions showed what the client really needed.");
   score = Math.max(0, Math.min(100, Math.round(score + noise * rules.randomness)));
@@ -128,5 +138,5 @@ export function scoreRun(rules: ClientRules, client: ClientCase, archetype: Clie
   else if (client.resistance >= 100 || breaches.length > 0) outcome = score >= rules.okScore && client.resistance < 100 ? "thinking" : "declines";
   else if (score >= rules.okScore + client.resistance) outcome = "invests";
   else outcome = score >= rules.okScore ? "thinking" : "declines";
-  return { score, csat, nps, outcome, breaches, notes, rating };
+  return { score, csat, nps, outcome, breaches, breachKeys, notes, rating };
 }

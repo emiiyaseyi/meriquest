@@ -55,7 +55,10 @@ const TEMPLATES: Template[] = [
   { key: "doubt", archetype: "anxious", flow: TRUST, units: ["invest", "*"], suitable: ["bond", "money", "bill"], kyc: false, tenure: 0, resistance: 25, story: (n, a) => `${n} is a first-time investor after a market fall with ₦${a}, who asks, 'Can I lose it all?'`, people: [["Alhaji Musa Garba", "2,500,000"], ["Mrs Peju Alli", "1,800,000"], ["Mr Tola Brown", "3,200,000"]] },
 ];
 
+import { AFTERMATH } from "./clients-aftermath";
+
 export const DEFAULT_CLIENTS = {
+  aftermath: AFTERMATH,
   settings: {
     /** Clients offered a day to a unit that is not listed below. */
     perDay: 10,

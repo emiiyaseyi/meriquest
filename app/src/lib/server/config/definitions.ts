@@ -1038,8 +1038,18 @@ export const marketSchema = z
 
 const tagWeights = z.record(slug, z.number().min(-40).max(40));
 
+/** What happens after a client conversation: one story per outcome and one per kind of breach. */
+const aftermathSchema = z
+  .object({
+    outcomes: z.record(slug, z.object({ consequence: consequenceSchema, followUp: followUpSchema.optional() }).strict()),
+    breaches: z.record(slug, z.object({ consequence: consequenceSchema, followUp: followUpSchema.optional() }).strict()),
+  })
+  .strict();
+
 export const clientsSchema = z
   .object({
+    /** What happens next in real life, by outcome (invests, thinking, declines, stays, leaves) and by kind of breach. */
+    aftermath: aftermathSchema.default({ outcomes: {}, breaches: {} }),
     settings: z
       .object({
         /** Clients offered a day to a unit that is not listed in perDayByUnit. */

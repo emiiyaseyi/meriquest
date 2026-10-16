@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { scoreRun, type ClientArchetype, type ClientCase } from "@/lib/clients";
 import { answerClient, getClients, perDayFor, startClient } from "@/lib/server/clients/service";
 import { getOrCreatePlayer } from "@/lib/server/world/service";
+import { unreadCount } from "@/lib/server/notices/service";
 import { clientsSchema } from "@/lib/server/config/definitions";
 import { DEFAULT_CLIENTS } from "@/lib/server/config/clients-content";
 import { dto, freshWorld } from "./helpers";
@@ -152,3 +153,40 @@ describe("client desk day", () => {
     expect((await answerClient(u, 7 as never, NOW)).ok).toBe(false);
   });
 });
+
+describe("client desk aftermath", () => {
+  beforeEach(async () => {
+    await freshWorld();
+  });
+
+  it("has a story for every outcome and every kind of breach, so no result is left without consequences", () => {
+    const a = DEFAULT_CLIENTS.aftermath;
+    for (const o of ["invests", "thinking", "declines", "stays", "leaves"]) expect(a.outcomes[o as keyof typeof a.outcomes]).toBeDefined();
+    for (const k of [...Object.keys(DEFAULT_CLIENTS.rules.breachTags), "unsuitable", "kyc"]) expect(a.breaches[k as keyof typeof a.breaches], k).toBeDefined();
+  });
+
+  it("returns what happens next with the result, the decision first and then each breach, and brings a follow-up later", async () => {
+    const u = await dto("MS1001");
+    const first = (await getClients(u, NOW)).queue[0];
+    const client = find(first.id);
+    await startClient(u, first.id, NOW);
+    // The worst answers: skip the checks, promise returns, do not suit the product
+    const worst = (stepId: string) => {
+      const st = DEFAULT_CLIENTS.steps.find((s) => s.id === stepId)!;
+      if (st.recommend) return client.suitable.includes("equity") ? "bill" : "equity";
+      const w = (tags: string[]) => tags.reduce((n, g) => n + (DEFAULT_CLIENTS.rules.tagWeights[g] ?? 0), 0);
+      return [...st.options].sort((a, b) => w(a.tags) - w(b.tags))[0].id;
+    };
+    let last;
+    for (const stepId of client.flow) last = await answerClient(u, worst(stepId), NOW);
+    expect(last?.ok).toBe(true);
+    const f = last?.ok ? last.finished : undefined;
+    expect(f?.aftermath.length).toBeGreaterThanOrEqual(2);
+    expect(f?.aftermath[0].headline).toBe(DEFAULT_CLIENTS.aftermath.outcomes[f!.outcome as keyof typeof DEFAULT_CLIENTS.aftermath.outcomes].consequence.headline);
+    expect(f?.breaches.length).toBeGreaterThan(0);
+    // a serious follow-up arrives in Updates later, not at once
+    expect(await unreadCount(u, NOW + 1000)).toBe(1); // the result notice
+    expect(await unreadCount(u, NOW + 12 * 60_000)).toBeGreaterThanOrEqual(2);
+  });
+});
+

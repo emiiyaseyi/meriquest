@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { answerClientAction, startClientAction } from "@/app/actions/clients";
 import { getMine } from "@/lib/client/api";
 import type { ClientFinish, ClientsView } from "@/lib/server/clients/service";
+import { ConsequencePanel } from "@/components/ConsequencePanel";
 
 const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
 const OUTCOME: Record<string, string> = {
@@ -78,6 +79,7 @@ export function ClientsApp() {
           <span>{done.nps === "promoter" ? "Would recommend us" : done.nps === "passive" ? "Satisfied" : "Unlikely to recommend us"}{done.points > 0 ? ` · +${done.points} Merit points` : ""}</span>
           {done.breaches.map((b) => <small key={b} className="chg down">⚠️ {b}</small>)}
           {done.notes.map((n) => <small key={n}>• {n}</small>)}
+          {done.aftermath.map((a) => <ConsequencePanel key={a.headline} consequence={a} />)}
         </div>
       ) : null}
       <p className="phone-note">{v.left > 0 ? `${v.left} client${v.left === 1 ? "" : "s"} waiting today.` : "You have seen all of today's clients. New ones tomorrow."}{v.avgCsat !== null ? ` Your average rating: ${v.avgCsat} of 5 over ${v.served} clients.` : ""}</p>
