@@ -3,11 +3,19 @@ import { scoreRun, type ClientArchetype, type ClientCase } from "@/lib/clients";
 import { answerClient, getClients, perDayFor, startClient } from "@/lib/server/clients/service";
 import { getOrCreatePlayer } from "@/lib/server/world/service";
 import { unreadCount } from "@/lib/server/notices/service";
+import { setConfig } from "@/lib/server/config/registry";
+import { DEFAULT_ARRIVALS } from "@/lib/server/config/arrivals-content";
 import { clientsSchema } from "@/lib/server/config/definitions";
 import { DEFAULT_CLIENTS } from "@/lib/server/config/clients-content";
 import { dto, freshWorld } from "./helpers";
 
 const NOW = Date.parse("2026-10-14T11:00:00+01:00");
+
+/** These tests are about the conversations, so the whole day's clients are already here (pacing is tested in arrivals.test.ts). */
+async function everyoneIsHere() {
+  const r = await setConfig("arrivals", JSON.stringify({ ...DEFAULT_ARRIVALS, settings: { ...DEFAULT_ARRIVALS.settings, enabled: false } }), "MS0001", NOW);
+  if (!r.ok) throw new Error(r.errors.join(", "));
+}
 const rules = DEFAULT_CLIENTS.rules;
 const esther = DEFAULT_CLIENTS.clients[0] as ClientCase;
 const find = (id: string) => DEFAULT_CLIENTS.clients.find((c) => c.id === id) as ClientCase;
@@ -44,6 +52,7 @@ describe("client desk scoring", () => {
 describe("client desk day", () => {
   beforeEach(async () => {
     await freshWorld();
+    await everyoneIsHere();
   });
   const me = () => dto("MS1001");
 
@@ -144,7 +153,7 @@ describe("client desk day", () => {
 
   it("refuses clients that are not on today's list, and bad answers", async () => {
     const u = await me();
-    expect((await startClient(u, "c-present-i-1", NOW)).ok).toBe(false); // not for this unit or experience
+    expect((await startClient(u, "c-present-i-1", NOW)).ok).toBe(false); // not for this unit or experience, so never here
     expect((await startClient(u, "nonsense", NOW)).ok).toBe(false);
     expect((await answerClient(u, "check-docs", NOW)).ok).toBe(false); // not with a client
     const first = (await getClients(u, NOW)).queue[0];
@@ -157,6 +166,7 @@ describe("client desk day", () => {
 describe("client desk aftermath", () => {
   beforeEach(async () => {
     await freshWorld();
+    await everyoneIsHere();
   });
 
   it("has a story for every outcome and every kind of breach, so no result is left without consequences", () => {

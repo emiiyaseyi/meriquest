@@ -6,7 +6,7 @@ const t = (id: string, units: string[], title: string, story: string, skill: str
 
 import { MORE_SHIFT_TASKS } from "./shift-content-more";
 
-export const DEFAULT_SHIFTS = {
+const BASE_SHIFTS = {
   settings: { minutes: 8, tasksPerShift: 3, shiftsPerDay: 2, pointsBest: 4, pointsPartly: 2, completionBonus: 5, skillXpBest: 2 },
   /** The first one is used when nobody picks. Pay is a share of the normal pay; the effects are applied to the needs when the shift is finished. */
   workStyles: [
@@ -99,4 +99,13 @@ export const DEFAULT_SHIFTS = {
       ["partly", "Stay quiet but listen.", "Listening encourages it."],
       ["wrong", "Join in and add what you heard.", "Gossip damages trust."]]),
   ],
+};
+
+/**
+ * Requests that a colleague brings to the person (the "all-..." situations) are also what internal visitors ask, so they are marked as such.
+ * Admins can mark any situation as internal in the settings.
+ */
+export const DEFAULT_SHIFTS = {
+  ...BASE_SHIFTS,
+  tasks: BASE_SHIFTS.tasks.map((t) => (t.id.startsWith("all-") ? { ...t, internal: true } : t)),
 };

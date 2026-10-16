@@ -16,6 +16,8 @@ import { BuyMode, type Ghost } from "./BuyMode";
 import { ShiftHud } from "./ShiftHud";
 import { LocationBar } from "./LocationBar";
 import { TripScreen } from "./TripScreen";
+import { ReceptionPanel } from "./ReceptionPanel";
+import type { ArrivalsView } from "@/lib/server/arrivals/service";
 import { startTripAction } from "@/app/actions/travel";
 import type { TravelOptions, TripView } from "@/lib/server/travel/service";
 import { getMine } from "@/lib/client/api";
@@ -69,7 +71,7 @@ export interface GameShellProps {
 
 type PhoneStart = "clients" | "directory" | "updates" | null;
 type Camera = "floor" | "desk" | "boss";
-type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | "buy" | null;
+type Overlay = "map" | "phone" | "me" | "keys" | "report" | "lift" | "academy" | "buy" | "reception" | null;
 
 const BEAT_MS = 30_000;
 
@@ -204,6 +206,26 @@ export function GameShell(props: GameShellProps) {
     setToast(m);
     window.setTimeout(() => setToast((t) => (t === m ? null : t)), 3500);
   }, []);
+  /** Visitors through the day. Asking also counts the time in the game, so clients arrive while the person plays. */
+  const [arrivals, setArrivals] = useState<ArrivalsView | null>(null);
+  const seenWaiting = useRef<number | null>(null);
+  const refreshArrivals = useCallback(() => {
+    getMine<ArrivalsView>("arrivals")
+      .then((v) => {
+        const before = seenWaiting.current;
+        seenWaiting.current = v.waiting.length;
+        setArrivals(v);
+        if (before !== null && v.waiting.length > before) flash(v.waiting.length - before === 1 ? "🛎️ Someone has arrived at reception" : `🛎️ ${v.waiting.length - before} visitors have arrived`);
+      })
+      .catch(() => undefined);
+  }, [flash]);
+  useEffect(() => {
+    refreshArrivals();
+    const id = window.setInterval(() => {
+      if (!document.hidden) refreshArrivals();
+    }, 20_000);
+    return () => window.clearInterval(id);
+  }, [refreshArrivals]);
 
   const onGame = useCallback(
     (g: GameState, message?: string) => {
@@ -459,6 +481,9 @@ export function GameShell(props: GameShellProps) {
           <header className="hud-top" aria-label="Status">
             <span className="chip">🕒 {clock || "…"}</span>
             <span className="chip chip-mood">😊 {mood}</span>
+            {arrivals && (arrivals.waiting.length > 0 || arrivals.later > 0) ? (
+              <button type="button" className={`chip chip-visitors${arrivals.waiting.length > 0 ? " has" : ""}`} onClick={() => setOverlay(overlay === "reception" ? null : "reception")} title="Clients and colleagues waiting to see you">🛎️ {arrivals.waiting.length} waiting</button>
+            ) : null}
             <span className="chip chip-online" title="Colleagues online now"><i className="online-dot" aria-hidden="true" /> {game.online.toLocaleString("en-GB")} online</span>
             {adminPreview ? (
               <>
@@ -817,6 +842,8 @@ export function GameShell(props: GameShellProps) {
           onClose={() => setPlace(null)}
         />
       ) : null}
+
+      {overlay === "reception" ? <ReceptionPanel view={arrivals} onView={(v) => { seenWaiting.current = v.waiting.length; setArrivals(v); }} onClose={() => { setOverlay(null); refreshArrivals(); }} /> : null}
 
       {overlay === "lift" && building ? (
         <LiftPanel building={building} scenes={Object.values(SCENES)} hereLevel={isPersonalRoom(scene.id) ? "" : scene.level} status={props.floorStatus} busy={busy} onPick={(id) => void goTo(() => travelMapAction(id), spawnOf(id))} onClose={() => setOverlay(null)} />

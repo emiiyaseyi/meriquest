@@ -83,6 +83,21 @@ export interface Picks {
   kind: string | null;
 }
 
+import { hashString } from "@/lib/iso/geometry";
+
+/** How many clients a person is offered a day: the number set for their unit, or the general number. */
+export const perDayFor = (settings: { perDay: number; perDayByUnit: Record<string, number> }, unit: string): number => settings.perDayByUnit[unit] ?? settings.perDay;
+
+/** The clients a person may serve: those for their unit and for everyone, that they have enough experience for. */
+export const eligibleClients = (clients: ClientCase[], person: { unit: string; tenureYears: number }): ClientCase[] =>
+  clients.filter((c) => (c.units.includes("*") || c.units.includes(person.unit)) && person.tenureYears >= c.minTenure);
+
+/** Today's clients for a person: their own unit's first, then the others they are experienced enough for, the same each day. */
+export function queueFor(clients: ClientCase[], person: { staffId: string; unit: string; tenureYears: number }, perDay: number, day: string): ClientCase[] {
+  const rank = (c: ClientCase) => (c.units.includes(person.unit) ? 0 : 1);
+  return [...eligibleClients(clients, person)].sort((a, b) => rank(a) - rank(b) || hashString(`${person.staffId}:${day}:${a.id}`) - hashString(`${person.staffId}:${day}:${b.id}`)).slice(0, perDay);
+}
+
 export const fill = (text: string, client: Pick<ClientCase, "name" | "ask">): string => text.replace(/\{name\}/g, client.name).replace(/\{ask\}/g, client.ask);
 
 const NOTES: Record<string, string> = {

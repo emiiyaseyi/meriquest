@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## V1: Visitors through the day: clients and colleagues arrive (16 Oct 2026)
+Scope: owner request to weave scenarios into the game: clients come to the office (some with an appointment to see their account officer, some walking in), most people attend to more than 10 a day, and colleagues also bring requests. **Pacing:** each person's day list is made from their unit's number of clients (10 for Customer Experience, 15 for advisors, from the Client Desk settings) plus a few colleagues' requests; visitors **arrive while the person is in the game**, about one a minute or two, and are counted by time in the game, **never by the clock**, so nothing piles up or goes wrong while someone is away (RULEBOOK §2.1: nothing may pressure people to play). A visitor left waiting too long **while the person is playing** gives up and leaves, and a follow-up reaches Updates later. **Appointments** are clients from the person's steady **client book** (the same regulars each day); the rest are walk-ins. **Colleagues** bring requests that are marked "internal" (the situations that start "all-"), answered at reception for a few Merit points, with the same consequences, follow-ups and chains as shifts. **In the game:** a pulsing "waiting" count at the top, a Reception sheet (Clients and Colleagues), and a mission for helping a colleague. The Client Desk now lists only clients who have arrived. All of it is editable under Settings > Visitors through the day (pace, appointment share, patience, how many wait at once, book size, colleagues' names and departments); switching pacing off brings the whole day at once. 18 new tests (653 total). **Checked in a real browser**: after about two minutes of play two clients were waiting, the chip pulsed and Reception opened.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 653 of 653 tests, no lint warnings, build, audit |
+| 2 | Fairness and no pressure | **Pass** | tested: nothing counts while the person is away (3 hours away changes nothing); visitors leave only after waiting in game time; nothing is lost in points |
+| 3 | Input validation, authz, economy tampering | **Pass** | visitor ids and choices are checked against the person's own list; a made-up or already-seen visitor is refused; colleague pay comes from settings; `/api/me/arrivals` answers only for the signed-in person |
+| 4 | Secrets, security review | **Pass** | no new secrets; colleague situations are sent without their verdicts |
+
+---
+
 ## S3: Consequences for client conversations (16 Oct 2026)
 Scope: the Client Desk now shows what happens next after every client, in real life. One written story per **outcome** (invests, wants time, declines, stays, leaves) and one per **kind of breach** (unsuitable product, documents not checked, promising returns, an improper favour, an off-schedule discount, opening before documents, a guessed or rigged risk profile, bypassing the checker, bluffing): a timeline (today, this week, this month) and who is affected. The most serious ones also send a **follow-up to Updates later** (a complaint arrives, Compliance asks to review a recommendation). The stories are general descriptions of how things typically unfold, not specific rules or penalties, and are drafts for Group Compliance to check (RULEBOOK §2.9). Editable under Settings > Client Desk. 2 new tests (637 total): every outcome and every breach kind has a story, and the result carries them.
 

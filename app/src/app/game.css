@@ -705,3 +705,11 @@ body:has(.shift-card) .venue { display: none; }
 .conseq-impact li.impact-bad { background: #fbe6e3; }
 .conseq-impact li.impact-mixed { background: #fdf1d9; }
 .conseq-note { margin: 0; font-size: .82rem; color: #3a4a40; }
+
+/* Visitors through the day */
+.chip-visitors { appearance: none; border: 0; font: inherit; cursor: pointer; }
+.chip-visitors.has { background: #fff3d6; color: #8a5a00; font-weight: 700; animation: visitor-pulse 1.8s ease-in-out infinite; }
+@keyframes visitor-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 163, 27, .45); } 50% { box-shadow: 0 0 0 8px rgba(224, 163, 27, 0); } }
+@media (prefers-reduced-motion: reduce) { .chip-visitors.has { animation: none; } }
+.reception .me-body { overflow-y: auto; }
+.chat-row.gone { opacity: .55; }

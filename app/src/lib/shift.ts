@@ -17,6 +17,8 @@ export interface ShiftTaskDef {
   skill?: string;
   /** Only appears when an earlier choice leads to it. */
   chainOnly?: boolean;
+  /** A request a colleague brings to the person (a visitor), rather than part of their own work. */
+  internal?: boolean;
   reviewed?: boolean;
   choices: { text: string; verdict: Verdict; feedback: string; consequence?: Consequence; followUp?: FollowUp; next?: string }[];
 }

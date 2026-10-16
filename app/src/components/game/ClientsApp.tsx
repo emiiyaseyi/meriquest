@@ -17,7 +17,7 @@ const OUTCOME: Record<string, string> = {
 const NOTE = "Fictional clients, for learning only. Not real client data and never advice.";
 
 /** Clients: a few fictional clients each day. Go through four steps with each; the server scores your decisions. */
-export function ClientsApp() {
+export function ClientsApp({ onChange }: { onChange?: () => void } = {}) {
   const [v, setV] = useState<ClientsView | null>(null);
   const [done, setDone] = useState<(ClientFinish & { name: string }) | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -36,6 +36,7 @@ export function ClientsApp() {
       const r = await startClientAction(id);
       if (r.ok) setV(r.view);
       else setErr(r.error);
+      onChange?.();
     });
   };
   const answer = (id: string) => {
@@ -47,6 +48,7 @@ export function ClientsApp() {
       if (!r.ok) return setErr(r.error);
       setV(r.view);
       if (r.finished) setDone({ ...r.finished, name });
+      onChange?.();
     });
   };
 
@@ -82,12 +84,17 @@ export function ClientsApp() {
           {done.aftermath.map((a) => <ConsequencePanel key={a.headline} consequence={a} />)}
         </div>
       ) : null}
-      <p className="phone-note">{v.left > 0 ? `${v.left} client${v.left === 1 ? "" : "s"} waiting today.` : "You have seen all of today's clients. New ones tomorrow."}{v.avgCsat !== null ? ` Your average rating: ${v.avgCsat} of 5 over ${v.served} clients.` : ""}</p>
+      <p className="phone-note">
+        {v.left > 0 ? `${v.left} client${v.left === 1 ? " is" : "s are"} waiting.` : v.expected > 0 ? "Nobody is waiting right now. More clients will come through the day." : "You have seen everyone for today. New ones tomorrow."}
+        {v.expected > 0 && v.left > 0 ? ` ${v.expected} more expected today.` : ""}
+        {v.gaveUp > 0 ? ` ${v.gaveUp} gave up waiting.` : ""}
+        {v.avgCsat !== null ? ` Your average rating: ${v.avgCsat} of 5 over ${v.served} clients.` : ""}
+      </p>
       {v.queue.map((q) => (
-        <button key={q.id} type="button" className="chat-row quote" disabled={busy || q.done !== null} onClick={() => begin(q.id)}>
+        <button key={q.id} type="button" className={`chat-row quote${q.status === "left" ? " gone" : ""}`} disabled={busy || q.status === "served" || q.status === "left" || q.done !== null} onClick={() => begin(q.id)}>
           <span className="chat-ico" aria-hidden="true">{q.icon}</span>
-          <span className="chat-main"><strong>{q.name}</strong><small>{q.type === "corporate" ? "Company · " : ""}{q.archetype}</small></span>
-          <span className="quote-price">{q.done ? <strong>{stars(q.done.csat)}</strong> : <strong>Serve</strong>}</span>
+          <span className="chat-main"><strong>{q.name}</strong><small>{q.kind === "appointment" ? "📅 Appointment with you" : "🚪 Walk-in"}{q.type === "corporate" ? " · Company" : ""} · {q.archetype}</small></span>
+          <span className="quote-price">{q.done ? <strong>{stars(q.done.csat)}</strong> : q.status === "left" ? <small>Left</small> : q.status === "serving" ? <strong>Continue</strong> : <strong>Serve</strong>}</span>
         </button>
       ))}
       {err ? <p role="alert" className="chat-note">{err}</p> : null}

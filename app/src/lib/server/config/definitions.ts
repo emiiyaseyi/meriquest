@@ -11,6 +11,7 @@ import { DEFAULT_KUDOS } from "./kudos-content";
 import { DEFAULT_MARKET } from "./market-content";
 import { DEFAULT_CLIENTS } from "./clients-content";
 import { DEFAULT_COMPLIANCE } from "./compliance-content";
+import { DEFAULT_ARRIVALS } from "./arrivals-content";
 import { DEFAULT_CLIENTSIM } from "./clientsim-content";
 import { NEED_KEYS } from "@/lib/world/player";
 import { DECOR_MODELS } from "@/lib/world/types";
@@ -740,6 +741,8 @@ export const shiftsSchema = z
             skill: slug.optional(),
             /** True for a situation that only appears when an earlier choice leads to it (a chain), never drawn at random. */
             chainOnly: z.boolean().default(false),
+            /** True for a request a colleague brings to the person (a visitor), rather than something in the person's own work. */
+            internal: z.boolean().default(false),
             /** True once Compliance and a subject expert have checked it. New and changed situations start as drafts. */
             reviewed: z.boolean().default(false),
             choices: z
@@ -1146,6 +1149,27 @@ export const complianceSchema = z
   .refine((c) => c.settings.giftRecordLimit <= c.settings.giftDeclineLimit, "The record limit cannot be above the decline limit")
   .refine((c) => new Set(c.giftKinds.map((k) => k.id)).size === c.giftKinds.length, "Each kind needs its own id");
 
+export const arrivalsSchema = z
+  .object({
+    settings: z
+      .object({
+        enabled: z.boolean(),
+        clientsEverySeconds: z.number().int().min(1).max(1800),
+        internalPerDay: z.number().int().min(0).max(30),
+        internalEverySeconds: z.number().int().min(1).max(3600),
+        appointmentShare: z.number().int().min(0).max(100),
+        patienceSeconds: z.number().int().min(10).max(7200),
+        maxWaiting: z.number().int().min(1).max(12),
+        bookSize: z.number().int().min(0).max(40),
+        internalPointsBest: z.number().int().min(0).max(50),
+        internalPointsPartly: z.number().int().min(0).max(50),
+      })
+      .strict(),
+    names: z.array(z.string().min(1).max(30)).min(3).max(100),
+    departments: z.array(z.string().min(1).max(30)).min(1).max(30),
+  })
+  .strict();
+
 export const CONFIG = {
   terminology: {
     label: "Terminology",
@@ -1368,6 +1392,7 @@ export const CONFIG = {
         { id: "give-kudos", title: "Thank a colleague", description: "Send kudos to someone who helped you.", event: "kudos", target: 1, rewardPoints: 4 },
         { id: "first-trade", title: "Make a practice trade", description: "Buy or sell something in the practice market.", event: "trade", target: 1, rewardPoints: 4 },
         { id: "serve-client", title: "Serve a client", description: "Look after a fictional client in the Clients app.", event: "client", target: 1, rewardPoints: 5 },
+        { id: "help-colleague-visit", title: "Help a colleague", description: "See a colleague who comes to you with a request.", event: "visitor", target: 1, rewardPoints: 4 },
         { id: "two-coffees", title: "Two coffee chats", description: "Have two coffee chats with colleagues.", event: "coffee", target: 2, rewardPoints: 5 },
         { id: "two-shifts", title: "Two shifts in a day", description: "Finish two work shifts.", event: "shift", target: 2, rewardPoints: 10 },
         { id: "two-clients", title: "Serve two clients", description: "Finish two client simulation runs.", event: "sim", target: 2, rewardPoints: 10 },
@@ -1443,6 +1468,13 @@ export const CONFIG = {
     description: "The practice market behind Market and My Portfolio: the fictional instruments and their prices, the market states (calm, rally, sell-off, rate shock) and the calendar that plans them, the practice cash people start with by level, trading fees, the daily trade limit and the holding period. All prices are fictional and are never advice.",
     schema: marketSchema,
     default: DEFAULT_MARKET,
+  },
+  arrivals: {
+    label: "Visitors through the day",
+    group: "Gameplay",
+    description: "Clients and colleagues who come to each person through the day: how often they arrive while the person is in the game, how many clients have an appointment with the person as their account officer, how long a visitor waits before leaving, how many wait at once, the size of each person's client book, and the colleagues who bring requests. Visitors are paced by time in the game, never by the clock, so nothing goes wrong while someone is away.",
+    schema: arrivalsSchema,
+    default: DEFAULT_ARRIVALS,
   },
   compliance: {
     label: "Compliance Desk",

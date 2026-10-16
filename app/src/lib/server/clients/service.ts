@@ -11,7 +11,8 @@ import { audit } from "../audit";
 import { dayKey } from "@/lib/game";
 import { hashString } from "@/lib/iso/geometry";
 import { withStats } from "@/lib/stats";
-import { fill, scoreRun, type ClientCase, type Outcome, type Picks, type Rating } from "@/lib/clients";
+import { clientArrival, setArrivalStatus, syncArrivals } from "../arrivals/service";
+import { fill, scoreRun, type Outcome, type Picks, type Rating } from "@/lib/clients";
 
 /**
  * The Clients app (Client Desk). Each day a person is offered a few fictional clients that match their unit and
@@ -33,6 +34,9 @@ export interface ClientCard {
   archetype: string;
   icon: string;
   story: string;
+  /** An appointment with the person as their account officer, or a walk-in. */
+  kind: "appointment" | "walkin";
+  status: "waiting" | "serving" | "served" | "left";
   done: { csat: number; rating: Rating } | null;
 }
 export interface StepView {
@@ -43,8 +47,13 @@ export interface StepView {
   options: { id: string; text: string }[];
 }
 export interface ClientsView {
+  /** Clients who have arrived today, waiting first. */
   queue: ClientCard[];
+  /** Waiting or being seen now. */
   left: number;
+  /** Still to come today, and those who gave up waiting. */
+  expected: number;
+  gaveUp: number;
   current: StepView | null;
   served: number;
   avgCsat: number | null;
@@ -75,29 +84,30 @@ async function docFor(staffId: string, day: string): Promise<RunDoc> {
   return cur && cur.day === day ? cur : freshDoc(staffId, day);
 }
 
-/** How many clients a person is offered a day: the number set for their unit, or the general number. */
-export const perDayFor = (settings: { perDay: number; perDayByUnit: Record<string, number> }, unit: string): number => settings.perDayByUnit[unit] ?? settings.perDay;
-
-/** Today's clients for a person: their own unit's first, then the others they are experienced enough for, the same each day. */
-function queueFor(clients: ClientCase[], user: User, perDay: number, day: string): ClientCase[] {
-  const eligible = clients.filter((c) => (c.units.includes("*") || c.units.includes(user.unit)) && user.tenureYears >= c.minTenure);
-  const rank = (c: ClientCase) => (c.units.includes(user.unit) ? 0 : 1);
-  return [...eligible].sort((a, b) => rank(a) - rank(b) || hashString(`${user.staffId}:${day}:${a.id}`) - hashString(`${user.staffId}:${day}:${b.id}`)).slice(0, perDay);
-}
+export { perDayFor } from "@/lib/clients";
 
 async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> {
   const [cfg, player] = await Promise.all([getConfig("clients"), getOrCreatePlayer(user, now)]);
-  const day = doc.day;
   const byArche = new Map(cfg.archetypes.map((a) => [a.id, a]));
-  const queue = queueFor(cfg.clients, user, perDayFor(cfg.settings, user.unit), day).map((c) => ({
-    id: c.id,
-    name: c.name,
-    type: c.type,
-    archetype: byArche.get(c.archetype)?.label ?? c.archetype,
-    icon: byArche.get(c.archetype)?.icon ?? "🙂",
-    story: c.story,
-    done: doc.done[c.id] ? { csat: doc.done[c.id].csat, rating: doc.done[c.id].rating } : null,
-  }));
+  // Only clients who have arrived are shown: they come through the day while the person is in the game
+  const arrivals = await syncArrivals(user, now);
+  const here = arrivals.items.filter((i) => i.kind !== "internal" && i.status !== "planned");
+  const order = { serving: 0, waiting: 1, served: 2, left: 3 } as const;
+  const queue: ClientCard[] = here
+    .map((i) => ({ i, c: cfg.clients.find((x) => x.id === i.ref) }))
+    .filter((x): x is { i: (typeof here)[number]; c: NonNullable<typeof x.c> } => !!x.c)
+    .map(({ i, c }) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      archetype: byArche.get(c.archetype)?.label ?? c.archetype,
+      icon: byArche.get(c.archetype)?.icon ?? "🙂",
+      story: c.story,
+      kind: i.kind as "appointment" | "walkin",
+      status: i.status as "waiting" | "serving" | "served" | "left",
+      done: doc.done[c.id] ? { csat: doc.done[c.id].csat, rating: doc.done[c.id].rating } : null,
+    }))
+    .sort((a, b) => order[a.status] - order[b.status]);
   let current: StepView | null = null;
   if (doc.current) {
     const c = cfg.clients.find((x) => x.id === doc.current?.clientId);
@@ -115,7 +125,7 @@ async function view(user: User, doc: RunDoc, now: number): Promise<ClientsView> 
     }
   }
   const st = withStats(player.stats);
-  return { queue, left: queue.filter((q) => !q.done).length, current, served: st.clientsServed, avgCsat: st.clientsServed > 0 ? Math.round((st.csatTotal / st.clientsServed) * 10) / 10 : null };
+  return { queue, left: queue.filter((q) => q.status === "waiting" || q.status === "serving").length, expected: arrivals.items.filter((i) => i.kind !== "internal" && i.status === "planned").length, gaveUp: arrivals.items.filter((i) => i.kind !== "internal" && i.status === "left").length, current, served: st.clientsServed, avgCsat: st.clientsServed > 0 ? Math.round((st.csatTotal / st.clientsServed) * 10) / 10 : null };
 }
 
 export async function getClients(user: User, now: number = Date.now()): Promise<ClientsView> {
@@ -126,9 +136,9 @@ export async function startClient(user: User, clientId: unknown, now: number = D
   const decision = await playStatus(user, "world", now);
   if (!decision.allowed) return { ok: false, error: decision.message };
   if (typeof clientId !== "string" || clientId.length > 41) return { ok: false, error: "That client is not available." };
-  const [cfg, day] = await Promise.all([getConfig("clients"), today(now)]);
-  const todays = queueFor(cfg.clients, user, perDayFor(cfg.settings, user.unit), day);
-  if (!todays.some((c) => c.id === clientId)) return { ok: false, error: "That client is not in today's list." };
+  const day = await today(now);
+  // Only a client who has arrived and is waiting can be seen
+  if (!(await clientArrival(user, clientId, now))) return { ok: false, error: "That client is not waiting right now." };
   let refusal: string | null = null;
   const saved = await getStore().update<RunDoc>("client_runs", user.staffId, (cur) => {
     const d = cur && cur.day === day ? cur : freshDoc(user.staffId, day);
@@ -143,6 +153,7 @@ export async function startClient(user: User, clientId: unknown, now: number = D
     return { ...d, current: { clientId, step: 0, picks: { tags: [], kind: null } } };
   });
   if (refusal) return { ok: false, error: refusal };
+  await setArrivalStatus(user.staffId, clientId, "waiting", "serving");
   return { ok: true, view: await view(user, saved as RunDoc, now) };
 }
 
@@ -194,6 +205,7 @@ export async function answerClient(user: User, optionId: unknown, now: number = 
     return { ...p, points: p.points + points, stats: { ...s, clientsServed: s.clientsServed + 1, csatTotal: s.csatTotal + res.csat, clientBreaches: s.clientBreaches + (res.breaches.length > 0 ? 1 : 0) }, updatedAt: now };
   });
   await notify(user.staffId, { icon: res.breaches.length > 0 ? "⚠️" : "🤝", text: `${client.name}: rating ${res.csat} of 5${res.breaches.length > 0 ? ", with a compliance breach recorded" : ""}.${points > 0 ? ` +${points} Merit points.` : ""}`, tone: res.breaches.length > 0 ? "bad" : "good" }, now);
+  await setArrivalStatus(user.staffId, client.id, "serving", "served");
   await audit(user.staffId, "clients.served", client.id, { csat: res.csat, breaches: res.breaches.length }, now);
   await recordEvent(user.staffId, "client", now);
   // What happens next: the client's decision, then each breach. The most serious thing to come back later arrives in Updates after a while.
