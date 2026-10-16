@@ -82,6 +82,12 @@ describe("scenarios with consequences", () => {
 
 describe("how much is written for each track", () => {
   const count = (unit: string) => rich.filter((t) => t.units.includes(unit)).length;
+  it("has written at least 25 Wealth Advisory scenarios, with chains and colleague requests", () => {
+    expect(count("wealth")).toBeGreaterThanOrEqual(25);
+    expect(rich.filter((t) => t.units.includes("wealth") && t.internal).length).toBeGreaterThanOrEqual(5);
+    expect(rich.filter((t) => t.units.includes("wealth") && t.chainOnly).length).toBeGreaterThanOrEqual(3);
+  });
+
   it("has written at least 25 Customer Experience scenarios, with some that come to the person as visitors", () => {
     expect(count("cx")).toBeGreaterThanOrEqual(25);
     expect(rich.filter((t) => t.units.includes("cx") && t.internal).length).toBeGreaterThanOrEqual(5);
