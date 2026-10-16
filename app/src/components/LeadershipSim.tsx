@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { answerLeadAction, startLeadAction } from "@/app/actions/leadership";
 import { getMine } from "@/lib/client/api";
 import type { LeadResult, LeadView } from "@/lib/server/leadership/service";
+import { ConsequencePanel } from "@/components/ConsequencePanel";
 
 type Ok = Extract<LeadResult, { ok: true }>;
 
@@ -72,6 +73,7 @@ export function LeadershipSim({ onBack, kind = "leadership" }: { onBack: () => v
               ))}
             </p>
           ) : null}
+          <ConsequencePanel consequence={last.consequence} comesBack={last.comesBack} nextTitle={last.nextTitle} />
         </div>
       ) : null}
 

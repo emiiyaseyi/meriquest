@@ -130,7 +130,7 @@ async function applyDecay(staffId: string, now: number): Promise<PlayerRecord> {
 }
 
 async function view(player: PlayerRecord, mission: MissionDay, now: number): Promise<GameState> {
-  const [unread, online] = await Promise.all([unreadCount(player), onlineNow(now)]);
+  const [unread, online] = await Promise.all([unreadCount(player, now), onlineNow(now)]);
   const [gameplay, work, locations] = await Promise.all([getConfig("gameplay"), getConfig("workFirst"), getConfig("locations")]);
   const skills = gameplay.skills.map((s) => skillStanding(s, player.skillXp?.[s.id] ?? 0));
   const missions: MissionView[] = mission.picks.flatMap((id) => {

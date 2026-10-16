@@ -3,7 +3,8 @@ import { getConfig } from "../config/registry";
 import { getStore } from "../store";
 import type { UserDTO } from "../types";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
-import { notify } from "../notices/service";
+import { notify, scheduleNotice } from "../notices/service";
+import { MAX_CHAIN, type Consequence, type FollowUp } from "@/lib/consequence";
 import { recordEvent } from "../game/missions";
 import { dayKey, effectTags } from "@/lib/game";
 import { withStats } from "@/lib/stats";
@@ -58,7 +59,7 @@ export interface ShiftView {
   };
 }
 
-export type ShiftResult = { ok: true; view: ShiftView; message: string; verdict?: Verdict; feedback?: string } | { ok: false; error: string };
+export type ShiftResult = { ok: true; view: ShiftView; message: string; verdict?: Verdict; feedback?: string; /** What happens next in real life, for the choice just made. */ consequence?: Consequence; /** The title of the situation this choice leads to, when it does. */ nextTitle?: string; /** True when something will come back to the person later (in Updates). */ comesBack?: boolean } | { ok: false; error: string };
 
 /** The work style a shift uses: the one picked if it still exists, otherwise the first in the list. */
 const styleOf = (cfg: Cfg, id: string | undefined) => cfg.workStyles.find((s) => s.id === id) ?? cfg.workStyles[0];
@@ -101,13 +102,13 @@ export async function getShift(user: Pick<UserDTO, "staffId">, now: number = Dat
   return viewOf(p, cfg, tz, now);
 }
 
-type Change = (p: PlayerRecord, cfg: Cfg, tz: string) => { next: Partial<PlayerRecord>; message: string; verdict?: Verdict; feedback?: string } | string;
+type Change = (p: PlayerRecord, cfg: Cfg, tz: string) => { next: Partial<PlayerRecord>; message: string; verdict?: Verdict; feedback?: string; consequence?: Consequence; nextTitle?: string; comesBack?: boolean } | string;
 
 async function change(user: Pick<UserDTO, "staffId">, now: number, fn: Change): Promise<ShiftResult> {
   const { cfg, tz } = await ctx();
   await getOrCreatePlayer(user, now);
   let refusal: string | null = null;
-  let out: { message: string; verdict?: Verdict; feedback?: string } = { message: "" };
+  let out: { message: string; verdict?: Verdict; feedback?: string; consequence?: Consequence; nextTitle?: string; comesBack?: boolean } = { message: "" };
   const saved = await getStore().update<PlayerRecord>("players", user.staffId, (cur) => {
     if (!cur) return cur;
     const r = fn(cur, cfg, tz);
@@ -115,7 +116,7 @@ async function change(user: Pick<UserDTO, "staffId">, now: number, fn: Change): 
       refusal = r;
       return cur;
     }
-    out = { message: r.message, verdict: r.verdict, feedback: r.feedback };
+    out = { message: r.message, verdict: r.verdict, feedback: r.feedback, consequence: r.consequence, nextTitle: r.nextTitle, comesBack: r.comesBack };
     return { ...cur, ...r.next, updatedAt: now };
   });
   if (refusal) return { ok: false, error: refusal };
@@ -131,7 +132,7 @@ export function startShift(user: Pick<UserDTO, "staffId" | "unit">, now: number 
     const ids = drawTasks(cfg.tasks as ShiftTaskDef[], user.unit, cfg.settings.tasksPerShift, `${user.staffId}|${today}|${count}`);
     if (ids.length === 0) return "There are no situations set up for your shift yet.";
     if (styleId !== undefined && (typeof styleId !== "string" || !cfg.workStyles.some((s) => s.id === styleId))) return "Choose one of the work styles.";
-    const rec: ShiftRecord = { style: styleOf(cfg, styleId as string | undefined).id, startedAt: now, endsAt: now + cfg.settings.minutes * 60_000, minutes: cfg.settings.minutes, taskIds: ids, answers: {} };
+    const rec: ShiftRecord = { base: ids.length, style: styleOf(cfg, styleId as string | undefined).id, startedAt: now, endsAt: now + cfg.settings.minutes * 60_000, minutes: cfg.settings.minutes, taskIds: ids, answers: {} };
     return { next: { shift: rec, shiftDay: { day: today, count: count + 1 } }, message: `Your shift has started. Stay ${cfg.settings.minutes} minute${cfg.settings.minutes === 1 ? "" : "s"} to be paid.` };
   });
 }
@@ -147,20 +148,41 @@ export function setShiftStyle(user: Pick<UserDTO, "staffId">, styleId: unknown, 
   });
 }
 
-export function answerShiftTask(user: Pick<UserDTO, "staffId">, taskId: unknown, shown: unknown, now: number = Date.now()): Promise<ShiftResult> {
-  return change(user, now, (p, cfg) => {
+export async function answerShiftTask(user: Pick<UserDTO, "staffId">, taskId: unknown, shown: unknown, now: number = Date.now()): Promise<ShiftResult> {
+  let followUp: FollowUp | undefined;
+  const r = await change(user, now, (p, cfg) => {
     const rec = p.shift;
     if (!rec) return "You are not on a shift.";
     if (typeof taskId !== "string") return "That situation is not part of your shift.";
     const i = rec.taskIds.indexOf(taskId);
-    const def = byIdOf(cfg).get(taskId);
+    const defs = byIdOf(cfg);
+    const def = defs.get(taskId);
     if (i < 0 || !def) return "That situation is not part of your shift.";
     if (rec.answers[taskId]) return "You have already answered that one.";
     if (opensAt(rec, i) > now) return "That situation has not come up yet.";
     if (typeof shown !== "number" || !Number.isInteger(shown) || shown < 0 || shown >= def.choices.length) return "Please pick one of the choices.";
     const picked = def.choices[choiceOrder(p.staffId, taskId, def.choices.length)[shown]];
-    return { next: { shift: { ...rec, answers: { ...rec.answers, [taskId]: { shown, verdict: picked.verdict, at: now } } } }, message: picked.verdict === "best" ? "Well handled." : picked.verdict === "partly" ? "Not bad, but there was a better way." : "That is not how we would handle it.", verdict: picked.verdict, feedback: picked.feedback };
+    followUp = picked.followUp as FollowUp | undefined;
+    // A choice can lead to another situation. It is added while there is still time to answer it, and never more than MAX_CHAIN in one shift.
+    let taskIds = rec.taskIds;
+    let opens = rec.opens;
+    let nextTitle: string | undefined;
+    const base = rec.base ?? rec.taskIds.length;
+    const next = picked.next ? defs.get(picked.next) : undefined;
+    if (next && !rec.taskIds.includes(next.id) && rec.taskIds.length - base < MAX_CHAIN && now + 60_000 < rec.endsAt) {
+      taskIds = [...rec.taskIds, next.id];
+      opens = { ...(rec.opens ?? {}), [next.id]: now + 15_000 };
+      nextTitle = next.title;
+    }
+    const message = picked.verdict === "best" ? "Well handled." : picked.verdict === "partly" ? "Not bad, but there was a better way." : "That is not how we would handle it.";
+    return { next: { shift: { ...rec, base, taskIds, opens, answers: { ...rec.answers, [taskId]: { shown, verdict: picked.verdict, at: now } } } }, message, verdict: picked.verdict, feedback: picked.feedback, consequence: picked.consequence as Consequence | undefined, nextTitle, comesBack: !!picked.followUp };
   });
+  // Real consequences take time to show: the follow-up reaches the person's Updates later
+  if (r.ok && followUp) {
+    const f: FollowUp = followUp;
+    await scheduleNotice(user.staffId, { icon: f.icon, text: f.text, tone: f.tone }, now + f.afterMinutes * 60_000);
+  }
+  return r;
 }
 
 /** Finish the shift. It pays only when the shift time is up; leaving early ends it with no pay. */

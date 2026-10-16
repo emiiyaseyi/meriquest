@@ -696,6 +696,24 @@ export const decorSchema = z
   .refine((d) => d.items.every((i) => d.categories.some((c) => c.id === i.category)), "Every item must belong to a category in the list")
   .refine((d) => d.items.every((i) => i.w <= d.settings.gridW && i.d <= d.settings.gridD), "An item is bigger than the room");
 
+/** What happens after a choice: see lib/consequence.ts. */
+const consequenceSchema = z
+  .object({
+    headline: z.string().min(1).max(140),
+    timeline: z.array(z.object({ when: z.string().min(1).max(24), text: z.string().min(1).max(300) }).strict()).min(1).max(4),
+    impact: z.array(z.object({ who: z.enum(["Client", "Firm", "You", "Team"]), tone: z.enum(["good", "bad", "mixed"]), text: z.string().min(1).max(180) }).strict()).max(4),
+  })
+  .strict();
+
+const followUpSchema = z
+  .object({
+    afterMinutes: z.number().int().min(1).max(1440),
+    icon: z.string().min(1).max(8),
+    text: z.string().min(1).max(300),
+    tone: z.enum(["good", "bad", "info"]),
+  })
+  .strict();
+
 export const shiftsSchema = z
   .object({
     settings: z
@@ -720,8 +738,26 @@ export const shiftsSchema = z
             title: z.string().min(1).max(80),
             story: z.string().min(1).max(600),
             skill: slug.optional(),
+            /** True for a situation that only appears when an earlier choice leads to it (a chain), never drawn at random. */
+            chainOnly: z.boolean().default(false),
+            /** True once Compliance and a subject expert have checked it. New and changed situations start as drafts. */
+            reviewed: z.boolean().default(false),
             choices: z
-              .array(z.object({ text: z.string().min(1).max(300), verdict: z.enum(["best", "partly", "wrong"]), feedback: z.string().min(1).max(300) }).strict())
+              .array(
+                z
+                  .object({
+                    text: z.string().min(1).max(300),
+                    verdict: z.enum(["best", "partly", "wrong"]),
+                    feedback: z.string().min(1).max(300),
+                    /** What happens next in real life, shown after the choice. */
+                    consequence: consequenceSchema.optional(),
+                    /** An update that arrives later, because real consequences do not appear at once. */
+                    followUp: followUpSchema.optional(),
+                    /** The id of the situation this choice leads to next. */
+                    next: slug.optional(),
+                  })
+                  .strict(),
+              )
               .min(2)
               .max(4)
               .refine((c) => c.some((x) => x.verdict === "best"), "One choice must be the best"),
@@ -729,8 +765,10 @@ export const shiftsSchema = z
           .strict(),
       )
       .min(1)
-      .max(200)
-      .refine((t) => new Set(t.map((x) => x.id)).size === t.length, "Each situation needs its own id"),
+      .max(500)
+      .refine((t) => new Set(t.map((x) => x.id)).size === t.length, "Each situation needs its own id")
+      .refine((t) => t.every((x) => x.choices.every((c) => !c.next || t.some((y) => y.id === c.next && y.id !== x.id))), "A choice leads to a situation that does not exist")
+      .refine((t) => t.some((x) => !x.chainOnly), "At least one situation must be drawn at random (not chain-only)"),
     /**
      * How a person chooses to work during a shift. A style changes the pay (as a percentage) and how the needs move when the
      * shift is finished. It never changes whether a decision counts as good, so development scores stay about the quality of decisions.
@@ -848,6 +886,10 @@ function makeSimSchema(withUnits: boolean) {
             story: z.string().min(1).max(500),
             /** Units this case is for (used by the client simulation); * means everyone. */
             ...(withUnits ? { units: z.array(z.string().min(1).max(30)).min(1).max(10).default(["*"]) } : {}),
+            /** True for a scenario that only appears when an earlier choice leads to it (a chain), never dealt at random. */
+            chainOnly: z.boolean().default(false),
+            /** True once Compliance and a subject expert have checked it. */
+            reviewed: z.boolean().default(false),
             choices: z
               .array(
                 z
@@ -856,6 +898,12 @@ function makeSimSchema(withUnits: boolean) {
                     /** Change to each meter, by meter id (-30 to 30). */
                     effects: z.record(slug, z.number().int().min(-30).max(30)),
                     feedback: z.string().min(1).max(300),
+                    /** What happens next in real life, shown after the choice. */
+                    consequence: consequenceSchema.optional(),
+                    /** An update that arrives later. */
+                    followUp: followUpSchema.optional(),
+                    /** The id of the scenario this choice leads to next. */
+                    next: slug.optional(),
                   })
                   .strict(),
               )
@@ -865,8 +913,10 @@ function makeSimSchema(withUnits: boolean) {
           .strict(),
       )
       .min(1)
-      .max(60)
-      .refine((s) => new Set(s.map((x) => x.id)).size === s.length, "Each scenario needs its own id"),
+      .max(200)
+      .refine((s) => new Set(s.map((x) => x.id)).size === s.length, "Each scenario needs its own id")
+      .refine((s) => s.every((x) => x.choices.every((c) => !c.next || s.some((y) => y.id === c.next && y.id !== x.id))), "A choice leads to a scenario that does not exist")
+      .refine((s) => s.some((x) => !x.chainOnly), "At least one scenario must be dealt at random (not chain-only)"),
   })
   .strict()
   .refine((d) => d.scenarios.every((s) => s.choices.every((c) => Object.keys(c.effects).every((k) => d.meters.some((m) => m.id === k)))), "A choice changes a meter that is not in the list")

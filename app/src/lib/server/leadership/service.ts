@@ -3,7 +3,8 @@ import { getConfig } from "../config/registry";
 import { getStore } from "../store";
 import type { UserDTO } from "../types";
 import { getOrCreatePlayer, type PlayerRecord } from "../world/service";
-import { notify } from "../notices/service";
+import { notify, scheduleNotice } from "../notices/service";
+import { MAX_CHAIN, type Consequence, type FollowUp } from "@/lib/consequence";
 import { recordEvent } from "../game/missions";
 import { dayKey } from "@/lib/game";
 import { withStats } from "@/lib/stats";
@@ -31,10 +32,10 @@ export interface LeadView {
 }
 
 export type LeadResult =
-  | { ok: true; view: LeadView; feedback?: string; changes?: { label: string; icon: string; delta: number }[]; finished?: { rating: Rating; points: number; meters: LeadView["meters"] } }
+  | { ok: true; view: LeadView; feedback?: string; /** What happens next in real life, for the choice just made. */ consequence?: Consequence; nextTitle?: string; comesBack?: boolean; changes?: { label: string; icon: string; delta: number }[]; finished?: { rating: Rating; points: number; meters: LeadView["meters"] } }
   | { ok: false; error: string };
 
-type Run = { ids: string[]; idx: number; meters: Record<string, number>; seed: number };
+type Run = { ids: string[]; idx: number; meters: Record<string, number>; seed: number; /** How many scenarios were added by chains in this run. */ chained?: number };
 type Slot = { day: string; count: number; run?: Run };
 
 async function ctx(kind: SimKind) {
@@ -66,7 +67,8 @@ export async function getSim(user: Pick<UserDTO, "staffId">, kind: SimKind, now:
 /** The cases a person may be dealt: the ones for their unit and the ones for everyone. */
 function dealable(cfg: Cfg, unit: string | undefined): Scenario[] {
   const all = cfg.scenarios as Scenario[];
-  return all.filter((s) => !s.units || s.units.includes("*") || (unit !== undefined && s.units.includes(unit)));
+  // Chain-only scenarios are never dealt at random: they only appear when an earlier choice leads to them
+  return all.filter((s) => !(s as { chainOnly?: boolean }).chainOnly && (!s.units || s.units.includes("*") || (unit !== undefined && s.units.includes(unit))));
 }
 
 export async function startSim(user: Pick<UserDTO, "staffId"> & Partial<Pick<UserDTO, "unit">>, kind: SimKind, now: number = Date.now()): Promise<LeadResult> {
@@ -105,6 +107,9 @@ export async function answerSim(user: Pick<UserDTO, "staffId">, kind: SimKind, s
   const field = FIELD[kind];
   let refusal: string | null = null;
   let feedback = "";
+  let consequence: Consequence | undefined;
+  let followUp: FollowUp | undefined;
+  let nextTitle: string | undefined;
   let changes: { label: string; icon: string; delta: number }[] = [];
   let finished: { rating: Rating; points: number } | undefined;
   let finalMeters: Record<string, number> = {};
@@ -127,8 +132,20 @@ export async function answerSim(user: Pick<UserDTO, "staffId">, kind: SimKind, s
     const choice = sc.choices[order(run.seed + hashString(sc.id), sc.choices.length)[shown]];
     const meters = applyChoice(run.meters, choice.effects);
     feedback = choice.feedback;
+    consequence = (choice as { consequence?: Consequence }).consequence;
+    followUp = (choice as { followUp?: FollowUp }).followUp;
+    // A choice can lead to another scenario: it replaces the next one planned (or is added at the end), never more than MAX_CHAIN a run
+    let ids = run.ids;
+    let chained = run.chained ?? 0;
+    const nextId = (choice as { next?: string }).next;
+    const nextSc = nextId ? (cfg.scenarios as Scenario[]).find((s) => s.id === nextId) : undefined;
+    if (nextSc && !run.ids.includes(nextSc.id) && chained < MAX_CHAIN) {
+      ids = run.idx + 1 < run.ids.length ? run.ids.map((id, i) => (i === run.idx + 1 ? nextSc.id : id)) : [...run.ids, nextSc.id];
+      chained += 1;
+      nextTitle = nextSc.title;
+    }
     changes = cfg.meters.map((m) => ({ label: m.label, icon: m.icon, delta: meters[m.id] - run.meters[m.id] })).filter((c) => c.delta !== 0);
-    if (run.idx + 1 < run.ids.length) return { ...cur, [field]: { ...slot, run: { ...run, idx: run.idx + 1, meters } }, updatedAt: now };
+    if (run.idx + 1 < ids.length) return { ...cur, [field]: { ...slot, run: { ...run, ids, chained, idx: run.idx + 1, meters } }, updatedAt: now };
     const rating = rate(meters, { great: cfg.settings.greatAverage, good: cfg.settings.goodAverage, floor: cfg.settings.floor });
     const points = rating === "great" ? cfg.settings.pointsGreat : rating === "good" ? cfg.settings.pointsGood : cfg.settings.pointsLearning;
     finished = { rating, points };
@@ -142,13 +159,18 @@ export async function answerSim(user: Pick<UserDTO, "staffId">, kind: SimKind, s
   });
   if (refusal) return { ok: false, error: refusal };
   const p = saved as PlayerRecord;
+  // Real consequences take time to show: the follow-up reaches the person's Updates later
+  if (followUp) {
+    const f: FollowUp = followUp;
+    await scheduleNotice(user.staffId, { icon: f.icon, text: f.text, tone: f.tone }, now + f.afterMinutes * 60_000);
+  }
   if (finished) {
     const f: { rating: Rating; points: number } = finished;
     await recordEvent(user.staffId, kind === "leadership" ? "lead" : "sim", now);
     await notify(user.staffId, { icon: kind === "leadership" ? "🧭" : "💼", text: `${LABEL[kind]} finished: ${f.rating === "great" ? "great" : f.rating === "good" ? "good" : "a learning run"}. +${f.points} Merit points.`, tone: "good" }, now);
-    return { ok: true, view: viewOf(p, cfg, tz, now, kind), feedback, changes, finished: { ...f, meters: cfg.meters.map((m) => ({ id: m.id, label: m.label, icon: m.icon, value: finalMeters[m.id] ?? 0 })) } };
+    return { ok: true, view: viewOf(p, cfg, tz, now, kind), feedback, consequence, nextTitle, comesBack: !!followUp, changes, finished: { ...f, meters: cfg.meters.map((m) => ({ id: m.id, label: m.label, icon: m.icon, value: finalMeters[m.id] ?? 0 })) } };
   }
-  return { ok: true, view: viewOf(p, cfg, tz, now, kind), feedback, changes };
+  return { ok: true, view: viewOf(p, cfg, tz, now, kind), feedback, consequence, nextTitle, comesBack: !!followUp, changes };
 }
 
 // The leadership simulator under its original names

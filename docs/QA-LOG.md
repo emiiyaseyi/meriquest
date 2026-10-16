@@ -4,6 +4,18 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## S2: Consequences engine for scenarios (16 Oct 2026)
+Scope: owner request to make the scenarios show **the consequences of a choice as in real life**, in Customer Experience, Wealth Advisory, Investment Advisory and Leadership. This is the engine; the content follows in batches. Every choice in a shift situation, client-simulation case and leadership scenario can now carry: (1) a **consequence**: a headline, a timeline (Today / This week / This month) and who is affected (Client, Firm, You, Team), shown after the choice; (2) a **follow-up** that arrives in **Updates later** (real minutes standing in for days), held in the person's notice box and moved in when due; (3) a **next situation**, so a choice can lead to a chained one (at most 3 per shift or run, never added too late to answer, chain-only situations are never dealt at random). Settings gained `consequence`, `followUp`, `next`, `chainOnly` and `reviewed` (new situations start as drafts for Compliance review); the form editor shows them. New shared panel for the results in the shift card and the leadership and client simulation screens. 9 new tests (635 total).
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: 635 of 635 tests, lint, build, audit |
+| 2 | Input validation | **Pass** | all new fields bounded by the schema (lengths, counts, a chain must point at an existing other situation, at least one situation must be dealt at random); text is rendered as text, never as HTML |
+| 3 | Economy and fairness | **Pass** | a chain cannot run away (3 maximum) and cannot add a situation with no time left to answer it; follow-ups have no points effect |
+| 4 | Authz, secrets, security review | **Pass** | no new routes; all state stays in the person's own record and notice box |
+
+---
+
 ## U5: Lift took people to their desk; location bar spacing; test limits (15 Oct 2026)
 Scope: three owner reports. (1) **The lift to Floor 1 showed the person's own desk instead of the floor.** Cause: Floor 1 holds two rooms (the personal Workspace, listed first, and the open-plan floor) and the lift went to the first room of the level. A new rule (`liftRooms`, `isPersonalRoom`) keeps personal rooms out of the lift list, so Floor 1 offers the open-plan floor; and when someone is in their Workspace the lift no longer says "You are here" for Floor 1. 2 new tests. (2) **The needs panel and the location bar were too close.** Measured in a real browser at seven widths (900 to 1920 px): the needs panel is a fixed 12 to 434 px, but the bar was centred on the screen, so it came within 14 px or overlapped on mid-width screens. The bar now starts 32 px to the right of the needs panel and stops 190 px short of the right edge (clear of the Go to work button) at 900 px and wider, so there is always a clear gap on both sides. (3) **Test limits.** The full suite timed out again on a busy machine (a database start-up hook at 10 s, then a whole-app test at 5 s): the project now allows 30 s per test and 60 s per start-up hook (`vitest.config.mts`), and the database suite's own start-up hook also gets 60 s. Before this the log recorded two runs that stopped on that timeout.
 

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { answerShiftAction, finishShiftAction, leaveShiftAction, setShiftStyleAction, startShiftAction } from "@/app/actions/shift";
 import { getMine } from "@/lib/client/api";
 import type { ShiftResult, ShiftView } from "@/lib/server/shift/service";
+import type { Consequence } from "@/lib/consequence";
+import { ConsequencePanel } from "@/components/ConsequencePanel";
 
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -18,7 +20,7 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
   const [view, setView] = useState<ShiftView | null>(null);
   const [now, setNow] = useState<number | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ verdict: string; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ verdict: string; text: string; consequence?: Consequence; comesBack?: boolean; nextTitle?: string } | null>(null);
   const [open, setOpen] = useState(true);
   const [busy, start] = useTransition();
 
@@ -140,7 +142,7 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
                   run(
                     () => answerShiftAction(active.id, i),
                     (r) => {
-                      setFeedback({ verdict: r.verdict ?? "partly", text: r.feedback ?? r.message });
+                      setFeedback({ verdict: r.verdict ?? "partly", text: r.feedback ?? r.message, consequence: r.consequence, comesBack: r.comesBack, nextTitle: r.nextTitle });
                       onUpdate();
                     },
                   )
@@ -157,6 +159,7 @@ export function ShiftHud({ onPoints, onUpdate, hidden }: { onPoints: () => void;
         <div className={`shift-event result ${feedback.verdict}`} role="dialog" aria-label="Result">
           <h3>{feedback.verdict === "best" ? "Well handled" : feedback.verdict === "partly" ? "Not bad" : "Not quite"}</h3>
           <p>{feedback.text}</p>
+          <ConsequencePanel consequence={feedback.consequence} comesBack={feedback.comesBack} nextTitle={feedback.nextTitle} />
           <button type="button" className="primary-wide" onClick={() => setFeedback(null)}>Continue</button>
         </div>
       ) : null}

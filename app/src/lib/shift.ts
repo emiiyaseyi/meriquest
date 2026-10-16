@@ -1,4 +1,5 @@
 import { hashString, seeded } from "@/lib/iso/geometry";
+import type { Consequence, FollowUp } from "@/lib/consequence";
 
 /**
  * Work shifts: press Go to work, stay for the shift, answer the workplace situations that come up, and be paid in
@@ -14,7 +15,10 @@ export interface ShiftTaskDef {
   title: string;
   story: string;
   skill?: string;
-  choices: { text: string; verdict: Verdict; feedback: string }[];
+  /** Only appears when an earlier choice leads to it. */
+  chainOnly?: boolean;
+  reviewed?: boolean;
+  choices: { text: string; verdict: Verdict; feedback: string; consequence?: Consequence; followUp?: FollowUp; next?: string }[];
 }
 
 export interface ShiftSettings {
@@ -34,13 +38,19 @@ export interface ShiftRecord {
   endsAt: number;
   minutes: number;
   taskIds: string[];
+  /** How many of the taskIds were drawn at the start; the rest were added by chains. */
+  base?: number;
+  /** Opening times for situations added by a chain (they do not follow the even spread). */
+  opens?: Record<string, number>;
   /** The verdict and the choice the person saw, for each answered task. */
   answers: Record<string, { shown: number; verdict: Verdict; at: number }>;
 }
 
 /** When task number `i` (from 0) appears: spread evenly across the shift, the first one straight away. */
-export function opensAt(rec: Pick<ShiftRecord, "startedAt" | "minutes" | "taskIds">, i: number): number {
-  return rec.startedAt + Math.floor((i * rec.minutes * 60_000) / Math.max(1, rec.taskIds.length));
+export function opensAt(rec: Pick<ShiftRecord, "startedAt" | "minutes" | "taskIds" | "base" | "opens">, i: number): number {
+  const chained = rec.opens?.[rec.taskIds[i]];
+  if (chained !== undefined) return chained;
+  return rec.startedAt + Math.floor((i * rec.minutes * 60_000) / Math.max(1, rec.base ?? rec.taskIds.length));
 }
 
 /** Pick the situations for a shift: the person's unit first, then ones for everyone, never repeating. */
@@ -54,8 +64,10 @@ export function drawTasks(pool: ShiftTaskDef[], unit: string, n: number, seed: s
     }
     return out;
   };
-  const mine = shuffle(pool.filter((t) => t.units.includes(unit)));
-  const rest = shuffle(pool.filter((t) => !t.units.includes(unit) && t.units.includes("*")));
+  // Chain-only situations are never drawn: they only appear when an earlier choice leads to them
+  const open = pool.filter((t) => !t.chainOnly);
+  const mine = shuffle(open.filter((t) => t.units.includes(unit)));
+  const rest = shuffle(open.filter((t) => !t.units.includes(unit) && t.units.includes("*")));
   // Mix them so a shift is mostly the person's own work with some general situations
   const picked: ShiftTaskDef[] = [];
   const own = Math.min(mine.length, Math.max(1, Math.ceil(n * 0.7)));

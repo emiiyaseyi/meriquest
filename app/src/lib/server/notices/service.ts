@@ -22,11 +22,33 @@ export interface Notice {
   read: boolean;
 }
 
+interface PendingNotice {
+  id: string;
+  /** When it arrives in the person's Updates. */
+  dueAt: number;
+  icon: string;
+  text: string;
+  tone: NoticeTone;
+}
+
 interface NoticeBox {
   id: string; // staffId
   staffId: string;
   items: Notice[];
+  /** Follow-ups that have not arrived yet: real consequences do not show up at once. */
+  pending?: PendingNotice[];
 }
+
+/** Move the follow-ups whose time has come into the visible list (newest first), keeping the rest waiting. */
+function settle(box: NoticeBox, now: number): NoticeBox {
+  const waiting = box.pending ?? [];
+  const due = waiting.filter((p) => p.dueAt <= now);
+  if (due.length === 0) return box;
+  const arrived: Notice[] = due.sort((a, b) => b.dueAt - a.dueAt).map((p) => ({ id: p.id, at: p.dueAt, icon: p.icon, text: p.text, tone: p.tone, read: false }));
+  return { ...box, items: [...arrived, ...box.items].slice(0, MAX_NOTICES), pending: waiting.filter((p) => p.dueAt > now) };
+}
+
+const hasDue = (box: NoticeBox | null, now: number) => !!box?.pending?.some((p) => p.dueAt <= now);
 
 export const MAX_NOTICES = 100;
 const MAX_TEXT = 300;
@@ -41,13 +63,30 @@ export async function notify(staffId: string, n: { icon: string; text: string; t
   }
 }
 
-export async function listNotices(user: Pick<UserDTO, "staffId">): Promise<Notice[]> {
-  const box = await getStore().get<NoticeBox>("notices", user.staffId);
+/** Add an update that arrives later (a consequence that takes time to show). Never throws. */
+export async function scheduleNotice(staffId: string, n: { icon: string; text: string; tone?: NoticeTone }, dueAt: number): Promise<void> {
+  try {
+    const item: PendingNotice = { id: randomBytes(6).toString("hex"), dueAt, icon: n.icon.slice(0, 8), text: cleanText(n.text, MAX_TEXT).split(/\s+/).join(" "), tone: n.tone ?? "info" };
+    await getStore().update<NoticeBox>("notices", staffId, (cur) => ({ id: staffId, staffId, items: cur?.items ?? [], pending: [...(cur?.pending ?? []), item].slice(-30) }));
+  } catch {
+    console.error("[notices] could not schedule an update");
+  }
+}
+
+/** The person's box, with any follow-ups that are now due brought in (saved once, so they stay). */
+async function boxNow(staffId: string, now: number): Promise<NoticeBox | null> {
+  const box = await getStore().get<NoticeBox>("notices", staffId);
+  if (!hasDue(box, now)) return box;
+  return getStore().update<NoticeBox>("notices", staffId, (cur) => (cur ? settle(cur, now) : cur));
+}
+
+export async function listNotices(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<Notice[]> {
+  const box = await boxNow(user.staffId, now);
   return (box?.items ?? []).slice(0, MAX_NOTICES);
 }
 
-export async function unreadCount(user: Pick<UserDTO, "staffId">): Promise<number> {
-  const box = await getStore().get<NoticeBox>("notices", user.staffId);
+export async function unreadCount(user: Pick<UserDTO, "staffId">, now: number = Date.now()): Promise<number> {
+  const box = await boxNow(user.staffId, now);
   return (box?.items ?? []).filter((i) => !i.read).length;
 }
 
