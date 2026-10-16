@@ -4,6 +4,19 @@ Every change passes the gate in [RULEBOOK §5.1](RULEBOOK.md) before it is commi
 
 ---
 
+## X3: Investment Advisory scenarios with real-life consequences, 28 written (16 Oct 2026)
+Scope: third of the four tracks. **28 situations** for Investment Advisory in the same form: a story behind every choice, follow-ups in Updates, **chains** (a rumour shared becomes fallout; a tip to a friend becomes an inquiry; a margin call becomes a forced sale; a quietly edited note becomes a client holding two versions; a falsified booking becomes an Internal Audit interview) and **6 requests colleagues bring** (a deal leak question, skipping the committee, early research to sales, month-end marking, an IT password phish, trading before a restricted-list update). Topics include wall-crossing, best execution, spouse holdings, valuation pressure, client money in the house account, bond falls and posts about deals. Drafts for Compliance; no specific fines or deadlines. 1 new test for the track.
+
+| # | Gate | Result | Evidence |
+|---|---|---|---|
+| 1 | Build, types, lint, tests | **Pass** | `npm run qa` exit 0: all tests, no lint warnings, build, audit |
+| 2 | Content standard | **Pass** | `scenario-content.test.ts` holds every scenario to it |
+| 3 | Security | **Pass** | content only |
+
+Open: Compliance and a subject expert to review each scenario.
+
+---
+
 ## X2: Wealth Advisory scenarios with real-life consequences, 28 written (16 Oct 2026)
 Scope: second of the four tracks. **28 situations** for Wealth Advisory in the same form as Customer Experience: a story of what happens next behind every choice, follow-ups that arrive in Updates later, **chains** (a panic sale becomes "she sold at the bottom"; a hinted guarantee becomes "she holds you to the number"; a split instruction becomes a family dispute; a hidden reporting error becomes "did you know?"; a pushed in-house fund becomes a Compliance review where a manager asks you to take the blame), and **6 requests colleagues bring to the adviser** (an unverified return in a pitch, trustees asking for a client's details without her consent, which clients hold a share before a rating, "guaranteed" in a promotion, a colleague wanting to trade ahead of a client's order, a junior hiding an error). Topics include concentration risk, a windfall, money needed soon, fees, risk profiles, divorce, complex products, structuring, gifts, power of attorney, foreign-currency fear and skipped reviews. Written as **drafts for Compliance** with no specific fines or deadlines. 1 new test for the track (671 total).
 
